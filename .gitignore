@@ -1,0 +1,30 @@
+﻿# Node
+frontend/node_modules/
+frontend/dist/
+frontend/.cache/
+frontend/.vercel/
+frontend/.netlify/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Java / Maven
+backend/target/
+backend/*.log
+backend/*.iml
+backend/.mvn/wrapper/maven-wrapper.jar
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Env
+.env
+*.local

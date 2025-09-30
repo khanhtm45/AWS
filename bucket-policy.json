@@ -1,0 +1,28 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "PublicReadGetObject",
+            "Effect": "Allow",
+            "Principal": "*",
+            "Action": "s3:GetObject",
+            "Resource": "arn:aws:s3:::bloodline-dna-files-v3/*"
+        },
+        {
+            "Sid": "AllowUpload",
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": "arn:aws:iam::112611829164:user/bloodline-s3-group"
+            },
+            "Action": [
+                "s3:PutObject",
+                "s3:PutObjectAcl",
+                "s3:ListBucket"
+            ],
+            "Resource": [
+                "arn:aws:s3:::bloodline-dna-files-v3",
+                "arn:aws:s3:::bloodline-dna-files-v3/*"
+            ]
+        }
+    ]
+} 
