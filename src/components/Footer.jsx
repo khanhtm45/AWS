@@ -4,6 +4,23 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const Footer = () => {
+  const navigate = useNavigate();
+
+  const handleWarrantyClick = (e) => {
+    e.preventDefault();
+    navigate('/bao-hanh');
+  };
+
+  const handleExchangeClick = (e) => {
+    e.preventDefault();
+    navigate('/doi-tra');
+  };
+
+  const handleShippingClick = (e) => {
+    e.preventDefault();
+    navigate('/van-chuyen');
+  };
+
   return (
     <footer className="footer">
       {/* Features Section */}
@@ -79,9 +96,9 @@ const Footer = () => {
               <ul>
                 <li><a href="#gioi-thieu">Giới Thiệu</a></li>
                 <li><a href="#cua-hang">Cửa Hàng</a></li>
-                <li><a href="#bao-hanh">Bảo Hành</a></li>
-                <li><a href="#doi-tra">Đổi Trả</a></li>
-                <li><a href="#van-chuyen">Vận Chuyển</a></li>
+                <li><a href="#bao-hanh" onClick={handleWarrantyClick}>Bảo Hành</a></li>
+                <li><a href="#doi-tra" onClick={handleExchangeClick}>Đổi Trả</a></li>
+                <li><a href="#van-chuyen" onClick={handleShippingClick}>Vận Chuyển</a></li>
               </ul>
             </div>
 

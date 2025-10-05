@@ -5,6 +5,9 @@ import Footer from './components/Footer';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import SignUpPage from './pages/SignUpPage';
+import WarrantyPage from './pages/WarrantyPage';
+import ExchangePage from './pages/ExchangePage';
+import ShippingPage from './pages/ShippingPage';
 import { AuthProvider } from './context/AuthContext';
 
 function App() {
@@ -18,6 +21,9 @@ function App() {
               <Route path="/" element={<HomePage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/signup" element={<SignUpPage />} />
+              <Route path="/bao-hanh" element={<WarrantyPage />} />
+              <Route path="/doi-tra" element={<ExchangePage />} />
+              <Route path="/van-chuyen" element={<ShippingPage />} />
             </Routes>
           </main>
           <Footer />
