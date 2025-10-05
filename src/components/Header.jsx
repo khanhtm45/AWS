@@ -24,6 +24,7 @@ export default function Header() {
           <button className="nav-link">change here</button>
           <button className="nav-link">change here</button>
           <button className="nav-link">Products</button>
+          <button className="nav-link">About Us</button>
         </nav>
 
         {/* Login Button */}

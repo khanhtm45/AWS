@@ -1,0 +1,104 @@
+.exchange-page {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+  padding: 2rem 0;
+}
+
+.exchange-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+  background: white;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+}
+
+.exchange-title {
+  font-size: 2rem;
+  color: #333;
+  margin-bottom: 2rem;
+  text-align: left;
+  font-weight: 600;
+  border-bottom: 2px solid #333;
+  padding-bottom: 0.5rem;
+}
+
+.exchange-content {
+  line-height: 1.6;
+  color: #333;
+}
+
+.exchange-content > p {
+  margin-bottom: 1.5rem;
+  color: #555;
+  text-align: justify;
+}
+
+.exchange-section {
+  margin-bottom: 2rem;
+}
+
+.exchange-section h2 {
+  font-size: 1.2rem;
+  color: #333;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  margin-top: 0;
+}
+
+.exchange-section p {
+  margin-bottom: 1rem;
+  color: #555;
+  text-align: justify;
+}
+
+.exchange-section ul {
+  margin: 1rem 0;
+  padding-left: 1.5rem;
+}
+
+.exchange-section ul li {
+  margin-bottom: 0.5rem;
+  color: #555;
+}
+
+.contact-section {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #ddd;
+}
+
+.contact-section p {
+  margin-bottom: 0.5rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .exchange-page {
+    padding: 1rem 0;
+  }
+  
+  .exchange-container {
+    margin: 0 1rem;
+    padding: 1.5rem;
+  }
+  
+  .exchange-title {
+    font-size: 1.5rem;
+  }
+  
+  .exchange-section h2 {
+    font-size: 1.1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .exchange-container {
+    margin: 0 0.5rem;
+    padding: 1rem;
+  }
+  
+  .exchange-title {
+    font-size: 1.3rem;
+  }
+}
