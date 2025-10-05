@@ -122,19 +122,10 @@ const ExchangePage = () => {
         </div>
 
         <div className="exchange-section contact-section">
-          <h2>Liên Hệ Hỗ Trợ</h2>
           <div className="exchange-content">
-            <p>Nếu có bất kỳ thắc mắc nào, quý khách vui lòng liên hệ với chúng tôi để được giải đáp:</p>
-            <div className="contact-info">
-              <div className="contact-item">
-                <span className="contact-icon">📞</span>
-                <strong>Hotline:</strong> (039) 8348 387
-              </div>
-              <div className="contact-item">
-                <span className="contact-icon">✉️</span>
-                <strong>Email:</strong> cskh@Leaf.vn
-              </div>
-            </div>
+            <p>Mọi thắc mắc về chính sách đổi trả, quý khách vui lòng liên hệ với bộ phận Chăm sóc khách hàng của Leaf:</p>
+            <p><strong>Hotline mua hàng:</strong> (028) 7307 1441</p>
+            <p><strong>Email:</strong> cskh@yame.vn</p>
           </div>
         </div>
       </div>
