@@ -1,0 +1,263 @@
+/* Login Container */
+.login-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #f5f5f5;
+}
+
+/* Main Login Form Wrapper */
+.login-form-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+}
+
+/* Login Form */
+.login-form {
+  background: white;
+  padding: 3rem 2rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+  position: relative;
+}
+
+/* Back Button Section */
+.back-button-section {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+}
+
+.back-btn {
+  background: none;
+  border: none;
+  color: #666;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  transition: color 0.3s ease;
+  border-radius: 4px;
+}
+
+.back-btn:hover {
+  color: #333;
+  background-color: #f5f5f5;
+}
+
+/* Logo Section */
+.logo-section {
+  margin-bottom: 2rem;
+}
+
+.logo {
+  width: 60px;
+  height: 60px;
+  object-fit: contain;
+}
+
+/* Form Header */
+.form-header {
+  margin-bottom: 2rem;
+}
+
+.form-header h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 0.5rem 0;
+}
+
+.form-header p {
+  color: #666;
+  font-size: 0.9rem;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Input Group */
+.input-group {
+  margin-bottom: 1.5rem;
+  text-align: left;
+}
+
+.input-group input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+  box-sizing: border-box;
+  transition: border-color 0.3s ease;
+}
+
+.input-group input:focus {
+  outline: none;
+  border-color: #007bff;
+}
+
+.input-group input::placeholder {
+  color: #999;
+}
+
+/* Continue Button */
+.continue-btn {
+  width: 100%;
+  background-color: #333;
+  color: white;
+  padding: 0.75rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  margin-bottom: 1.5rem;
+  transition: background-color 0.3s ease;
+}
+
+.continue-btn:hover {
+  background-color: #555;
+}
+
+/* Form Links */
+.form-links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.policy-link,
+.admin-link {
+  color: #007bff;
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: color 0.3s ease;
+}
+
+.policy-link:hover,
+.admin-link:hover {
+  color: #0056b3;
+  text-decoration: underline;
+}
+
+/* Footer */
+.login-footer {
+  background-color: #333;
+  color: white;
+  padding: 2rem 1rem 1rem;
+  margin-top: auto;
+}
+
+.footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 2rem;
+}
+
+/* Footer Logo */
+.footer-logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.footer-logo-img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.copyright {
+  font-size: 0.8rem;
+  color: #ccc;
+}
+
+/* Footer Categories */
+.footer-categories {
+  display: flex;
+  gap: 3rem;
+}
+
+.category-column h4 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem 0;
+  color: white;
+}
+
+.category-column ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.category-column li {
+  font-size: 0.8rem;
+  color: #ccc;
+  margin-bottom: 0.25rem;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.category-column li:hover {
+  color: white;
+}
+
+/* Footer Flags */
+.footer-flags {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.footer-flags img {
+  width: 24px;
+  height: auto;
+  border-radius: 2px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .login-form {
+    padding: 2rem 1.5rem;
+  }
+  
+  .footer-content {
+    flex-direction: column;
+    text-align: center;
+    gap: 1.5rem;
+  }
+  
+  .footer-categories {
+    justify-content: center;
+    gap: 2rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-form {
+    padding: 1.5rem 1rem;
+  }
+  
+  .form-header h1 {
+    font-size: 1.25rem;
+  }
+  
+  .footer-categories {
+    flex-direction: column;
+    gap: 1rem;
+  }
+}

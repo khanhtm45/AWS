@@ -24,9 +24,24 @@ export default function Header() {
 
         {/* Navigation */}
         <nav className="nav-menu">
-          <button className="nav-link">change here</button>
-          <button className="nav-link">change here</button>
-          <button className="nav-link">Products</button>
+          <button 
+            className="nav-link"
+            onClick={() => navigate('/')}
+          >
+            Trang chủ
+          </button>
+          <button 
+            className="nav-link"
+            onClick={() => navigate('/products')}
+          >
+            Sản phẩm
+          </button>
+          <button 
+            className="nav-link"
+            onClick={() => navigate('/products')}
+          >
+            Products
+          </button>
           <button 
             className="nav-link cart-link"
             onClick={() => navigate('/cart')}

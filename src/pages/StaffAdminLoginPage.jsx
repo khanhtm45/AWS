@@ -5,9 +5,8 @@ import './StaffAdminLoginPage.css';
 function StaffAdminLoginPage() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    role: 'staff'
+    username: '',
+    password: ''
   });
 
   const handleChange = (e) => {
@@ -21,76 +20,105 @@ function StaffAdminLoginPage() {
   const handleSubmit = (e) => {
     e.preventDefault();
     console.log('Staff/Admin Login:', formData);
-    alert(`Đăng nhập ${formData.role === 'staff' ? 'Nhân viên' : 'Quản trị viên'} thành công!`);
     // TODO: Implement actual login logic
   };
 
+  const handleGoBack = () => {
+    navigate('/');
+  };
+
   return (
-    <div className="staff-admin-login-page">
-      <div className="staff-admin-login-container">
-        <div className="login-header">
-          <h1>Đăng Nhập {formData.role === 'staff' ? 'Nhân Viên' : 'Quản Trị Viên'}</h1>
-          <p>Vui lòng đăng nhập để tiếp tục</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="login-form">
-          <div className="form-group">
-            <label htmlFor="role">Vai trò</label>
-            <select
-              id="role"
-              name="role"
-              value={formData.role}
-              onChange={handleChange}
-              className="form-input"
-              required
-            >
-              <option value="staff">Nhân viên</option>
-              <option value="admin">Quản trị viên</option>
-            </select>
+    <div className="staff-admin-login-container">
+      {/* Main Login Form */}
+      <div className="staff-login-form-wrapper">
+        <div className="staff-login-form">
+          {/* Back Button */}
+          <div className="staff-back-button-section">
+            <button onClick={handleGoBack} className="staff-back-btn">
+              ← Quay lại
+            </button>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="email">Email</label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              className="form-input"
-              placeholder="Nhập email"
-              required
-            />
+          {/* Logo */}
+          <div className="staff-logo-section">
+            <img src="/LEAF.png" alt="Logo" className="staff-logo" />
           </div>
 
-          <div className="form-group">
-            <label htmlFor="password">Mật khẩu</label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              className="form-input"
-              placeholder="Nhập mật khẩu"
-              required
-            />
+          {/* Title */}
+          <div className="staff-form-header">
+            <h1>Đăng nhập</h1>
           </div>
 
-          <button type="submit" className="login-submit-btn">
-            Đăng Nhập
-          </button>
-        </form>
+          {/* Form */}
+          <form onSubmit={handleSubmit}>
+            <div className="staff-input-group">
+              <input
+                type="text"
+                name="username"
+                placeholder="Tài khoản"
+                value={formData.username}
+                onChange={handleChange}
+                required
+              />
+            </div>
 
-        <div className="back-to-home">
-          <button onClick={() => navigate('/')} className="back-btn">
-            ← Về trang chủ
-          </button>
+            <div className="staff-input-group">
+              <input
+                type="password"
+                name="password"
+                placeholder="Mật khẩu"
+                value={formData.password}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <button type="submit" className="staff-login-btn">
+              Đăng Nhập
+            </button>
+          </form>
         </div>
       </div>
+
+      {/* Footer */}
+      <footer className="staff-login-footer">
+        <div className="staff-footer-content">
+          <div className="staff-footer-logo">
+            <img src="/LEAF.png" alt="Logo" className="staff-footer-logo-img" />
+            <span className="staff-copyright">© 2025 AWS FJC</span>
+          </div>
+          
+          <div className="staff-footer-categories">
+            <div className="staff-category-column">
+              <h4>Product</h4>
+              <ul>
+                <li>Shirt</li>
+                <li>Jeans</li>
+                <li>Hoodie</li>
+              </ul>
+            </div>
+            <div className="staff-category-column">
+              <h4>Product</h4>
+              <ul>
+                <li>Shirt</li>
+                <li>Jeans</li>
+                <li>Hoodie</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="staff-footer-social">
+            <button className="social-link facebook" type="button">
+              <img src="https://cdn-icons-png.flaticon.com/24/733/733547.png" alt="Facebook" />
+            </button>
+            <button className="social-link instagram" type="button">
+              <img src="https://cdn-icons-png.flaticon.com/24/2111/2111463.png" alt="Instagram" />
+            </button>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
 
 export default StaffAdminLoginPage;
-
