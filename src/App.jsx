@@ -14,6 +14,7 @@ import ExchangePage from './pages/ExchangePage';
 import ShippingPage from './pages/ShippingPage';
 import PolicyPage from './pages/PolicyPage';
 import StaffAdminLoginPage from './pages/StaffAdminLoginPage';
+import ProfilePage from './pages/ProfilePage';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 
@@ -33,6 +34,7 @@ function App() {
                 <Route path="/product/:id" element={<ProductDetailPage />} />
                 <Route path="/cart" element={<CartPage />} />
                 <Route path="/checkout" element={<CheckoutPage />} />
+                <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/bao-hanh" element={<WarrantyPage />} />
                 <Route path="/doi-tra" element={<ExchangePage />} />
                 <Route path="/van-chuyen" element={<ShippingPage />} />

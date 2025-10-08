@@ -38,9 +38,9 @@ export default function Header() {
           </button>
           <button 
             className="nav-link"
-            onClick={() => navigate('/products')}
+            onClick={() => navigate('/profile')}
           >
-            Products
+            Hồ sơ
           </button>
           <button 
             className="nav-link cart-link"

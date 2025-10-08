@@ -86,8 +86,44 @@ function ProductDetailPage() {
         ],
         origin: "Việt Nam"
       }
+    },
+    '3': {
+      id: '3',
+      name: "Quần Short Thun 9 Inch Thoáng Mát Non Branded 05 Đen",
+      price: "167.000 VND",
+      sku: "#0024066",
+      sizes: ["S", "M", "L", "XL"],
+      colors: [
+        { name: 'white', code: '#FFFFFF', image: '/qu-n-short-non-branded-05-den-1174882099.webp' },
+        { name: 'black', code: '#000000', image: '/qu-n-short-non-branded-05-den-1174882099.webp' }
+      ],
+      images: [
+        '/qu-n-short-non-branded-05-den-1174882099.webp',
+        '/qu-n-short-non-branded-05-den-1174882097.jpg',
+        '/qu-n-short-non-branded-05-den-1174882096.jpg',
+        '/24277thumb8_77fe6266-d59a-490a-b9dc-3d904bee8839.webp',
+        '/0023720.webp'
+      ],
+      inStock: true,
+      stockInfo: "Số lượng",
+      shippingInfo: "Miễn phí vận chuyển",
+      description: {
+        summary: "Quần Short 9 Inch Bird Eye Mesh thoáng mát, nhanh khô, thoáng khí.",
+        details: [
+          { label: "Loại sản phẩm", value: "Quần short nam" },
+          { label: "Màu sắc", value: "Đen" },
+          { label: "Hình thức", value: "Dáng Vừa" },
+          { label: "Chất liệu", value: "Vải lưới mắt chim Polyester" },
+          { label: "Thành phần", value: "100% Polyester" },
+          { label: "Phong cách", value: "Thể thao hiện đại tối giản" },
+          { label: "Nhân dịp", value: "Hàng ngày" },
+          { label: "Kỹ thuật", value: "Thắt lưng thun co giãn, túi lót lưới thoáng khí" },
+          { label: "Chiều dài quần", value: "Trên gối (9 inch)" },
+          { label: "Bộ sưu tập", value: "NON BRANDED" }
+        ],
+        origin: "Việt Nam"
+      }
     }
-    
   };
 
   // Lấy sản phẩm theo ID, nếu không tìm thấy thì dùng sản phẩm đầu tiên

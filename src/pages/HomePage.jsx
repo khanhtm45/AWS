@@ -24,43 +24,99 @@ function HomePage() {
     },
     {
       id: 3,
-      name: "Fall 25 Plus Mens Fall Skinny Denim A-102 brown",
-      price: "$50 Save 33%",
+      name: "Quần Short Thun 9 Inch Thoáng Mát Non Branded 05 Đen",
+      price: "167.000 VND",
       category: "men",
-      image: null
+      image: "/qu-n-short-non-branded-05-den-1174882099.webp",
     },
     {
       id: 4,
-      name: "Fall 25 Plus Mens Fall Skinny Denim A-102 brown",
-      price: "$50 Save 33%",
+      name: "Áo Thun Thể Thao Ultra Stretch The Trainer 004",
+      price: "297.000 VND",
       category: "men",
-      image: null
+      image: "/ao-thun-the-trainer-004-tr-ng-1178529212.webp"
     },
     {
       id: 5,
-      name: "Fall 25 Plus Mens Fall Skinny Denim A-102 brown",
-      price: "$50 Save 33%",
-      category: "girl",
-      image: null
+      name: "Áo Thun Thể Thao Nam Cao Cấp",
+      price: "350.000 VND",
+      category: "men",
+      image: "/ao-thun-the-trainer-004-den-1178529231.jpg"
     },
     {
       id: 6,
-      name: "Fall 25 Plus Mens Fall Skinny Denim A-102 brown",
-      price: "$50 Save 33%",
-      category: "girl",
+      name: "Quần Jean Nam Slim Fit",
+      price: "$60 Save 25%",
+      category: "men",
       image: null
     },
     {
       id: 7,
-      name: "Fall 25 Plus Mens Fall Skinny Denim A-102 brown",
+      name: "Áo Polo Nam Premium",
+      price: "420.000 VND",
+      category: "men",
+      image: null
+    },
+    {
+      id: 8,
+      name: "Quần Kaki Nam Classic",
+      price: "$45 Save 30%",
+      category: "men",
+      image: null
+    },
+    {
+      id: 9,
+      name: "Fall 25 Plus Womens Fall Skinny Denim A-102 brown",
       price: "$50 Save 33%",
       category: "girl",
       image: null
     },
     {
-      id: 8,
-      name: "Fall 25 Plus Mens Fall Skinny Denim A-102 brown",
-      price: "$50 Save 33%",
+      id: 10,
+      name: "Áo Thun Nữ Cotton Premium",
+      price: "280.000 VND",
+      category: "girl",
+      image: null
+    },
+    {
+      id: 11,
+      name: "Váy Nữ Dáng Suông Thanh Lịch",
+      price: "$55 Save 28%",
+      category: "girl",
+      image: null
+    },
+    {
+      id: 12,
+      name: "Quần Jean Nữ Skinny Fit",
+      price: "450.000 VND",
+      category: "girl",
+      image: null
+    },
+    {
+      id: 13,
+      name: "Áo Kiểu Nữ Công Sở",
+      price: "$48 Save 35%",
+      category: "girl",
+      image: null
+    },
+    {
+      id: 14,
+      name: "Chân Váy Nữ Xòe Nhẹ",
+      price: "320.000 VND",
+      category: "girl",
+      image: null
+    },
+    {
+      id: 15,
+      name: "Áo Sơ Mi Nữ Trắng Basic",
+      price: "$42 Save 30%",
+      category: "girl",
+      image: null
+    },
+    {
+      id: 16,
+      name: "Quần Culottes Nữ Thời Trang",
+      price: "380.000 VND",
       category: "girl",
       image: null
     }
@@ -69,12 +125,12 @@ function HomePage() {
   // Lấy sản phẩm theo danh mục và số lượng hiển thị
   const getMenProducts = () => {
     const menProducts = products.filter(product => product.category === "men");
-    return showAllMen ? menProducts : menProducts.slice(0, 3);
+    return showAllMen ? menProducts : menProducts.slice(0, 4);
   };
 
   const getGirlProducts = () => {
     const girlProducts = products.filter(product => product.category === "girl");
-    return showAllGirl ? girlProducts : girlProducts.slice(0, 3);
+    return showAllGirl ? girlProducts : girlProducts.slice(0, 4);
   };
 
   return (
