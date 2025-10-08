@@ -1,9 +1,12 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useCart } from '../context/CartContext';
 import './Header.css';
 
 export default function Header() {
   const navigate = useNavigate();
+  const { getCartCount } = useCart();
+  const cartCount = getCartCount();
 
   return (
     <header className="header">
@@ -12,7 +15,7 @@ export default function Header() {
         <div className="logo">
           <Link to="/" className="logo-link">
             <img 
-              src="LEAF.png" 
+              src="/LEAF.png" 
               alt="LEAF Logo" 
               className="logo-image"
             />
@@ -24,7 +27,15 @@ export default function Header() {
           <button className="nav-link">change here</button>
           <button className="nav-link">change here</button>
           <button className="nav-link">Products</button>
-          <button className="nav-link">About Us</button>
+          <button 
+            className="nav-link cart-link"
+            onClick={() => navigate('/cart')}
+          >
+            Giỏ hàng
+            {cartCount > 0 && (
+              <span className="cart-badge">{cartCount}</span>
+            )}
+          </button>
         </nav>
 
         {/* Login Button */}
