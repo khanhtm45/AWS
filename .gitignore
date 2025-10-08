@@ -28,3 +28,16 @@ Thumbs.db
 # Env
 .env
 *.local
+
+# dependencies
+node_modules/
+
+# build output
+build/
+dist/
+
+# cache
+.cache/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

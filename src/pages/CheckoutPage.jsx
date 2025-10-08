@@ -16,7 +16,14 @@ function CheckoutPage() {
     postalCode: '',
     phone: '',
     paymentMethod: 'cod',
-    sameAddress: true
+    sameAddress: true,
+    billingCountry: 'Việt Nam',
+    billingFirstName: '',
+    billingLastName: '',
+    billingAddress: '',
+    billingProvince: '',
+    billingPostalCode: '',
+    billingPhone: ''
   });
 
   const handleChange = (e) => {
@@ -30,10 +37,18 @@ function CheckoutPage() {
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    // Validation
+    // Validation cho thông tin vận chuyển
     if (!formData.email || !formData.firstName || !formData.lastName || !formData.address || !formData.phone) {
-      alert('Vui lòng điền đầy đủ thông tin!');
+      alert('Vui lòng điền đầy đủ thông tin vận chuyển!');
       return;
+    }
+
+    // Validation cho địa chỉ thanh toán khác
+    if (!formData.sameAddress) {
+      if (!formData.billingFirstName || !formData.billingLastName || !formData.billingAddress || !formData.billingProvince) {
+        alert('Vui lòng điền đầy đủ thông tin địa chỉ thanh toán!');
+        return;
+      }
     }
 
     // Process order
@@ -105,6 +120,32 @@ function CheckoutPage() {
                   className="form-input"
                 >
                   <option value="Việt Nam">Việt Nam</option>
+                  <option value="Việt Nam">Việt Nam</option>
+                  <option value="Hoa Kỳ">Hoa Kỳ</option>
+                  <option value="Nhật Bản">Nhật Bản</option>
+                  <option value="Hàn Quốc">Hàn Quốc</option>
+                  <option value="Trung Quốc">Trung Quốc</option>
+                  <option value="Thái Lan">Thái Lan</option>
+                  <option value="Singapore">Singapore</option>
+                  <option value="Malaysia">Malaysia</option>
+                  <option value="Philippines">Philippines</option>
+                  <option value="Indonesia">Indonesia</option>
+                  <option value="Úc">Úc</option>
+                  <option value="Anh">Anh</option>
+                  <option value="Pháp">Pháp</option>
+                  <option value="Đức">Đức</option>
+                  <option value="Ý">Ý</option>
+                  <option value="Tây Ban Nha">Tây Ban Nha</option>
+                  <option value="Canada">Canada</option>
+                  <option value="Nga">Nga</option>
+                  <option value="Ấn Độ">Ấn Độ</option>
+                  <option value="Brazil">Brazil</option>
+                  <option value="Mexico">Mexico</option>
+                  <option value="Campuchia">Campuchia</option>
+                  <option value="Lào">Lào</option>
+                  <option value="Myanmar">Myanmar</option>
+                  <option value="New Zealand">New Zealand</option>
+
                 </select>
               </div>
 
@@ -260,6 +301,119 @@ function CheckoutPage() {
                 />
                 <span>Sử dụng địa chỉ thanh toán khác</span>
               </label>
+
+              {/* Billing Address Form - Show only when different address is selected */}
+              {!formData.sameAddress && (
+                <div className="billing-address-form">
+                  <div className="form-group">
+                    <label>Quốc gia/Vùng</label>
+                    <select
+                      name="billingCountry"
+                      value={formData.billingCountry}
+                      onChange={handleChange}
+                      className="form-input"
+                    >
+                      <option value="Việt Nam">Việt Nam</option>
+                      <option value="Hoa Kỳ">Hoa Kỳ</option>
+                      <option value="Nhật Bản">Nhật Bản</option>
+                      <option value="Hàn Quốc">Hàn Quốc</option>
+                      <option value="Trung Quốc">Trung Quốc</option>
+                      <option value="Thái Lan">Thái Lan</option>
+                      <option value="Singapore">Singapore</option>
+                      <option value="Malaysia">Malaysia</option>
+                      <option value="Philippines">Philippines</option>
+                      <option value="Indonesia">Indonesia</option>
+                      <option value="Úc">Úc</option>
+                      <option value="Anh">Anh</option>
+                      <option value="Pháp">Pháp</option>
+                      <option value="Đức">Đức</option>
+                      <option value="Ý">Ý</option>
+                      <option value="Tây Ban Nha">Tây Ban Nha</option>
+                      <option value="Canada">Canada</option>
+                      <option value="Nga">Nga</option>
+                      <option value="Ấn Độ">Ấn Độ</option>
+                      <option value="Brazil">Brazil</option>
+                      <option value="Mexico">Mexico</option>
+                      <option value="Campuchia">Campuchia</option>
+                      <option value="Lào">Lào</option>
+                      <option value="Myanmar">Myanmar</option>
+                      <option value="New Zealand">New Zealand</option>
+                    </select>
+                  </div>
+
+                  <div className="form-row">
+                    <div className="form-group half">
+                      <input
+                        type="text"
+                        name="billingFirstName"
+                        value={formData.billingFirstName}
+                        onChange={handleChange}
+                        placeholder="Tên"
+                        className="form-input"
+                        required
+                      />
+                    </div>
+                    <div className="form-group half">
+                      <input
+                        type="text"
+                        name="billingLastName"
+                        value={formData.billingLastName}
+                        onChange={handleChange}
+                        placeholder="Họ"
+                        className="form-input"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <input
+                      type="text"
+                      name="billingAddress"
+                      value={formData.billingAddress}
+                      onChange={handleChange}
+                      placeholder="Địa chỉ (trước khi sập nhập)"
+                      className="form-input"
+                      required
+                    />
+                  </div>
+
+                  <div className="form-row">
+                    <div className="form-group half">
+                      <input
+                        type="text"
+                        name="billingProvince"
+                        value={formData.billingProvince}
+                        onChange={handleChange}
+                        placeholder="Tỉnh Thành (trước khi sập nhập)"
+                        className="form-input"
+                        required
+                      />
+                    </div>
+                    <div className="form-group half">
+                      <input
+                        type="text"
+                        name="billingPostalCode"
+                        value={formData.billingPostalCode}
+                        onChange={handleChange}
+                        placeholder="Mã bưu chính (có bắt buộc)"
+                        className="form-input"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <input
+                      type="tel"
+                      name="billingPhone"
+                      value={formData.billingPhone}
+                      onChange={handleChange}
+                      placeholder="Điện thoại (không bắt buộc)"
+                      className="form-input"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Submit Button */}
@@ -273,7 +427,7 @@ function CheckoutPage() {
               <a href="/van-chuyen">Vận chuyển</a>
               <a href="/policy">Chính sách quyền riêng tư</a>
               <a href="/policy">Điều khoản dịch vụ</a>
-              <a href="#">Liên hệ</a>
+              <a href="/contact">Liên hệ</a>
             </div>
           </form>
         </div>
