@@ -10,59 +10,59 @@ function HomePage() {
   const products = [
     {
       id: 1,
-      name: "Áo Thun Thể Thao Ultra Stretch The Trainer 004 Trắng",
+      name: "Áo Thun Thể Thao Ultra Stretch The Trainer Trắng",
       price: "297.000 VND",
       category: "men",
       image: "/ao-thun-the-trainer-004-tr-ng-1178529222.webp"
     },
     {
       id: 2,
-      name: "Áo Thun Thể Thao Ultra Stretch The Trainer 004 Đen",
+      name: "Áo Thun Thể Thao Ultra Stretch The Trainer Đen",
       price: "297.000 VND",
       category: "men",
       image: "/ao-thun-the-trainer-004-den-1178529233.webp"
     },
     {
       id: 3,
-      name: "Quần Short Thun 9 Inch Thoáng Mát Non Branded 05 Đen",
+      name: "Quần Short Thun 9 Inch Thoáng Mát Non Branded Đen",
       price: "167.000 VND",
       category: "men",
       image: "/qu-n-short-non-branded-05-den-1174882099.webp",
     },
     {
       id: 4,
-      name: "Áo Thun Thể Thao Ultra Stretch The Trainer 004",
-      price: "297.000 VND",
+      name: "Quần Short Thun 9 Inch Thoáng Mát Non Branded Trắng",
+      price: "167.000 VND",
       category: "men",
-      image: "/ao-thun-the-trainer-004-tr-ng-1178529212.webp"
+      image: "/qu-n-short-non-branded-05-be-1174882076.webp",
     },
     {
       id: 5,
-      name: "Áo Thun Thể Thao Nam Cao Cấp",
-      price: "350.000 VND",
+      name: "Quần Short Kaki 7 Inch Co Giãn No Style Đen",
+      price: "261.000 VND",
       category: "men",
-      image: "/ao-thun-the-trainer-004-den-1178529231.jpg"
+      image: "/qu-n-short-no-style-m92-den-1174881840.webp"
     },
     {
       id: 6,
-      name: "Quần Jean Nam Slim Fit",
-      price: "$60 Save 25%",
+      name: "Quần Short Kaki 7 Inch Co Giãn No Style Trắng",
+      price: "261.000 VND",
       category: "men",
-      image: null
+      image: "/qu-n-short-no-style-m92-xam-tr-ng-1174881816.webp"
     },
     {
       id: 7,
-      name: "Áo Polo Nam Premium",
-      price: "420.000 VND",
+      name: "Áo Thun Sweater Mềm Mịn Mát The Minimalist Đen",
+      price: "327.000 VNDVND",
       category: "men",
-      image: null
+      image: "/ao-thun-cool-touch-05-den-1174883616.webp"
     },
-    {
-      id: 8,
-      name: "Quần Kaki Nam Classic",
-      price: "$45 Save 30%",
-      category: "men",
-      image: null
+   {
+        id: 8,
+        name: "Áo Thun Sweater Mềm Mịn Mát The Minimalist Trắng",
+        price: "327.000 VNDVND",
+        category: "men",
+        image: "/ao-thun-cool-touch-05-tr-ng-1174883631.webp"
     },
     {
       id: 9,
