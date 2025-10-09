@@ -53,72 +53,72 @@ function HomePage() {
     {
       id: 7,
       name: "Áo Thun Sweater Mềm Mịn Mát The Minimalist Đen",
-      price: "327.000 VNDVND",
+      price: "327.000 VND",
       category: "men",
       image: "/ao-thun-cool-touch-05-den-1174883616.webp"
     },
    {
         id: 8,
         name: "Áo Thun Sweater Mềm Mịn Mát The Minimalist Trắng",
-        price: "327.000 VNDVND",
+        price: "327.000 VND",
         category: "men",
         image: "/ao-thun-cool-touch-05-tr-ng-1174883631.webp"
     },
     {
       id: 9,
-      name: "Fall 25 Plus Womens Fall Skinny Denim A-102 brown",
-      price: "$50 Save 33%",
+      name: "Áo Thun Jersey Thoáng Mát No Style Đen",
+      price: "227.000 VND",
       category: "girl",
-      image: null
+      image: '/ao-thun-no-style-m134-den-1174883827.webp'
     },
     {
       id: 10,
-      name: "Áo Thun Nữ Cotton Premium",
-      price: "280.000 VND",
+      name: "Áo Sơ Mi Caro Tay Dài Mềm Mịn No Style M62 Xanh Đen",
+      price: "327.000 VND",
       category: "girl",
-      image: null
+      image: '/ao-s-mi-no-style-m62-xanh-den-1174884360.webp'
     },
     {
       id: 11,
-      name: "Váy Nữ Dáng Suông Thanh Lịch",
-      price: "$55 Save 28%",
+      name: "Áo Sơ Mi Caro Tay Dài Mềm Mịn No Style M62 Nâu",
+      price: "327.000 VND",
       category: "girl",
-      image: null
+      image: "/ao-s-mi-no-style-m62-nau-1174884357.webp"
     },
     {
       id: 12,
-      name: "Quần Jean Nữ Skinny Fit",
-      price: "450.000 VND",
+      name: "Áo Sơ Mi Jean Tay Ngắn Mềm Oversized The Original Xanh nhạt",
+      price: "347.000 VND",
       category: "girl",
-      image: null
+      image: '/ao-s-mi-the-original-m001-xanh-nh-t-1176055456.webp'
     },
     {
       id: 13,
-      name: "Áo Kiểu Nữ Công Sở",
-      price: "$48 Save 35%",
+      name: "Áo Thun Jersey Thoáng Mát No Style Trắng",
+      price: "227.000 VND",
       category: "girl",
-      image: null
+      image: '/ao-thun-no-style-m138-tr-ng-1174883815.webp'
     },
     {
       id: 14,
-      name: "Chân Váy Nữ Xòe Nhẹ",
-      price: "320.000 VND",
+      name: "Áo Thun Jersey Thoáng Mát No Style Đen",
+      price: "227.000 VND",
       category: "girl",
-      image: null
+      image: '/ao-thun-no-style-m138-den-1174883801.webp'
     },
     {
       id: 15,
-      name: "Áo Sơ Mi Nữ Trắng Basic",
-      price: "$42 Save 30%",
+      name: "Áo Thun Ribbing Mềm Mại Bền Bỉ Seventy Seven Be",
+      price: "200.000 VND",
       category: "girl",
-      image: null
+      image: '/ao-thun-seventy-seven-43-be-1174883006.webp'
     },
     {
       id: 16,
-      name: "Quần Culottes Nữ Thời Trang",
-      price: "380.000 VND",
+      name: "Áo Sơ Mi Tay Dài Modal Ít Nhăn Non Branded Xanh Dương",
+      price: "200.000 VND",
       category: "girl",
-      image: null
+      image: '/ao-s-mi-non-branded-19-xanh-d-ng-1174884367.webp'
     }
   ];
 
