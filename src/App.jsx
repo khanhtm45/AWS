@@ -14,7 +14,7 @@ import ExchangePage from './pages/ExchangePage';
 import ShippingPage from './pages/ShippingPage';
 import PolicyPage from './pages/PolicyPage';
 import StaffAdminLoginPage from './pages/StaffAdminLoginPage';
-import ProfilePage from './pages/ProfilePage';
+import DashboardPage from './pages/DashboardPage';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 
@@ -24,25 +24,104 @@ function App() {
       <CartProvider>
         <Router>
           <div className="app">
-            <Header />
-            <main className="main-content">
-              <Routes>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/products" element={<ProductsPage />} />
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/signup" element={<SignUpPage />} />
-                <Route path="/product/:id" element={<ProductDetailPage />} />
-                <Route path="/cart" element={<CartPage />} />
-                <Route path="/checkout" element={<CheckoutPage />} />
-                <Route path="/profile" element={<ProfilePage />} />
-                <Route path="/bao-hanh" element={<WarrantyPage />} />
-                <Route path="/doi-tra" element={<ExchangePage />} />
-                <Route path="/van-chuyen" element={<ShippingPage />} />
-                <Route path="/policy" element={<PolicyPage />} />
-                <Route path="/staff-admin-login" element={<StaffAdminLoginPage />} />
-              </Routes>
-            </main>
-            <Footer />
+            <Routes>
+              {/* Routes với Header và Footer */}
+              <Route path="/" element={
+                <>
+                  <Header />
+                  <main className="main-content">
+                    <HomePage />
+                  </main>
+                  <Footer />
+                </>
+              } />
+              
+              <Route path="/products" element={
+                <>
+                  <Header />
+                  <main className="main-content">
+                    <ProductsPage />
+                  </main>
+                  <Footer />
+                </>
+              } />
+              
+              <Route path="/product/:id" element={
+                <>
+                  <Header />
+                  <main className="main-content">
+                    <ProductDetailPage />
+                  </main>
+                  <Footer />
+                </>
+              } />
+              
+              <Route path="/cart" element={
+                <>
+                  <Header />
+                  <main className="main-content">
+                    <CartPage />
+                  </main>
+                  <Footer />
+                </>
+              } />
+              
+              <Route path="/checkout" element={
+                <>
+                  <Header />
+                  <main className="main-content">
+                    <CheckoutPage />
+                  </main>
+                  <Footer />
+                </>
+              } />
+              
+              <Route path="/bao-hanh" element={
+                <>
+                  <Header />
+                  <main className="main-content">
+                    <WarrantyPage />
+                  </main>
+                  <Footer />
+                </>
+              } />
+              
+              <Route path="/doi-tra" element={
+                <>
+                  <Header />
+                  <main className="main-content">
+                    <ExchangePage />
+                  </main>
+                  <Footer />
+                </>
+              } />
+              
+              <Route path="/van-chuyen" element={
+                <>
+                  <Header />
+                  <main className="main-content">
+                    <ShippingPage />
+                  </main>
+                  <Footer />
+                </>
+              } />
+              
+              <Route path="/policy" element={
+                <>
+                  <Header />
+                  <main className="main-content">
+                    <PolicyPage />
+                  </main>
+                  <Footer />
+                </>
+              } />
+
+              {/* Routes không có Header và Footer */}
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/signup" element={<SignUpPage />} />
+              <Route path="/staff-admin-login" element={<StaffAdminLoginPage />} />
+              <Route path="/dashboard" element={<DashboardPage />} />
+            </Routes>
           </div>
         </Router>
       </CartProvider>

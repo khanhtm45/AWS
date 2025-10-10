@@ -8,6 +8,26 @@ function StaffAdminLoginPage() {
     username: '',
     password: ''
   });
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  // Mock data cho staff và admin accounts
+  const mockAccounts = [
+    {
+      username: 'staff01',
+      password: 'staff123',
+      role: 'staff',
+      name: 'Nguyễn Văn A',
+      id: 'ST001'
+    },
+    {
+      username: 'admin01',
+      password: 'admin123',
+      role: 'admin', 
+      name: 'Trần Thị B',
+      id: 'AD001'
+    }
+  ];
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -15,12 +35,46 @@ function StaffAdminLoginPage() {
       ...prev,
       [name]: value
     }));
+    // Clear error khi user thay đổi input
+    if (error) setError('');
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log('Staff/Admin Login:', formData);
-    // TODO: Implement actual login logic
+    setLoading(true);
+    setError('');
+
+    // Simulate API call delay
+    setTimeout(() => {
+      const { username, password } = formData;
+      
+      // Tìm account phù hợp
+      const account = mockAccounts.find(
+        acc => acc.username === username && acc.password === password
+      );
+
+      if (account) {
+        // Đăng nhập thành công
+        console.log('Login successful:', account);
+        
+        // Lưu thông tin user vào localStorage (mock session)
+        localStorage.setItem('staffAdminUser', JSON.stringify({
+          id: account.id,
+          name: account.name,
+          role: account.role,
+          username: account.username,
+          loginTime: new Date().toISOString()
+        }));
+
+        // Redirect đến dashboard
+        navigate('/dashboard');
+      } else {
+        // Đăng nhập thất bại
+        setError('Tên đăng nhập hoặc mật khẩu không chính xác!');
+      }
+      
+      setLoading(false);
+    }, 1000); // Simulate 1s API delay
   };
 
   const handleGoBack = () => {
@@ -51,6 +105,13 @@ function StaffAdminLoginPage() {
 
           {/* Form */}
           <form onSubmit={handleSubmit}>
+            {/* Error Message */}
+            {error && (
+              <div className="error-message">
+                {error}
+              </div>
+            )}
+
             <div className="staff-input-group">
               <input
                 type="text"
@@ -59,6 +120,7 @@ function StaffAdminLoginPage() {
                 value={formData.username}
                 onChange={handleChange}
                 required
+                disabled={loading}
               />
             </div>
 
@@ -70,13 +132,25 @@ function StaffAdminLoginPage() {
                 value={formData.password}
                 onChange={handleChange}
                 required
+                disabled={loading}
               />
             </div>
 
-            <button type="submit" className="staff-login-btn">
-              Đăng Nhập
+            <button type="submit" className="staff-login-btn" disabled={loading}>
+              {loading ? 'Đang đăng nhập...' : 'Đăng Nhập'}
             </button>
           </form>
+
+          {/* Demo Accounts Info */}
+          <div className="demo-accounts">
+            <h4>Tài khoản Demo:</h4>
+            <div className="demo-account">
+              <strong>Staff:</strong> staff01 / staff123
+            </div>
+            <div className="demo-account">
+              <strong>Admin:</strong> admin01 / admin123
+            </div>
+          </div>
         </div>
       </div>
 
