@@ -1,19 +1,50 @@
 import React, { useState } from 'react';
+import PolicyModals from '../components/PolicyModals';
+import ContactModal from '../components/ContactModal';
 import './ProfilePage.css';
 
 export default function ProfilePage() {
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
-  const [firstName, setFirstName] = useState('Báo');
-  const [lastName, setLastName] = useState('Lê');
-  const [userEmail, setUserEmail] = useState('lehogiabao2k4@gmail.com');
-  const [addresses, setAddresses] = useState([]);
+  const [showPolicyModal, setShowPolicyModal] = useState(false);
+  const [showPaymentTermsModal, setShowPaymentTermsModal] = useState(false);
+  const [showShippingModal, setShowShippingModal] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [showContactModal, setShowContactModal] = useState(false);
+  const [editingAddress, setEditingAddress] = useState(null); // Địa chỉ đang được chỉnh sửa
+  
+  // Load từ localStorage hoặc dùng giá trị mặc định
+  const getInitialProfile = () => {
+    const savedProfile = localStorage.getItem('userProfile');
+    if (savedProfile) {
+      return JSON.parse(savedProfile);
+    }
+    return {
+      firstName: 'Báo',
+      lastName: 'Lê',
+      email: 'lehogiabao2k4@gmail.com'
+    };
+  };
+
+  const getInitialAddresses = () => {
+    const savedAddresses = localStorage.getItem('userAddresses');
+    if (savedAddresses) {
+      return JSON.parse(savedAddresses);
+    }
+    return [];
+  };
+
+  const initialProfile = getInitialProfile();
+  const [firstName, setFirstName] = useState(initialProfile.firstName);
+  const [lastName, setLastName] = useState(initialProfile.lastName);
+  const [userEmail, setUserEmail] = useState(initialProfile.email);
+  const [addresses, setAddresses] = useState(getInitialAddresses());
   
   // Edit profile form
   const [editForm, setEditForm] = useState({
-    firstName: 'Báo',
-    lastName: 'Lê',
-    email: 'lehogiabao2k4@gmail.com',
+    firstName: initialProfile.firstName,
+    lastName: initialProfile.lastName,
+    email: initialProfile.email,
   });
   
   const [addressForm, setAddressForm] = useState({
@@ -29,7 +60,21 @@ export default function ProfilePage() {
 
   const handleAddAddress = () => {
     if (addressForm.firstName && addressForm.lastName && addressForm.address) {
-      setAddresses([...addresses, { ...addressForm, id: Date.now() }]);
+      let newAddresses;
+      
+      if (editingAddress) {
+        // Chỉnh sửa địa chỉ hiện có
+        newAddresses = addresses.map(addr => 
+          addr.id === editingAddress.id ? { ...addressForm, id: addr.id } : addr
+        );
+      } else {
+        // Thêm địa chỉ mới
+        newAddresses = [...addresses, { ...addressForm, id: Date.now() }];
+      }
+      
+      setAddresses(newAddresses);
+      // Lưu vào localStorage
+      localStorage.setItem('userAddresses', JSON.stringify(newAddresses));
       setAddressForm({
         isDefault: false,
         country: 'Việt Nam',
@@ -41,7 +86,29 @@ export default function ProfilePage() {
         phone: '',
       });
       setShowAddressModal(false);
+      setEditingAddress(null);
     }
+  };
+
+  const handleEditAddress = (address) => {
+    setEditingAddress(address);
+    setAddressForm(address);
+    setShowAddressModal(true);
+  };
+
+  const handleCloseAddressModal = () => {
+    setShowAddressModal(false);
+    setEditingAddress(null);
+    setAddressForm({
+      isDefault: false,
+      country: 'Việt Nam',
+      firstName: '',
+      lastName: '',
+      address: '',
+      city: '',
+      postalCode: '',
+      phone: '',
+    });
   };
 
   const handleEditProfile = () => {
@@ -57,6 +124,13 @@ export default function ProfilePage() {
     setFirstName(editForm.firstName);
     setLastName(editForm.lastName);
     setUserEmail(editForm.email);
+    // Lưu vào localStorage
+    const profileData = {
+      firstName: editForm.firstName,
+      lastName: editForm.lastName,
+      email: editForm.email
+    };
+    localStorage.setItem('userProfile', JSON.stringify(profileData));
     setShowEditProfileModal(false);
   };
 
@@ -104,11 +178,23 @@ export default function ProfilePage() {
             <div className="address-list">
               {addresses.map((addr) => (
                 <div key={addr.id} className="address-item">
-                  <p className="address-name">{addr.firstName} {addr.lastName}</p>
-                  <p className="address-detail">{addr.address}</p>
-                  <p className="address-detail">{addr.city} {addr.postalCode}</p>
-                  <p className="address-detail">{addr.phone}</p>
-                  {addr.isDefault && <span className="default-badge">Mặc định</span>}
+                  <div className="address-content">
+                    <div className="address-header">
+                      <p className="address-name">{addr.firstName} {addr.lastName}</p>
+                      {addr.isDefault && <span className="default-badge">Mặc định</span>}
+                    </div>
+                    <p className="address-detail">{addr.address}</p>
+                    <p className="address-detail">{addr.city} {addr.postalCode}</p>
+                    <p className="address-detail">{addr.phone}</p>
+                    <p className="address-detail address-country">{addr.country}</p>
+                  </div>
+                  <button 
+                    className="edit-btn address-edit-btn"
+                    onClick={() => handleEditAddress(addr)}
+                    title="Chỉnh sửa"
+                  >
+                    ✏️
+                  </button>
                 </div>
               ))}
             </div>
@@ -118,11 +204,11 @@ export default function ProfilePage() {
 
       {/* Footer Links */}
       <div className="profile-footer">
-        <a href="/chinh-sach-hoan-tien" className="footer-link">Chính sách hoàn tiền</a>
-        <a href="/van-chuyen" className="footer-link">Vận chuyển</a>
-        <a href="/policy" className="footer-link">Chính sách quyền riêng tư</a>
-        <a href="/dieu-khoan-dich-vu" className="footer-link">Điều khoản dịch vụ</a>
-        <a href="/thong-tin-lien-he" className="footer-link">Thông tin liên hệ</a>
+        <button type="button" onClick={() => setShowPolicyModal(true)} className="footer-link">Chính sách hoàn tiền</button>
+        <button type="button" onClick={() => setShowShippingModal(true)} className="footer-link">Vận chuyển</button>
+        <button type="button" onClick={() => setShowPrivacyModal(true)} className="footer-link">Chính sách quyền riêng tư</button>
+        <button type="button" onClick={() => setShowPaymentTermsModal(true)} className="footer-link">Điều khoản dịch vụ</button>
+        <button type="button" onClick={() => setShowContactModal(true)} className="footer-link">Thông tin liên hệ</button>
       </div>
 
       {/* Edit Profile Modal */}
@@ -191,15 +277,15 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* Add Address Modal */}
+      {/* Add/Edit Address Modal */}
       {showAddressModal && (
-        <div className="modal-overlay" onClick={() => setShowAddressModal(false)}>
+        <div className="modal-overlay" onClick={handleCloseAddressModal}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2 className="modal-title">Thêm địa chỉ</h2>
+              <h2 className="modal-title">{editingAddress ? 'Chỉnh sửa địa chỉ' : 'Thêm địa chỉ'}</h2>
               <button 
                 className="modal-close"
-                onClick={() => setShowAddressModal(false)}
+                onClick={handleCloseAddressModal}
               >
                 ✕
               </button>
@@ -224,9 +310,31 @@ export default function ProfilePage() {
                   value={addressForm.country}
                   onChange={(e) => setAddressForm({...addressForm, country: e.target.value})}
                 >
-                  <option value="Việt Nam">Việt Nam</option>
-                  <option value="Hoa Kỳ">Hoa Kỳ</option>
-                  <option value="Nhật Bản">Nhật Bản</option>
+                      <option value="Việt Nam">Việt Nam</option>
+                      <option value="Hoa Kỳ">Hoa Kỳ</option>
+                      <option value="Nhật Bản">Nhật Bản</option>
+                      <option value="Hàn Quốc">Hàn Quốc</option>
+                      <option value="Trung Quốc">Trung Quốc</option>
+                      <option value="Thái Lan">Thái Lan</option>
+                      <option value="Singapore">Singapore</option>
+                      <option value="Malaysia">Malaysia</option>
+                      <option value="Philippines">Philippines</option>
+                      <option value="Indonesia">Indonesia</option>
+                      <option value="Úc">Úc</option>
+                      <option value="Anh">Anh</option>
+                      <option value="Pháp">Pháp</option>
+                      <option value="Đức">Đức</option>
+                      <option value="Ý">Ý</option>
+                      <option value="Tây Ban Nha">Tây Ban Nha</option>
+                      <option value="Canada">Canada</option>
+                      <option value="Nga">Nga</option>
+                      <option value="Ấn Độ">Ấn Độ</option>
+                      <option value="Brazil">Brazil</option>
+                      <option value="Mexico">Mexico</option>
+                      <option value="Campuchia">Campuchia</option>
+                      <option value="Lào">Lào</option>
+                      <option value="Myanmar">Myanmar</option>
+                      <option value="New Zealand">New Zealand</option>
                 </select>
               </div>
 
@@ -309,7 +417,7 @@ export default function ProfilePage() {
             <div className="modal-footer">
               <button 
                 className="btn-cancel"
-                onClick={() => setShowAddressModal(false)}
+                onClick={handleCloseAddressModal}
               >
                 Hủy
               </button>
@@ -323,6 +431,24 @@ export default function ProfilePage() {
           </div>
         </div>
       )}
+
+      {/* Policy Modals Component */}
+      <PolicyModals
+        showPolicyModal={showPolicyModal}
+        setShowPolicyModal={setShowPolicyModal}
+        showShippingModal={showShippingModal}
+        setShowShippingModal={setShowShippingModal}
+        showPrivacyModal={showPrivacyModal}
+        setShowPrivacyModal={setShowPrivacyModal}
+        showPaymentTermsModal={showPaymentTermsModal}
+        setShowPaymentTermsModal={setShowPaymentTermsModal}
+      />
+      
+      {/* Contact Modal Component */}
+      <ContactModal
+        showContactModal={showContactModal}
+        setShowContactModal={setShowContactModal}
+      />
     </div>
   );
 }

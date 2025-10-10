@@ -22,10 +22,6 @@ const ShippingPage = () => {
               <li><strong>Đơn hàng từ 300.000đ trở lên:</strong> Leaf hỗ trợ Miễn phí vận chuyển (FREESHIP).</li>
             </ul>
 
-            <div className="promotion-section">
-              <h3>Khuyến mãi nhân dịp ra mắt website mới:</h3>
-              <p>Từ ngày <strong>08/09/2025</strong> đến hết <strong>30/09/2025</strong>: miễn phí giao hàng cho tất cả đơn hàng có giá trị trên <strong>50.000đ</strong></p>
-            </div>
           </section>
 
           <section className="shipping-section">

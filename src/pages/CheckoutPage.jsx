@@ -1,11 +1,21 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import PolicyModals from '../components/PolicyModals';
+import ContactModal from '../components/ContactModal';
 import './CheckoutPage.css';
 
 function CheckoutPage() {
   const navigate = useNavigate();
   const { cartItems, getCartTotal, clearCart } = useCart();
+  
+  // Modal states
+  const [showPolicyModal, setShowPolicyModal] = useState(false);
+  const [showShippingModal, setShowShippingModal] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [showPaymentTermsModal, setShowPaymentTermsModal] = useState(false);
+  const [showContactModal, setShowContactModal] = useState(false);
+  
   const [formData, setFormData] = useState({
     email: '',
     country: 'Việt Nam',
@@ -43,16 +53,18 @@ function CheckoutPage() {
       return;
     }
 
-    // Validation cho địa chỉ thanh toán khác
+    // Validation cho thông tin thanh toán nếu khác địa chỉ vận chuyển
     if (!formData.sameAddress) {
-      if (!formData.billingFirstName || !formData.billingLastName || !formData.billingAddress || !formData.billingProvince) {
-        alert('Vui lòng điền đầy đủ thông tin địa chỉ thanh toán!');
+      if (!formData.billingFirstName || !formData.billingLastName || !formData.billingAddress) {
+        alert('Vui lòng điền đầy đủ thông tin thanh toán!');
         return;
       }
     }
 
-    // Process order
-    console.log('Order data:', { formData, cartItems, total: getCartTotal() });
+    // Xử lý đặt hàng
+    console.log('Form data:', formData);
+    console.log('Cart items:', cartItems);
+    
     alert('Đặt hàng thành công! Cảm ơn bạn đã mua hàng.');
     clearCart();
     navigate('/');
@@ -86,33 +98,27 @@ function CheckoutPage() {
           </div>
 
           <form onSubmit={handleSubmit}>
-            {/* Email */}
+            {/* Contact Information */}
             <div className="form-section">
-              <div className="section-header">
-                <span>Email</span>
-                <span className="login-link">Đã có tài khoản? <a href="/login">Đăng nhập</a></span>
+              <h2>Thông tin liên hệ</h2>
+              <div className="form-group">
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="Email"
+                  className="form-input"
+                  required
+                />
               </div>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                placeholder="Email"
-                className="form-input"
-                required
-              />
-              <label className="checkbox-label">
-                <input type="checkbox" />
-                <span>Gửi cho tôi tin tức và ưu đãi qua email</span>
-              </label>
             </div>
 
             {/* Shipping Information */}
             <div className="form-section">
-              <h2>Giao hàng</h2>
+              <h2>Địa chỉ vận chuyển</h2>
               
               <div className="form-group">
-                <label>Quốc gia/Vùng</label>
                 <select
                   name="country"
                   value={formData.country}
@@ -120,37 +126,11 @@ function CheckoutPage() {
                   className="form-input"
                 >
                   <option value="Việt Nam">Việt Nam</option>
-                  <option value="Việt Nam">Việt Nam</option>
-                  <option value="Hoa Kỳ">Hoa Kỳ</option>
-                  <option value="Nhật Bản">Nhật Bản</option>
-                  <option value="Hàn Quốc">Hàn Quốc</option>
-                  <option value="Trung Quốc">Trung Quốc</option>
-                  <option value="Thái Lan">Thái Lan</option>
-                  <option value="Singapore">Singapore</option>
-                  <option value="Malaysia">Malaysia</option>
-                  <option value="Philippines">Philippines</option>
-                  <option value="Indonesia">Indonesia</option>
-                  <option value="Úc">Úc</option>
-                  <option value="Anh">Anh</option>
-                  <option value="Pháp">Pháp</option>
-                  <option value="Đức">Đức</option>
-                  <option value="Ý">Ý</option>
-                  <option value="Tây Ban Nha">Tây Ban Nha</option>
-                  <option value="Canada">Canada</option>
-                  <option value="Nga">Nga</option>
-                  <option value="Ấn Độ">Ấn Độ</option>
-                  <option value="Brazil">Brazil</option>
-                  <option value="Mexico">Mexico</option>
-                  <option value="Campuchia">Campuchia</option>
-                  <option value="Lào">Lào</option>
-                  <option value="Myanmar">Myanmar</option>
-                  <option value="New Zealand">New Zealand</option>
-
                 </select>
               </div>
 
               <div className="form-row">
-                <div className="form-group half">
+                <div className="form-group">
                   <input
                     type="text"
                     name="firstName"
@@ -161,7 +141,7 @@ function CheckoutPage() {
                     required
                   />
                 </div>
-                <div className="form-group half">
+                <div className="form-group">
                   <input
                     type="text"
                     name="lastName"
@@ -180,33 +160,34 @@ function CheckoutPage() {
                   name="address"
                   value={formData.address}
                   onChange={handleChange}
-                  placeholder="Địa chỉ (được khi sập nhập)"
+                  placeholder="Địa chỉ"
                   className="form-input"
                   required
                 />
               </div>
 
-              <div className="form-group">
-                <input
-                  type="text"
-                  name="province"
-                  value={formData.province}
-                  onChange={handleChange}
-                  placeholder="Tỉnh Thành (được khi sập nhập)"
-                  className="form-input"
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <input
-                  type="text"
-                  name="postalCode"
-                  value={formData.postalCode}
-                  onChange={handleChange}
-                  placeholder="Mã bưu chính (tùy chọn bỏ qua)"
-                  className="form-input"
-                />
+              <div className="form-row">
+                <div className="form-group">
+                  <input
+                    type="text"
+                    name="province"
+                    value={formData.province}
+                    onChange={handleChange}
+                    placeholder="Tỉnh thành"
+                    className="form-input"
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <input
+                    type="text"
+                    name="postalCode"
+                    value={formData.postalCode}
+                    onChange={handleChange}
+                    placeholder="Mã bưu chính (tùy chọn bỏ qua)"
+                    className="form-input"
+                  />
+                </div>
               </div>
 
               <div className="form-group">
@@ -227,7 +208,7 @@ function CheckoutPage() {
               <h2>Phương thức vận chuyển</h2>
               <div className="shipping-option">
                 <div className="shipping-info">
-                  <span>Vui lòng nhập địa chỉ chi tiết để được khỉ sập nhập đúng phí vận chuyển đến đông chuyên đối</span>
+                  <span>Vui lòng nhập địa chỉ cũ (trước khi sáp nhập) để hệ thống tự động chuyển đổi.</span>
                 </div>
                 <div className="shipping-price">MIỄN PHÍ</div>
               </div>
@@ -258,7 +239,7 @@ function CheckoutPage() {
                   </span>
                 </label>
 
-                <label className="payment-option active">
+                <label className="payment-option">
                   <input
                     type="radio"
                     name="paymentMethod"
@@ -266,47 +247,30 @@ function CheckoutPage() {
                     checked={formData.paymentMethod === 'cod'}
                     onChange={handleChange}
                   />
-                  <span className="payment-label">
-                    Thanh toán khi nhận hàng (COD)
-                  </span>
+                  <span className="payment-label">Thanh toán khi giao hàng (COD)</span>
                 </label>
-                
-                {formData.paymentMethod === 'cod' && (
-                  <div className="payment-note-box">
-                    <p>- Thanh toán bằng tiền mặt khi nhận hàng.</p>
-                    <p>- Thời gian giao hàng từ 3-5 ngày.</p>
-                  </div>
-                )}
               </div>
             </div>
 
             {/* Billing Address */}
             <div className="form-section">
               <h2>Địa chỉ thanh toán</h2>
-              <label className="payment-option">
-                <input
-                  type="radio"
-                  name="sameAddress"
-                  checked={formData.sameAddress}
-                  onChange={(e) => setFormData(prev => ({ ...prev, sameAddress: true }))}
-                />
-                <span>Giống địa chỉ vận chuyển</span>
-              </label>
-              <label className="payment-option">
-                <input
-                  type="radio"
-                  name="sameAddress"
-                  checked={!formData.sameAddress}
-                  onChange={(e) => setFormData(prev => ({ ...prev, sameAddress: false }))}
-                />
-                <span>Sử dụng địa chỉ thanh toán khác</span>
-              </label>
+              
+              <div className="form-group checkbox-group">
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    name="sameAddress"
+                    checked={formData.sameAddress}
+                    onChange={handleChange}
+                  />
+                  <span>Giống như địa chỉ vận chuyển</span>
+                </label>
+              </div>
 
-              {/* Billing Address Form - Show only when different address is selected */}
               {!formData.sameAddress && (
-                <div className="billing-address-form">
+                <div className="billing-fields">
                   <div className="form-group">
-                    <label>Quốc gia/Vùng</label>
                     <select
                       name="billingCountry"
                       value={formData.billingCountry}
@@ -314,35 +278,11 @@ function CheckoutPage() {
                       className="form-input"
                     >
                       <option value="Việt Nam">Việt Nam</option>
-                      <option value="Hoa Kỳ">Hoa Kỳ</option>
-                      <option value="Nhật Bản">Nhật Bản</option>
-                      <option value="Hàn Quốc">Hàn Quốc</option>
-                      <option value="Trung Quốc">Trung Quốc</option>
-                      <option value="Thái Lan">Thái Lan</option>
-                      <option value="Singapore">Singapore</option>
-                      <option value="Malaysia">Malaysia</option>
-                      <option value="Philippines">Philippines</option>
-                      <option value="Indonesia">Indonesia</option>
-                      <option value="Úc">Úc</option>
-                      <option value="Anh">Anh</option>
-                      <option value="Pháp">Pháp</option>
-                      <option value="Đức">Đức</option>
-                      <option value="Ý">Ý</option>
-                      <option value="Tây Ban Nha">Tây Ban Nha</option>
-                      <option value="Canada">Canada</option>
-                      <option value="Nga">Nga</option>
-                      <option value="Ấn Độ">Ấn Độ</option>
-                      <option value="Brazil">Brazil</option>
-                      <option value="Mexico">Mexico</option>
-                      <option value="Campuchia">Campuchia</option>
-                      <option value="Lào">Lào</option>
-                      <option value="Myanmar">Myanmar</option>
-                      <option value="New Zealand">New Zealand</option>
                     </select>
                   </div>
 
                   <div className="form-row">
-                    <div className="form-group half">
+                    <div className="form-group">
                       <input
                         type="text"
                         name="billingFirstName"
@@ -350,10 +290,9 @@ function CheckoutPage() {
                         onChange={handleChange}
                         placeholder="Tên"
                         className="form-input"
-                        required
                       />
                     </div>
-                    <div className="form-group half">
+                    <div className="form-group">
                       <input
                         type="text"
                         name="billingLastName"
@@ -361,7 +300,6 @@ function CheckoutPage() {
                         onChange={handleChange}
                         placeholder="Họ"
                         className="form-input"
-                        required
                       />
                     </div>
                   </div>
@@ -372,25 +310,23 @@ function CheckoutPage() {
                       name="billingAddress"
                       value={formData.billingAddress}
                       onChange={handleChange}
-                      placeholder="Địa chỉ (trước khi sập nhập)"
+                      placeholder="Địa chỉ"
                       className="form-input"
-                      required
                     />
                   </div>
 
                   <div className="form-row">
-                    <div className="form-group half">
+                    <div className="form-group">
                       <input
                         type="text"
                         name="billingProvince"
                         value={formData.billingProvince}
                         onChange={handleChange}
-                        placeholder="Tỉnh Thành (trước khi sập nhập)"
+                        placeholder="Tỉnh thành"
                         className="form-input"
-                        required
                       />
                     </div>
-                    <div className="form-group half">
+                    <div className="form-group">
                       <input
                         type="text"
                         name="billingPostalCode"
@@ -423,11 +359,56 @@ function CheckoutPage() {
 
             {/* Footer Links */}
             <div className="checkout-footer">
-              <a href="/policy">Chính sách hoàn tiền</a>
-              <a href="/van-chuyen">Vận chuyển</a>
-              <a href="/policy">Chính sách quyền riêng tư</a>
-              <a href="/policy">Điều khoản dịch vụ</a>
-              <a href="/contact">Liên hệ</a>
+              <button 
+                type="button" 
+                onClick={(e) => {
+                  e.preventDefault();
+                  setShowPolicyModal(true);
+                }} 
+                className="footer-link"
+              >
+                Chính sách hoàn tiền
+              </button>
+              <button 
+                type="button" 
+                onClick={(e) => {
+                  e.preventDefault();
+                  setShowShippingModal(true);
+                }} 
+                className="footer-link"
+              >
+                Vận chuyển
+              </button>
+              <button 
+                type="button" 
+                onClick={(e) => {
+                  e.preventDefault();
+                  setShowPrivacyModal(true);
+                }} 
+                className="footer-link"
+              >
+                Chính sách quyền riêng tư
+              </button>
+              <button 
+                type="button" 
+                onClick={(e) => {
+                  e.preventDefault();
+                  setShowPaymentTermsModal(true);
+                }} 
+                className="footer-link"
+              >
+                Điều khoản dịch vụ
+              </button>
+              <button 
+                type="button" 
+                onClick={(e) => {
+                  e.preventDefault();
+                  setShowContactModal(true);
+                }} 
+                className="footer-link"
+              >
+                Thông tin liên hệ
+              </button>
             </div>
           </form>
         </div>
@@ -446,24 +427,25 @@ function CheckoutPage() {
                   <p className="item-variant">Hạng / {item.selectedSize}</p>
                 </div>
                 <div className="item-price">
-                  {parseFloat(item.price.replace(/[^\d]/g, '')).toLocaleString('vi-VN')}₫
+                  {(item.price * item.quantity).toLocaleString('vi-VN')} ₫
                 </div>
               </div>
             ))}
           </div>
 
-          <div className="order-totals">
-            <div className="total-row">
-              <span>Tổng phụ</span>
-              <span>{subtotal.toLocaleString('vi-VN')}₫</span>
+          <div className="order-summary-section">
+            <div className="summary-row">
+              <span>Tạm tính</span>
+              <span>{subtotal.toLocaleString('vi-VN')} ₫</span>
             </div>
-            <div className="total-row">
-              <span>Vận chuyển</span>
-              <span className="shipping-price-detail">
-                <s>{shipping.toLocaleString('vi-VN')}₫</s>
-                <span className="free-shipping">MIỄN PHÍ</span>
+
+            <div className="summary-row">
+              <span>Phí vận chuyển</span>
+              <span className="free-shipping">
+                <span className="free-text">MIỄN PHÍ</span>
               </span>
             </div>
+
             <div className="free-ship-badge">
               <span>✓ MIỄN PHÍ SHIP</span>
             </div>
@@ -481,9 +463,26 @@ function CheckoutPage() {
           </div>
         </div>
       </div>
+      
+      {/* Policy Modals Component */}
+      <PolicyModals
+        showPolicyModal={showPolicyModal}
+        setShowPolicyModal={setShowPolicyModal}
+        showShippingModal={showShippingModal}
+        setShowShippingModal={setShowShippingModal}
+        showPrivacyModal={showPrivacyModal}
+        setShowPrivacyModal={setShowPrivacyModal}
+        showPaymentTermsModal={showPaymentTermsModal}
+        setShowPaymentTermsModal={setShowPaymentTermsModal}
+      />
+      
+      {/* Contact Modal Component */}
+      <ContactModal
+        showContactModal={showContactModal}
+        setShowContactModal={setShowContactModal}
+      />
     </div>
   );
 }
 
 export default CheckoutPage;
-
