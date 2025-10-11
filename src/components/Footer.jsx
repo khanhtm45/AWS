@@ -21,6 +21,11 @@ const Footer = () => {
     navigate('/van-chuyen');
   };
 
+  const handleAboutClick = (e) => {
+    e.preventDefault();
+    navigate('/gioi-thieu');
+  };
+
   return (
     <footer className="footer">
       {/* Features Section */}
@@ -94,8 +99,7 @@ const Footer = () => {
             <div className="footer-column">
               <h3>Về Leaf</h3>
               <ul>
-                <li><a href="#gioi-thieu">Giới Thiệu</a></li>
-                <li><a href="#cua-hang">Cửa Hàng</a></li>
+                <li><a href="#gioi-thieu" onClick={handleAboutClick}>Giới Thiệu</a></li>
                 <li><a href="#bao-hanh" onClick={handleWarrantyClick}>Bảo Hành</a></li>
                 <li><a href="#doi-tra" onClick={handleExchangeClick}>Đổi Trả</a></li>
                 <li><a href="#van-chuyen" onClick={handleShippingClick}>Vận Chuyển</a></li>

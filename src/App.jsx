@@ -12,6 +12,7 @@ import CheckoutPage from './pages/CheckoutPage';
 import WarrantyPage from './pages/WarrantyPage';
 import ExchangePage from './pages/ExchangePage';
 import ShippingPage from './pages/ShippingPage';
+import AboutPage from './pages/AboutPage';
 import PolicyPage from './pages/PolicyPage';
 import StaffAdminLoginPage from './pages/StaffAdminLoginPage';
 import ProfilePage from './pages/ProfilePage';
@@ -38,6 +39,7 @@ function App() {
                 <Route path="/bao-hanh" element={<WarrantyPage />} />
                 <Route path="/doi-tra" element={<ExchangePage />} />
                 <Route path="/van-chuyen" element={<ShippingPage />} />
+                <Route path="/gioi-thieu" element={<AboutPage />} />
                 <Route path="/policy" element={<PolicyPage />} />
                 <Route path="/staff-admin-login" element={<StaffAdminLoginPage />} />
               </Routes>
