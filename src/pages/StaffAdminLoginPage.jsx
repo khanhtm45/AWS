@@ -48,8 +48,14 @@ function StaffAdminLoginPage() {
     setTimeout(() => {
       const { username, password } = formData;
       
+      // Get dynamically created staff accounts from localStorage
+      const createdStaff = JSON.parse(localStorage.getItem('staffAccounts') || '[]');
+      
+      // Combine mock accounts with created accounts
+      const allAccounts = [...mockAccounts, ...createdStaff];
+      
       // Tìm account phù hợp
-      const account = mockAccounts.find(
+      const account = allAccounts.find(
         acc => acc.username === username && acc.password === password
       );
 
@@ -59,10 +65,11 @@ function StaffAdminLoginPage() {
         
         // Lưu thông tin user vào localStorage (mock session)
         localStorage.setItem('staffAdminUser', JSON.stringify({
-          id: account.id,
-          name: account.name,
+          id: account.id || `ST${Date.now()}`,
+          name: account.fullName || account.name,
           role: account.role,
           username: account.username,
+          email: account.email,
           loginTime: new Date().toISOString()
         }));
 
