@@ -180,24 +180,24 @@
   gap: 0.75rem;
 }
 
-.user-avatar {
+.dashboard-container .user-avatar {
   width: 40px;
   height: 40px;
   border-radius: 50%;
   object-fit: cover;
 }
 
-.user-info {
+.dashboard-container .user-info {
   display: flex;
   flex-direction: column;
 }
 
-.user-name {
+.dashboard-container .user-name {
   font-weight: 600;
   font-size: 0.9rem;
 }
 
-.user-role {
+.dashboard-container .user-role {
   font-size: 0.8rem;
   color: #666;
   text-transform: capitalize;
@@ -388,13 +388,13 @@
   align-items: center;
 }
 
-.product-info {
+.dashboard-container .product-info {
   display: flex;
   align-items: center;
   gap: 0.75rem;
 }
 
-.product-image {
+.dashboard-container .product-image {
   width: 40px;
   height: 40px;
   background-color: #f8f9fa;
@@ -402,29 +402,29 @@
   flex-shrink: 0;
 }
 
-.price {
+.dashboard-container .price {
   font-weight: 600;
   color: #333;
 }
 
-.status {
+.dashboard-container .status {
   padding: 0.25rem 0.75rem;
   border-radius: 12px;
   font-size: 0.8rem;
   font-weight: 500;
 }
 
-.status.delivering {
+.dashboard-container .status.delivering {
   background-color: #28a745;
   color: white;
 }
 
-.status.delivered {
+.dashboard-container .status.delivered {
   background-color: #6c757d;
   color: white;
 }
 
-.status.processing {
+.dashboard-container .status.processing {
   background-color: #ffc107;
   color: #333;
 }
@@ -860,25 +860,25 @@
   background-color: #f8f9fa;
 }
 
-.order-id {
+.dashboard-container .order-id {
   font-weight: 600;
   color: #007bff;
 }
 
-.product-name {
+.dashboard-container .product-name {
   max-width: 200px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.customer-name {
+.dashboard-container .customer-name {
   font-weight: 500;
   color: #333;
 }
 
-.order-date,
-.order-price {
+.dashboard-container .order-date,
+.dashboard-container .order-price {
   color: #666;
 }
 
@@ -1059,41 +1059,41 @@
   background-color: #f8f9fa;
 }
 
-.user-id {
+.dashboard-container .user-id {
   font-weight: 600;
   color: #007bff;
   font-family: 'Courier New', monospace;
 }
 
-.user-info {
+.dashboard-container .users-tab-table .user-info {
   display: flex;
   align-items: center;
   gap: 0.75rem;
 }
 
-.user-avatar {
+.dashboard-container .users-tab-table .user-avatar {
   width: 40px;
   height: 40px;
   border-radius: 50%;
   object-fit: cover;
 }
 
-.user-name {
+.dashboard-container .users-tab-table .user-name {
   font-weight: 500;
   color: #333;
 }
 
-.user-email {
+.dashboard-container .user-email {
   color: #6c757d;
 }
 
-.join-date,
-.total-orders,
-.total-spent {
+.dashboard-container .join-date,
+.dashboard-container .total-orders,
+.dashboard-container .total-spent {
   color: #495057;
 }
 
-.total-spent {
+.dashboard-container .total-spent {
   font-weight: 600;
   color: #28a745;
 }

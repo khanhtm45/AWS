@@ -12,14 +12,11 @@ import CheckoutPage from './pages/CheckoutPage';
 import WarrantyPage from './pages/WarrantyPage';
 import ExchangePage from './pages/ExchangePage';
 import ShippingPage from './pages/ShippingPage';
-<<<<<<< HEAD
 import AboutPage from './pages/AboutPage';
-=======
-
->>>>>>> 3646b089be56d7e391339da10da9fab4c34c4884
 import PolicyPage from './pages/PolicyPage';
 import StaffAdminLoginPage from './pages/StaffAdminLoginPage';
 import ProfilePage from './pages/ProfilePage';
+import DashboardPage from './pages/DashboardPage';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 
@@ -43,13 +40,10 @@ function App() {
                 <Route path="/bao-hanh" element={<WarrantyPage />} />
                 <Route path="/doi-tra" element={<ExchangePage />} />
                 <Route path="/van-chuyen" element={<ShippingPage />} />
-<<<<<<< HEAD
                 <Route path="/gioi-thieu" element={<AboutPage />} />
-=======
-       
->>>>>>> 3646b089be56d7e391339da10da9fab4c34c4884
                 <Route path="/policy" element={<PolicyPage />} />
                 <Route path="/staff-admin-login" element={<StaffAdminLoginPage />} />
+                <Route path="/dashboard" element={<DashboardPage />} />
               </Routes>
             </main>
             <Footer />
