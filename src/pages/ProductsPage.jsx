@@ -123,82 +123,70 @@ const ProductsPage = () => {
   return (
     <div className="products-page">
       <div className="products-container">
-        {/* Sidebar */}
-        <div className="products-sidebar">
-          <div className="sidebar-section">
-            <h3>Danh mục</h3>
-         
-            <div className="category-list">
-              {categories.map(category => (
-                <label key={category.value} className="category-item">
-                  <input
-                    type="radio"
-                    name="category"
-                    value={category.value}
-                    checked={selectedCategory === category.value}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
-                  />
-                  <span className="category-label">{category.label}</span>
-                </label>
-              ))}
+        {/* Compact Sidebar */}
+        <div className="compact-sidebar">
+          <div className="sidebar-header">
+            <h3>Loại áo</h3>
+          </div>
+          
+          <div className="filter-group-vertical">
+            {categories.map(category => (
+              <label key={category.value} className="filter-checkbox-vertical">
+                <input
+                  type="checkbox"
+                  checked={selectedCategory === category.value}
+                  onChange={(e) => setSelectedCategory(e.target.checked ? category.value : 'all')}
+                />
+                <span className="checkmark"></span>
+                <span className="filter-label">{category.label}</span>
+              </label>
+            ))}
+          </div>
+
+          <div className="sidebar-header">
+            <h3>Giá tiền</h3>
+          </div>
+          
+          <div className="price-range-simple">
+            <div className="price-inputs-simple">
+              <input 
+                type="number" 
+                placeholder="100000"
+                className="price-input-simple"
+                value={tempPriceRange[0] * 1000}
+                onChange={(e) => setTempPriceRange([Math.floor(parseInt(e.target.value) / 1000) || 0, tempPriceRange[1]])}
+              />
+              <span className="price-unit">₫</span>
+            </div>
+            <span className="price-to">đến</span>
+            <div className="price-inputs-simple">
+              <input 
+                type="number" 
+                placeholder="500000"
+                className="price-input-simple"
+                value={tempPriceRange[1] * 1000}
+                onChange={(e) => setTempPriceRange([tempPriceRange[0], Math.floor(parseInt(e.target.value) / 1000) || 0])}
+              />
+              <span className="price-unit">₫</span>
             </div>
           </div>
 
-          <div className="sidebar-section">
-            <h3>Giá</h3>
-           
-            <div className="price-filter">
-              <div className="price-range">
-                <label>
-                  Từ: 
-                  <input
-                    type="number"
-                    value={tempPriceRange[0]}
-                    onChange={(e) => setTempPriceRange([parseInt(e.target.value) || 0, tempPriceRange[1]])}
-                    min="0"
-                    step="50"
-                  />
-                  k
-                </label>
-                <label>
-                  Đến: 
-                  <input
-                    type="number"
-                    value={tempPriceRange[1]}
-                    onChange={(e) => setTempPriceRange([tempPriceRange[0], parseInt(e.target.value) || 0])}
-                    min="0"
-                    step="50"
-                  />
-                  k
-                </label>
-              </div>
-            </div>
-          </div>
-
-          <div className="filter-buttons">
-            <button 
-              className="apply-filter-btn"
-              onClick={applyPriceFilter}
-            >
-              Áp dụng giá
-            </button>
-            <button 
-              className="reset-filter-btn"
-              onClick={resetFilters}
-            >
-              Đặt lại
-            </button>
-          </div>
+          <button 
+            className="apply-filters-btn"
+            onClick={applyPriceFilter}
+          >
+            Áp dụng
+          </button>
         </div>
 
         {/* Main Content */}
         <div className="products-main">
-          <div className="products-header">
+          <div className="products-header-compact">
             <h1>Đồ Nam</h1>
-            <div className="products-controls">
-              <div className="search-box">
-                <input type="text" placeholder="Tìm kiếm..." />
-                <button className="search-btn">🔍</button>
+            <div className="search-container">
+              <div className="search-box-compact">
+                <input type="text" placeholder="Search" />
+                <button className="search-btn-compact">🔍</button>
               </div>
             </div>
           </div>
