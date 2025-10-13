@@ -68,30 +68,24 @@ const Footer = () => {
           <div className="footer-columns">
             {/* Mua Sắm Column */}
             <div className="footer-column">
-              <h3>Mua Sắm</h3>
+              <h3>Sản phẩm Áo</h3>
               <ul>
                 <li><a href="#ao-thun">Áo Thun</a></li>
                 <li><a href="#ao-khoac">Áo Khoác</a></li>
                 <li><a href="#ao-so-mi">Áo Sơ Mi</a></li>
-                <li><a href="#quan-dai">Quần Dài</a></li>
-                <li><a href="#quan-short">Quần Short</a></li>
-                <li><a href="#sitemap">SITEMAP</a></li>
-                <li><a href="#vip">VIP</a></li>
+               <li><a href="#ao-so-mi">Áo Sweeter</a></li>
+          
               </ul>
             </div>
 
             {/* GU của  Column */}
             <div className="footer-column">
-              <h3>GU của Leaf</h3>
+              <h3>Sản phẩm Quần</h3>
               <ul>
-                <li><a href="#gu-don-gian">GU ĐƠN GIẢN</a></li>
-                <li><a href="#tram-that-yeu">Trạm Thất Yêu</a></li>
-                <li><a href="#tram-cong-nghe">Trạm Công Nghệ</a></li>
-                <li><a href="#tram-jean">Trạm Jean</a></li>
-                <li><a href="#gu-thiet-ke">GU THIẾT KẾ</a></li>
-                <li><a href="#tram-ton-huong">Trạm Tôn Hướng</a></li>
-                <li><a href="#tram-dich-chuyen">Trạm Dịch Chuyển</a></li>
-                <li><a href="#gu-the-thao">GU THỂ THAO</a></li>
+                <li><a href="#gu-don-gian">Quần Dài</a></li>
+                <li><a href="#tram-that-yeu">Quần Short</a></li>
+                <li><a href="#tram-jean">Quần Jean</a></li>
+                <li><a href="#tram-dich-chuyen">Quần Kaki</a></li>
               </ul>
             </div>
 
