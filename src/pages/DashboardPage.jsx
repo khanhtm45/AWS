@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AddProductModal } from '../components/AddProductModal';
 import { EditProductModal } from '../components/EditProductModal';
+import OrderDetailModal from '../components/OrderDetailModal';
+import UserOrdersModal from '../components/UserOrdersModal';
 import { ChatBox } from '../components/ChatBox';
 import './DashboardPage.css';
 
@@ -84,6 +86,10 @@ const DashboardPage = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const ordersPerPage = 10;
+  
+  // Order Detail Modal state
+  const [showOrderDetailModal, setShowOrderDetailModal] = useState(false);
+  const [selectedOrderDetail, setSelectedOrderDetail] = useState(null);
 
   // User management state (admin only)
   const [users, setUsers] = useState([]);
@@ -408,6 +414,98 @@ const DashboardPage = () => {
     setFilteredUsers(mockUsers);
   };
 
+  // Mock user orders data
+  const getUserOrders = (userId) => {
+    const mockUserOrders = {
+      'USR001': [
+        {
+          id: 'ORD001',
+          order_id: 'ORD001',
+          user_id: 'USR001',
+          user_name: 'John Carter',
+          user_email: 'john@example.com',
+          user_phone: '0123456789',
+          product_name: 'Apple Watch Series 4',
+          total_amount: 690.00,
+          order_status: 'completed',
+          order_status_text: 'Hoàn thành',
+          payment_status: 'paid',
+          order_date: '2025-01-01T10:30:00Z',
+          status: 'completed',
+          statusText: 'Hoàn thành',
+          customerName: 'John Carter',
+          orderDate: '1/1/2025',
+          price: '690.000đ'
+        },
+        {
+          id: 'ORD002',
+          order_id: 'ORD002',
+          user_id: 'USR001',
+          user_name: 'John Carter',
+          user_email: 'john@example.com',
+          user_phone: '0123456789',
+          product_name: 'Samsung A50',
+          total_amount: 280.00,
+          order_status: 'processing',
+          order_status_text: 'Đang xử lý',
+          payment_status: 'paid',
+          order_date: '2025-01-15T14:22:00Z',
+          status: 'processing',
+          statusText: 'Đang xử lý',
+          customerName: 'John Carter',
+          orderDate: '15/1/2025',
+          price: '280.000đ'
+        }
+      ],
+      'USR002': [
+        {
+          id: 'ORD003',
+          order_id: 'ORD003',
+          user_id: 'USR002',
+          user_name: 'Jane Smith',
+          user_email: 'jane@example.com',
+          user_phone: '0987654321',
+          product_name: 'Hair Dryer',
+          total_amount: 320.00,
+          order_status: 'shipped',
+          order_status_text: 'Đã gửi',
+          payment_status: 'paid',
+          order_date: '2025-01-10T16:45:00Z',
+          status: 'shipped',
+          statusText: 'Đã gửi',
+          customerName: 'Jane Smith',
+          orderDate: '10/1/2025',
+          price: '320.000đ'
+        }
+      ],
+      'USR003': [],
+      'USR004': [
+        {
+          id: 'ORD004',
+          order_id: 'ORD004',
+          user_id: 'USR004',
+          user_name: 'Mike Johnson',
+          user_email: 'mike@example.com',
+          user_phone: '0369852147',
+          product_name: 'Microsoft Headsquare',
+          total_amount: 190.00,
+          order_status: 'cancelled',
+          order_status_text: 'Đã hủy',
+          payment_status: 'refunded',
+          order_date: '2025-01-05T09:15:00Z',
+          status: 'cancelled',
+          statusText: 'Đã hủy',
+          customerName: 'Mike Johnson',
+          orderDate: '5/1/2025',
+          price: '190.000đ'
+        }
+      ]
+    };
+    return mockUserOrders[userId] || [];
+  };
+
+
+
   const handleProductDelete = (productId) => {
     if (window.confirm('Bạn có chắc chắn muốn xóa sản phẩm này?')) {
       const updatedProducts = products.filter(product => product.id !== productId);
@@ -544,13 +642,41 @@ const DashboardPage = () => {
   };
 
   const viewUserOrders = (userId, userName) => {
-    // Filter orders by user (mock - in real app would be by user ID)
-    const userOrders = orders.filter(order => 
-      order.customerName.toLowerCase().includes(userName.toLowerCase().split(' ')[0])
-    );
+    const userOrders = getUserOrders(userId);
     setSelectedUserOrders(userOrders);
     setSelectedUserName(userName);
     setShowUserOrdersModal(true);
+  };
+
+  // Handle view order detail
+  const handleViewOrderDetail = (order) => {
+    // Close UserOrdersModal if it's open
+    if (showUserOrdersModal) {
+      setShowUserOrdersModal(false);
+    }
+    
+    // Convert simple order to detailed order structure
+    const detailedOrder = {
+      order_id: order.id || order.order_id,
+      user_id: order.user_id || `USER_${order.id}`,
+      order_status: order.order_status || order.statusText || order.status,
+      payment_status: order.payment_status || (order.status === 'completed' ? 'Paid' : order.status === 'pending' ? 'Pending' : 'Processing'),
+      payment_method: 'COD',
+      shipping_address_id: `ADDR_${order.id || order.order_id}`,
+      billing_address_id: null,
+      shipping_cost: 30000,
+      discount_amount: 0,
+      total_amount: order.total_amount || parseFloat((order.price || '0').replace(/[^\d]/g, '')), // Extract number from price string
+      notes: `Đơn hàng ${order.product_name || order.productName}. Khách hàng: ${order.user_name || order.customerName}`,
+      order_date: order.order_date || `2025-01-${(order.id || order.order_id).slice(-2)}T10:30:00Z`,
+      estimated_delivery_date: `2025-01-${parseInt((order.id || order.order_id).slice(-2)) + 3}T17:00:00Z`,
+      warehouse_id: 'WH001',
+      staff_confirm_id: order.status === 'completed' ? 'STF001' : null,
+      updated_at: order.updated_at || `2025-01-${(order.id || order.order_id).slice(-2)}T14:22:00Z`
+    };
+    
+    setSelectedOrderDetail(detailedOrder);
+    setShowOrderDetailModal(true);
   };
 
   // User filtering effect
@@ -1016,11 +1142,11 @@ const DashboardPage = () => {
                         <td>
                           <button 
                             className="detail-btn"
-                            onClick={() => {/* Handle view detail */}}
+                            onClick={() => handleViewOrderDetail(order)}
                             title="Xem chi tiết"
                           >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M3 17.25V21H6.75L17.81 9.94L14.06 6.19L3 17.25ZM20.71 7.04C21.1 6.65 21.1 6.02 20.71 5.63L18.37 3.29C17.98 2.9 17.35 2.9 16.96 3.29L15.13 5.12L18.88 8.87L20.71 7.04Z" fill="currentColor"/>
+                              <path d="M12 4.5C7 4.5 2.73 7.61 1 12C2.73 16.39 7 19.5 12 19.5S21.27 16.39 23 12C21.27 7.61 17 4.5 12 4.5ZM12 17C9.24 17 7 14.76 7 12S9.24 7 12 7S17 9.24 17 12S14.76 17 12 17ZM12 9C10.34 9 9 10.34 9 12S10.34 15 12 15S15 13.66 15 12S13.66 9 12 9Z" fill="currentColor"/>
                             </svg>
                           </button>
                         </td>
@@ -1378,6 +1504,25 @@ const DashboardPage = () => {
         onSubmit={handleUpdateProduct}
         product={selectedProduct}
       />
+
+      {/* Order Detail Modal */}
+      {showOrderDetailModal && (
+        <OrderDetailModal 
+          order={selectedOrderDetail}
+          onClose={() => setShowOrderDetailModal(false)}
+        />
+      )}
+
+      {/* User Orders Modal - only show if OrderDetailModal is not open */}
+      {showUserOrdersModal && !showOrderDetailModal && (
+        <UserOrdersModal
+          isOpen={showUserOrdersModal}
+          onClose={() => setShowUserOrdersModal(false)}
+          userName={selectedUserName}
+          orders={selectedUserOrders}
+          onViewOrderDetail={handleViewOrderDetail}
+        />
+      )}
     </div>
   );
 };
