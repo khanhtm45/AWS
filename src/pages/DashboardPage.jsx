@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AddProductModal } from '../components/AddProductModal';
 import { EditProductModal } from '../components/EditProductModal';
+import { ChatBox } from '../components/ChatBox';
 import './DashboardPage.css';
 
 // Mock products data
@@ -676,16 +677,16 @@ const DashboardPage = () => {
 
   const menuItems = user?.role === 'admin' ? [
     { name: 'Dashboard', icon: '⚡' },
-    { name: 'Thông tin đặt hàng', icon: '�' },
-    { name: 'Inbox', icon: '�' },
+    { name: 'Thông tin đặt hàng', icon: '📦' },
+    { name: 'Chat', icon: '💬' },
     { name: 'Sản Phẩm', icon: '🎯' },
     { name: 'Người dùng', icon: '👥' },
     { name: 'Tạo tài khoản Nhân viên', icon: '➕' },
     { name: 'Settings', icon: '⚙️' }
   ] : [
     { name: 'Dashboard', icon: '⚡' },
-    { name: 'Thông tin đặt hàng', icon: '�' },
-    { name: 'Inbox', icon: '�' },
+    { name: 'Thông tin đặt hàng', icon: '📦' },
+    { name: 'Chat', icon: '💬' },
     { name: 'Sản Phẩm', icon: '🎯' },
     { name: 'Settings', icon: '⚙️' }
   ];
@@ -810,6 +811,12 @@ const DashboardPage = () => {
                 </div>
               </div>
             </>
+          )}
+
+          {selectedMenu === 'Chat' && (
+            <div className="chat-section">
+              <ChatBox />
+            </div>
           )}
 
           {selectedMenu === 'Tạo tài khoản Nhân viên' && user?.role === 'admin' && (

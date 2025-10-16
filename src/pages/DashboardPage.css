@@ -112,7 +112,7 @@
 /* Dashboard Content */
 .dashboard-content {
   flex: 1;
-  padding: 2rem;
+  padding: 0 2rem 2rem 2rem;
   min-height: calc(100vh - 0px); /* Đảm bảo nội dung có chiều cao tối thiểu */
 }
 
@@ -1542,5 +1542,18 @@
   .form-actions {
     flex-direction: column;
   }
+}
+
+/* Chat Section */
+.chat-section {
+  height: calc(100vh - 98px);
+  overflow: hidden;
+}
+
+.chat-section .chat-container {
+  height: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
