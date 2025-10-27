@@ -610,6 +610,9 @@ function ProductDetailPage() {
 
   // Cập nhật màu và hình ảnh khi ID thay đổi
   useEffect(() => {
+    // Scroll to top when component mounts or ID changes
+    window.scrollTo(0, 0);
+    
     // ID 2, 3, 5, 7, 10, 14 là sản phẩm màu đen
     // ID 11 là sản phẩm màu nâu
     // ID 1, 4, 6, 8, 13 là sản phẩm màu trắng
