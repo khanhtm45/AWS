@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './HomePage.css';
+import ChatBox from '../components/ChatBox';
 
 function HomePage() {
   const navigate = useNavigate();
@@ -135,6 +136,9 @@ function HomePage() {
 
   return (
     <div className="homepage">
+      {/* ChatBox AI */}
+      <ChatBox />
+      
       {/* Hero Section */}
       <section className="hero-section">
         <div className="hero-content">

@@ -110,7 +110,7 @@ const Footer = () => {
         <div className="footer-container">
           <p className="copyright">
             © 2025 AMAZON WEB SERVICE FCJ.<br />
-            Tầng 26 - Bitexco Financial Tower, T2 Đ. Hải Triều, Bến Nghé, Quận 1, Hồ Chí Minh 700000. Điện thoại: (0xx) xxx xxxx. Email: cskh@leafshop.com
+            Tầng 26 - Bitexco Financial Tower, T2 Đ. Hải Triều, Bến Nghé, Quận 1, Hồ Chí Minh 700000. Điện thoại: 039 834 8387 . Email: cskh@leafshop.com
           </p>
         </div>
       </div>
