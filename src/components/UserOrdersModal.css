@@ -1,0 +1,253 @@
+/* UserOrdersModal.css */
+
+.user-orders-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1100;
+    backdrop-filter: blur(3px);
+}
+
+.user-orders-modal-content {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    max-width: 800px;
+    width: 90%;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Header */
+.user-orders-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid #e0e0e0;
+    background-color: #f8f9fa;
+    border-radius: 12px 12px 0 0;
+}
+
+.user-orders-modal-title {
+    margin: 0;
+    color: #2c3e50;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.user-orders-close-button {
+    background: none;
+    border: none;
+    font-size: 28px;
+    cursor: pointer;
+    color: #999;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.user-orders-close-button:hover {
+    background-color: #ecf0f1;
+    color: #e74c3c;
+}
+
+/* Body */
+.user-orders-modal-body {
+    flex: 1;
+    padding: 24px;
+    overflow-y: auto;
+}
+
+.user-orders-table-container {
+    overflow-x: auto;
+}
+
+.user-orders-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.user-orders-table thead {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.user-orders-table th {
+    padding: 16px 12px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.user-orders-table tbody tr {
+    border-bottom: 1px solid #f0f0f0;
+    transition: background-color 0.2s ease;
+}
+
+.user-orders-table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.user-orders-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.user-orders-table td {
+    padding: 16px 12px;
+    vertical-align: middle;
+}
+
+.order-id-cell {
+    font-weight: 600;
+}
+
+.order-id {
+    color: #2c3e50;
+    font-family: 'Courier New', monospace;
+    background: #f8f9fa;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+.status-badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: inline-block;
+    min-width: 80px;
+    text-align: center;
+}
+
+.view-detail-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+}
+
+.view-detail-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(102, 126, 234, 0.4);
+}
+
+.view-detail-btn:active {
+    transform: translateY(0);
+}
+
+/* No orders message */
+.no-orders-message {
+    text-align: center;
+    padding: 60px 20px;
+    color: #6c757d;
+}
+
+.no-orders-message p {
+    font-size: 16px;
+    margin: 0;
+    font-style: italic;
+}
+
+/* Footer */
+.user-orders-modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid #e0e0e0;
+    background-color: #f8f9fa;
+    border-radius: 0 0 12px 12px;
+}
+
+.orders-count {
+    color: #6c757d;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .user-orders-modal-content {
+        width: 95%;
+        max-height: 85vh;
+    }
+    
+    .user-orders-modal-header {
+        padding: 16px 20px;
+    }
+    
+    .user-orders-modal-title {
+        font-size: 18px;
+    }
+    
+    .user-orders-modal-body {
+        padding: 16px 20px;
+    }
+    
+    .user-orders-table th,
+    .user-orders-table td {
+        padding: 12px 8px;
+        font-size: 13px;
+    }
+    
+    .view-detail-btn {
+        padding: 6px 12px;
+        font-size: 11px;
+    }
+}
+
+@media (max-width: 480px) {
+    .user-orders-modal-content {
+        width: 98%;
+        max-height: 90vh;
+    }
+    
+    .user-orders-table th,
+    .user-orders-table td {
+        padding: 10px 6px;
+        font-size: 12px;
+    }
+    
+    .order-id {
+        font-size: 11px;
+        padding: 3px 6px;
+    }
+    
+    .status-badge {
+        font-size: 10px;
+        padding: 4px 8px;
+        min-width: 60px;
+    }
+    
+    .view-detail-btn {
+        padding: 4px 8px;
+        font-size: 10px;
+    }
+}

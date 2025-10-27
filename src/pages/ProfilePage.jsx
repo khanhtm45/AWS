@@ -180,13 +180,13 @@ export default function ProfilePage() {
                 <div key={addr.id} className="address-item">
                   <div className="address-content">
                     <div className="address-header">
-                      <p className="address-name">{addr.firstName} {addr.lastName}</p>
+                      <p className="address-name">Họ tên: {addr.firstName} {addr.lastName}</p>
                       {addr.isDefault && <span className="default-badge">Mặc định</span>}
                     </div>
-                    <p className="address-detail">{addr.address}</p>
-                    <p className="address-detail">{addr.city} {addr.postalCode}</p>
-                    <p className="address-detail">{addr.phone}</p>
-                    <p className="address-detail address-country">{addr.country}</p>
+                    <p className="address-detail">Địa chỉ: {addr.address}</p>
+                    <p className="address-detail">Thành phố: {addr.city} {addr.postalCode}</p>
+                    <p className="address-detail">Số điện thoại: {addr.phone}</p>
+                    <p className="address-detail address-country">Quốc gia: {addr.country}</p>
                   </div>
                   <button 
                     className="edit-btn address-edit-btn"
