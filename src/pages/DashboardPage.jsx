@@ -1,65 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AddProductModal } from '../components/AddProductModal';
-import { EditProductModal } from '../components/EditProductModal';
-import OrderDetailModal from '../components/OrderDetailModal';
-import UserOrdersModal from '../components/UserOrdersModal';
-import { ChatBox } from '../components/ChatBox';
 import './DashboardPage.css';
-
-// Mock products data
-const mockProducts = [
-  {
-    id: 1,
-    name: 'Apple Watch Series 4',
-    category: 'Digital Product',
-    price: 690.00,
-    quantity: 63,
-    image: '/api/placeholder/60/60',
-    colors: ['black', 'silver', 'rose-gold'],
-    description: 'Apple Watch Series 4 với nhiều tính năng thông minh và thiết kế hiện đại.'
-  },
-  {
-    id: 2,
-    name: 'Microsoft Headsquare',
-    category: 'Digital Product',
-    price: 190.00,
-    quantity: 13,
-    image: '/api/placeholder/60/60',
-    colors: ['black', 'red', 'blue', 'yellow'],
-    description: 'Tai nghe Microsoft Headsquare với âm thanh stereo chất lượng cao.'
-  },
-  {
-    id: 3,
-    name: 'Hair Dryer',
-    category: 'Fashion',
-    price: 320.00,
-    quantity: 5,
-    image: '/api/placeholder/60/60',
-    colors: ['maroon', 'light-blue', 'navy', 'purple'],
-    description: 'Máy sấy tóc chuyên nghiệp với nhiều chế độ sấy khác nhau.'
-  },
-  {
-    id: 4,
-    name: 'Samsung A50',
-    category: 'Mobile',
-    price: 280.00,
-    quantity: 63,
-    image: '/api/placeholder/60/60',
-    colors: ['blue', 'black', 'red'],
-    description: 'Điện thoại Samsung A50 với màn hình lớn và camera chất lượng cao.'
-  },
-  {
-    id: 5,
-    name: 'Camera',
-    category: 'Electronic',
-    price: 420.00,
-    quantity: 52,
-    image: '/api/placeholder/60/60',
-    colors: ['blue', 'black', 'red'],
-    description: 'Máy ảnh chuyên nghiệp với khả năng chụp ảnh và quay video chất lượng 4K.'
-  }
-];
 
 const DashboardPage = () => {
   const navigate = useNavigate();
@@ -86,10 +27,6 @@ const DashboardPage = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const ordersPerPage = 10;
-  
-  // Order Detail Modal state
-  const [showOrderDetailModal, setShowOrderDetailModal] = useState(false);
-  const [selectedOrderDetail, setSelectedOrderDetail] = useState(null);
 
   // User management state (admin only)
   const [users, setUsers] = useState([]);
@@ -108,16 +45,17 @@ const DashboardPage = () => {
   const [productSearchTerm, setProductSearchTerm] = useState('');
   const [productCategoryFilter, setProductCategoryFilter] = useState('all');
   const [currentProductPage, setCurrentProductPage] = useState(1);
-  const [showAddProductModal, setShowAddProductModal] = useState(false);
-  const [showEditProductModal, setShowEditProductModal] = useState(false);
+  const [showProductModal, setShowProductModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [productForm, setProductForm] = useState({
+    name: '',
+    category: '',
+    price: '',
+    quantity: '',
+    description: '',
+    colors: []
+  });
   const productsPerPage = 10;
-
-  // Load products data
-  const loadProductsData = useCallback(() => {
-    setProducts(mockProducts);
-    setFilteredProducts(mockProducts);
-  }, []);
 
   useEffect(() => {
     // Kiểm tra user đã đăng nhập
@@ -141,7 +79,7 @@ const DashboardPage = () => {
     
     // Load products data
     loadProductsData();
-  }, [navigate, loadProductsData]);
+  }, [navigate]);
 
   const handleLogout = () => {
     localStorage.removeItem('staffAdminUser');
@@ -414,97 +352,38 @@ const DashboardPage = () => {
     setFilteredUsers(mockUsers);
   };
 
-  // Mock user orders data
-  const getUserOrders = (userId) => {
-    const mockUserOrders = {
-      'USR001': [
-        {
-          id: 'ORD001',
-          order_id: 'ORD001',
-          user_id: 'USR001',
-          user_name: 'John Carter',
-          user_email: 'john@example.com',
-          user_phone: '0123456789',
-          product_name: 'Apple Watch Series 4',
-          total_amount: 690.00,
-          order_status: 'completed',
-          order_status_text: 'Hoàn thành',
-          payment_status: 'paid',
-          order_date: '2025-01-01T10:30:00Z',
-          status: 'completed',
-          statusText: 'Hoàn thành',
-          customerName: 'John Carter',
-          orderDate: '1/1/2025',
-          price: '690.000đ'
-        },
-        {
-          id: 'ORD002',
-          order_id: 'ORD002',
-          user_id: 'USR001',
-          user_name: 'John Carter',
-          user_email: 'john@example.com',
-          user_phone: '0123456789',
-          product_name: 'Samsung A50',
-          total_amount: 280.00,
-          order_status: 'processing',
-          order_status_text: 'Đang xử lý',
-          payment_status: 'paid',
-          order_date: '2025-01-15T14:22:00Z',
-          status: 'processing',
-          statusText: 'Đang xử lý',
-          customerName: 'John Carter',
-          orderDate: '15/1/2025',
-          price: '280.000đ'
-        }
-      ],
-      'USR002': [
-        {
-          id: 'ORD003',
-          order_id: 'ORD003',
-          user_id: 'USR002',
-          user_name: 'Jane Smith',
-          user_email: 'jane@example.com',
-          user_phone: '0987654321',
-          product_name: 'Hair Dryer',
-          total_amount: 320.00,
-          order_status: 'shipped',
-          order_status_text: 'Đã gửi',
-          payment_status: 'paid',
-          order_date: '2025-01-10T16:45:00Z',
-          status: 'shipped',
-          statusText: 'Đã gửi',
-          customerName: 'Jane Smith',
-          orderDate: '10/1/2025',
-          price: '320.000đ'
-        }
-      ],
-      'USR003': [],
-      'USR004': [
-        {
-          id: 'ORD004',
-          order_id: 'ORD004',
-          user_id: 'USR004',
-          user_name: 'Mike Johnson',
-          user_email: 'mike@example.com',
-          user_phone: '0369852147',
-          product_name: 'Microsoft Headsquare',
-          total_amount: 190.00,
-          order_status: 'cancelled',
-          order_status_text: 'Đã hủy',
-          payment_status: 'refunded',
-          order_date: '2025-01-05T09:15:00Z',
-          status: 'cancelled',
-          statusText: 'Đã hủy',
-          customerName: 'Mike Johnson',
-          orderDate: '5/1/2025',
-          price: '190.000đ'
-        }
-      ]
-    };
-    return mockUserOrders[userId] || [];
+  // Load products data
+  const loadProductsData = () => {
+    setProducts(mockProducts);
+    setFilteredProducts(mockProducts);
   };
 
+  // Product management functions
+  const handleProductAdd = () => {
+    setSelectedProduct(null);
+    setProductForm({
+      name: '',
+      category: '',
+      price: '',
+      quantity: '',
+      description: '',
+      colors: []
+    });
+    setShowProductModal(true);
+  };
 
+  const handleProductEdit = (product) => {
+    setSelectedProduct(product);
+    setProductForm({
+      name: product.name,
+      category: product.category,
+      price: product.price.toString(),
+      quantity: product.quantity.toString(),
+      description: product.description,
+      colors: product.colors
+    });
+    setShowProductModal(true);
+  };
 
   const handleProductDelete = (productId) => {
     if (window.confirm('Bạn có chắc chắn muốn xóa sản phẩm này?')) {
@@ -514,52 +393,73 @@ const DashboardPage = () => {
     }
   };
 
-  const handleAddProduct = (productData) => {
-    // Tạo sản phẩm mới với ID unique
-    const newProduct = {
-      id: Date.now(), // Sử dụng timestamp làm ID tạm thời
-      name: productData.name,
-      category: productData.category,
-      price: productData.price,
-      quantity: productData.quantity,
-      image: productData.image,
-      colors: [productData.color], // Chuyển đổi từ single color thành array
-      sizes: productData.sizes, // Sử dụng sizes array từ modal
-      description: `${productData.name} - ${productData.category}`, // Tạo description mặc định
-      status: productData.status || 'active'
-    };
-
-    // Thêm sản phẩm mới vào danh sách
-    const updatedProducts = [...products, newProduct];
-    setProducts(updatedProducts);
-    setFilteredProducts(updatedProducts);
-    
-    // Đóng modal
-    setShowAddProductModal(false);
-    
-    // Hiển thị thông báo thành công (có thể thêm toast notification)
-    alert('Thêm sản phẩm thành công!');
+  const handleProductFormChange = (e) => {
+    const { name, value } = e.target;
+    setProductForm(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
-  const handleEditProduct = (product) => {
-    setSelectedProduct(product);
-    setShowEditProductModal(true);
+  const handleColorToggle = (color) => {
+    setProductForm(prev => ({
+      ...prev,
+      colors: prev.colors.includes(color)
+        ? prev.colors.filter(c => c !== color)
+        : [...prev.colors, color]
+    }));
   };
 
-  const handleUpdateProduct = (updatedProduct) => {
-    // Cập nhật sản phẩm trong danh sách
-    const updatedProducts = products.map(product => 
-      product.id === updatedProduct.id ? updatedProduct : product
-    );
-    setProducts(updatedProducts);
-    setFilteredProducts(updatedProducts);
-    
-    // Đóng modal
-    setShowEditProductModal(false);
+  const availableColors = [
+    { name: 'black', label: 'Đen' },
+    { name: 'silver', label: 'Bạc' },
+    { name: 'rose-gold', label: 'Hồng vàng' },
+    { name: 'red', label: 'Đỏ' },
+    { name: 'blue', label: 'Xanh dương' },
+    { name: 'yellow', label: 'Vàng' },
+    { name: 'maroon', label: 'Nâu đỏ' },
+    { name: 'light-blue', label: 'Xanh nhạt' },
+    { name: 'navy', label: 'Xanh navy' },
+    { name: 'purple', label: 'Tím' }
+  ];
+
+  const handleProductSave = (e) => {
+    e.preventDefault();
+    if (selectedProduct) {
+      // Edit existing product
+      const updatedProducts = products.map(product =>
+        product.id === selectedProduct.id
+          ? {
+              ...product,
+              name: productForm.name,
+              category: productForm.category,
+              price: parseFloat(productForm.price),
+              quantity: parseInt(productForm.quantity),
+              description: productForm.description,
+              colors: productForm.colors
+            }
+          : product
+      );
+      setProducts(updatedProducts);
+      setFilteredProducts(updatedProducts);
+    } else {
+      // Add new product
+      const newProduct = {
+        id: products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 1,
+        name: productForm.name,
+        category: productForm.category,
+        price: parseFloat(productForm.price),
+        quantity: parseInt(productForm.quantity),
+        description: productForm.description,
+        colors: productForm.colors,
+        image: '/api/placeholder/60/60' // Default placeholder image
+      };
+      const updatedProducts = [...products, newProduct];
+      setProducts(updatedProducts);
+      setFilteredProducts(updatedProducts);
+    }
+    setShowProductModal(false);
     setSelectedProduct(null);
-    
-    // Hiển thị thông báo thành công
-    alert('Cập nhật sản phẩm thành công!');
   };
 
   // Effect to filter orders when criteria change
@@ -642,41 +542,13 @@ const DashboardPage = () => {
   };
 
   const viewUserOrders = (userId, userName) => {
-    const userOrders = getUserOrders(userId);
+    // Filter orders by user (mock - in real app would be by user ID)
+    const userOrders = orders.filter(order => 
+      order.customerName.toLowerCase().includes(userName.toLowerCase().split(' ')[0])
+    );
     setSelectedUserOrders(userOrders);
     setSelectedUserName(userName);
     setShowUserOrdersModal(true);
-  };
-
-  // Handle view order detail
-  const handleViewOrderDetail = (order) => {
-    // Close UserOrdersModal if it's open
-    if (showUserOrdersModal) {
-      setShowUserOrdersModal(false);
-    }
-    
-    // Convert simple order to detailed order structure
-    const detailedOrder = {
-      order_id: order.id || order.order_id,
-      user_id: order.user_id || `USER_${order.id}`,
-      order_status: order.order_status || order.statusText || order.status,
-      payment_status: order.payment_status || (order.status === 'completed' ? 'Paid' : order.status === 'pending' ? 'Pending' : 'Processing'),
-      payment_method: 'COD',
-      shipping_address_id: `ADDR_${order.id || order.order_id}`,
-      billing_address_id: null,
-      shipping_cost: 30000,
-      discount_amount: 0,
-      total_amount: order.total_amount || parseFloat((order.price || '0').replace(/[^\d]/g, '')), // Extract number from price string
-      notes: `Đơn hàng ${order.product_name || order.productName}. Khách hàng: ${order.user_name || order.customerName}`,
-      order_date: order.order_date || `2025-01-${(order.id || order.order_id).slice(-2)}T10:30:00Z`,
-      estimated_delivery_date: `2025-01-${parseInt((order.id || order.order_id).slice(-2)) + 3}T17:00:00Z`,
-      warehouse_id: 'WH001',
-      staff_confirm_id: order.status === 'completed' ? 'STF001' : null,
-      updated_at: order.updated_at || `2025-01-${(order.id || order.order_id).slice(-2)}T14:22:00Z`
-    };
-    
-    setSelectedOrderDetail(detailedOrder);
-    setShowOrderDetailModal(true);
   };
 
   // User filtering effect
@@ -772,7 +644,59 @@ const DashboardPage = () => {
     }
   ];
 
-
+  // Mock products data
+  const mockProducts = [
+    {
+      id: 1,
+      name: 'Apple Watch Series 4',
+      category: 'Digital Product',
+      price: 690.00,
+      quantity: 63,
+      image: '/api/placeholder/60/60',
+      colors: ['black', 'silver', 'rose-gold'],
+      description: 'Apple Watch Series 4 với nhiều tính năng thông minh và thiết kế hiện đại.'
+    },
+    {
+      id: 2,
+      name: 'Microsoft Headsquare',
+      category: 'Digital Product',
+      price: 190.00,
+      quantity: 13,
+      image: '/api/placeholder/60/60',
+      colors: ['black', 'red', 'blue', 'yellow'],
+      description: 'Tai nghe Microsoft Headsquare chất lượng cao với âm thanh tuyệt vời.'
+    },
+    {
+      id: 3,
+      name: "Women's Dress",
+      category: 'Fashion',
+      price: 640.00,
+      quantity: 635,
+      image: '/api/placeholder/60/60',
+      colors: ['maroon', 'light-blue', 'navy', 'purple'],
+      description: 'Váy nữ thời trang cao cấp với thiết kế thanh lịch và chất liệu mềm mại.'
+    },
+    {
+      id: 4,
+      name: 'Samsung A50',
+      category: 'Mobile',
+      price: 400.00,
+      quantity: 67,
+      image: '/api/placeholder/60/60',
+      colors: ['blue', 'black', 'red'],
+      description: 'Điện thoại Samsung A50 với màn hình lớn và camera chất lượng cao.'
+    },
+    {
+      id: 5,
+      name: 'Camera',
+      category: 'Electronic',
+      price: 420.00,
+      quantity: 52,
+      image: '/api/placeholder/60/60',
+      colors: ['blue', 'black', 'red'],
+      description: 'Máy ảnh chuyên nghiệp với khả năng chụp ảnh và quay video chất lượng 4K.'
+    }
+  ];
 
   const orderData = [
     {
@@ -803,16 +727,16 @@ const DashboardPage = () => {
 
   const menuItems = user?.role === 'admin' ? [
     { name: 'Dashboard', icon: '⚡' },
-    { name: 'Thông tin đặt hàng', icon: '📦' },
-    { name: 'Chat', icon: '💬' },
+    { name: 'Thông tin đặt hàng', icon: '�' },
+    { name: 'Inbox', icon: '�' },
     { name: 'Sản Phẩm', icon: '🎯' },
     { name: 'Người dùng', icon: '👥' },
     { name: 'Tạo tài khoản Nhân viên', icon: '➕' },
     { name: 'Settings', icon: '⚙️' }
   ] : [
     { name: 'Dashboard', icon: '⚡' },
-    { name: 'Thông tin đặt hàng', icon: '📦' },
-    { name: 'Chat', icon: '💬' },
+    { name: 'Thông tin đặt hàng', icon: '�' },
+    { name: 'Inbox', icon: '�' },
     { name: 'Sản Phẩm', icon: '🎯' },
     { name: 'Settings', icon: '⚙️' }
   ];
@@ -937,12 +861,6 @@ const DashboardPage = () => {
                 </div>
               </div>
             </>
-          )}
-
-          {selectedMenu === 'Chat' && (
-            <div className="chat-section">
-              <ChatBox />
-            </div>
           )}
 
           {selectedMenu === 'Tạo tài khoản Nhân viên' && user?.role === 'admin' && (
@@ -1142,11 +1060,11 @@ const DashboardPage = () => {
                         <td>
                           <button 
                             className="detail-btn"
-                            onClick={() => handleViewOrderDetail(order)}
+                            onClick={() => {/* Handle view detail */}}
                             title="Xem chi tiết"
                           >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M12 4.5C7 4.5 2.73 7.61 1 12C2.73 16.39 7 19.5 12 19.5S21.27 16.39 23 12C21.27 7.61 17 4.5 12 4.5ZM12 17C9.24 17 7 14.76 7 12S9.24 7 12 7S17 9.24 17 12S14.76 17 12 17ZM12 9C10.34 9 9 10.34 9 12S10.34 15 12 15S15 13.66 15 12S13.66 9 12 9Z" fill="currentColor"/>
+                              <path d="M3 17.25V21H6.75L17.81 9.94L14.06 6.19L3 17.25ZM20.71 7.04C21.1 6.65 21.1 6.02 20.71 5.63L18.37 3.29C17.98 2.9 17.35 2.9 16.96 3.29L15.13 5.12L18.88 8.87L20.71 7.04Z" fill="currentColor"/>
                             </svg>
                           </button>
                         </td>
@@ -1404,14 +1322,13 @@ const DashboardPage = () => {
                     <option value="Mobile">Mobile</option>
                     <option value="Electronic">Electronic</option>
                   </select>
+                  <button 
+                    className="add-product-btn"
+                    onClick={handleProductAdd}
+                  >
+                    + Thêm sản phẩm
+                  </button>
                 </div>
-                <button 
-                  className="add-product-btn"
-                  onClick={() => setShowAddProductModal(true)}
-                >
-                  <span>+</span>
-                  Thêm sản phẩm
-                </button>
               </div>
 
               <div className="products-table-container">
@@ -1425,8 +1342,7 @@ const DashboardPage = () => {
                   <div>Chi tiết</div>
                 </div>
                 
-                <div className="products-table-content">
-                  {currentProducts.map((product) => (
+                {currentProducts.map((product) => (
                   <div key={product.id} className="products-table-row">
                     <div className="product-image">
                       <img src={product.image} alt={product.name} />
@@ -1447,10 +1363,10 @@ const DashboardPage = () => {
                     <div className="product-actions">
                       <button 
                         className="edit-btn"
-                        onClick={() => handleEditProduct(product)}
-                        title="Xem chi tiết / Chỉnh sửa"
+                        onClick={() => handleProductEdit(product)}
+                        title="Chỉnh sửa"
                       >
-                        ✏️
+                        📝
                       </button>
                       <button 
                         className="delete-btn"
@@ -1482,47 +1398,107 @@ const DashboardPage = () => {
                 </div>
               )}
             </div>
-            </div>
           )}
 
-
-
+          {/* Product Edit Modal */}
+          {showProductModal && (
+            <div className="modal-overlay">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h3>{selectedProduct ? 'Chỉnh sửa Sản phẩm' : 'Thêm Sản phẩm mới'}</h3>
+                  <button 
+                    className="close-btn"
+                    onClick={() => setShowProductModal(false)}
+                  >
+                    ×
+                  </button>
+                </div>
+                <form onSubmit={handleProductSave} className="product-form">
+                  <div className="form-group">
+                    <label>Tên sản phẩm:</label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={productForm.name}
+                      onChange={handleProductFormChange}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Danh mục:</label>
+                    <select
+                      name="category"
+                      value={productForm.category}
+                      onChange={handleProductFormChange}
+                      required
+                    >
+                      <option value="">Chọn danh mục</option>
+                      <option value="Digital Product">Digital Product</option>
+                      <option value="Fashion">Fashion</option>
+                      <option value="Mobile">Mobile</option>
+                      <option value="Electronic">Electronic</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label>Giá:</label>
+                    <input
+                      type="number"
+                      name="price"
+                      value={productForm.price}
+                      onChange={handleProductFormChange}
+                      step="0.01"
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Số lượng:</label>
+                    <input
+                      type="number"
+                      name="quantity"
+                      value={productForm.quantity}
+                      onChange={handleProductFormChange}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Mô tả:</label>
+                    <textarea
+                      name="description"
+                      value={productForm.description}
+                      onChange={handleProductFormChange}
+                      rows="4"
+                      required
+                    ></textarea>
+                  </div>
+                  <div className="form-group">
+                    <label>Màu sắc có sẵn:</label>
+                    <div className="color-selection">
+                      {availableColors.map((color) => (
+                        <div 
+                          key={color.name}
+                          className={`color-option ${productForm.colors.includes(color.name) ? 'selected' : ''}`}
+                          onClick={() => handleColorToggle(color.name)}
+                        >
+                          <span className={`color-dot color-${color.name}`}></span>
+                          <span className="color-label">{color.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="form-actions">
+                    <button type="button" onClick={() => setShowProductModal(false)}>
+                      Hủy
+                    </button>
+                    <button type="submit">
+                      {selectedProduct ? 'Lưu thay đổi' : 'Thêm sản phẩm'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
         </div>
       </div>
-      
-      {/* Add Product Modal */}
-      <AddProductModal 
-        open={showAddProductModal}
-        onOpenChange={setShowAddProductModal}
-        onSubmit={handleAddProduct}
-      />
-
-      {/* Edit Product Modal */}
-      <EditProductModal 
-        open={showEditProductModal}
-        onOpenChange={setShowEditProductModal}
-        onSubmit={handleUpdateProduct}
-        product={selectedProduct}
-      />
-
-      {/* Order Detail Modal */}
-      {showOrderDetailModal && (
-        <OrderDetailModal 
-          order={selectedOrderDetail}
-          onClose={() => setShowOrderDetailModal(false)}
-        />
-      )}
-
-      {/* User Orders Modal - only show if OrderDetailModal is not open */}
-      {showUserOrdersModal && !showOrderDetailModal && (
-        <UserOrdersModal
-          isOpen={showUserOrdersModal}
-          onClose={() => setShowUserOrdersModal(false)}
-          userName={selectedUserName}
-          orders={selectedUserOrders}
-          onViewOrderDetail={handleViewOrderDetail}
-        />
-      )}
     </div>
   );
 };
