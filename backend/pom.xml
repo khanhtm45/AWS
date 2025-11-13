@@ -30,10 +30,10 @@
 <jwt.version>0.12.3</jwt.version>
 </properties>
 <dependencies>
-<dependency>
+<!-- <dependency>
 <groupId>org.springframework.boot</groupId>
 <artifactId>spring-boot-starter-data-jpa</artifactId>
-</dependency>
+</dependency> -->
 <dependency>
 <groupId>org.springframework.boot</groupId>
 <artifactId>spring-boot-starter-security</artifactId>
@@ -54,17 +54,17 @@
 <groupId>org.thymeleaf.extras</groupId>
 <artifactId>thymeleaf-extras-springsecurity6</artifactId>
 </dependency>
-<dependency>
+<!-- <dependency>
 <groupId>org.springframework.boot</groupId>
 <artifactId>spring-boot-devtools</artifactId>
 <scope>runtime</scope>
 <optional>true</optional>
-</dependency>
-<dependency>
+</dependency> -->
+<!-- <dependency>
 <groupId>com.microsoft.sqlserver</groupId>
 <artifactId>mssql-jdbc</artifactId>
 <scope>runtime</scope>
-</dependency>
+</dependency> -->
 <dependency>
 <groupId>org.projectlombok</groupId>
 <artifactId>lombok</artifactId>
@@ -117,12 +117,40 @@
     <optional>true</optional>
 </dependency>
 
-<!-- AWS S3 Dependencies -->
+<!-- AWS S3 Dependencies (SDK v1 - giữ lại nếu đang dùng) -->
 <dependency>
     <groupId>com.amazonaws</groupId>
     <artifactId>aws-java-sdk-s3</artifactId>
     <version>1.12.261</version>
 </dependency>
+
+<!-- AWS SDK v2 - DynamoDB -->
+<dependency>
+    <groupId>software.amazon.awssdk</groupId>
+    <artifactId>dynamodb</artifactId>
+    <version>2.20.26</version>
+</dependency>
+
+<!-- AWS SDK v2 - DynamoDB Enhanced Client -->
+<dependency>
+    <groupId>software.amazon.awssdk</groupId>
+    <artifactId>dynamodb-enhanced</artifactId>
+    <version>2.20.26</version>
+</dependency>
+
+<!-- AWS SDK v2 - Core -->
+<dependency>
+    <groupId>software.amazon.awssdk</groupId>
+    <artifactId>auth</artifactId>
+    <version>2.20.26</version>
+</dependency>
+
+<!-- AWS SDK v2 - URL Connection HTTP Client -->
+<!-- <dependency>
+    <groupId>software.amazon.awssdk</groupId>
+    <artifactId>url-connection-client</artifactId>
+    <version>2.20.26</version>
+</dependency> -->
 
 <!-- JAXB API for Java 9+ compatibility -->
 <dependency>
