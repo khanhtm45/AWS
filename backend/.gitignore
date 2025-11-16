@@ -1,6 +1,6 @@
 # Build folder
 /target/
-
+target/
 # IDE files
 *.iml
 *.ipr
@@ -9,3 +9,4 @@
 *.classpath
 *.project
 *.settings/
+src/main/resources/

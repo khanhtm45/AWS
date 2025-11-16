@@ -102,5 +102,16 @@ public class WarehouseTableRepository {
 			.stream()
 			.collect(Collectors.toList());
 	}
+
+	// Find warehouse by PK with SK = "META"
+	public Optional<WarehouseTable> findWarehouseByPk(String pk) {
+		Key key = Key.builder().partitionValue(pk).sortValue("META").build();
+		return Optional.ofNullable(warehouseTable().getItem(key));
+	}
+
+	public void deleteByPkAndSk(String pk, String sk) {
+		Key key = Key.builder().partitionValue(pk).sortValue(sk).build();
+		warehouseTable().deleteItem(key);
+	}
 }
 

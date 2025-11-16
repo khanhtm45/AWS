@@ -90,4 +90,25 @@ public class ReviewTableRepository {
 			.stream()
 			.collect(Collectors.toList());
 	}
+
+	// Find all reviews (scan all items with PK starting with PRODUCT#)
+	public List<ReviewTable> findAllReviews() {
+		Map<String, AttributeValue> eav = new HashMap<>();
+		eav.put(":productPrefix", AttributeValue.builder().s("PRODUCT#").build());
+		Expression filterExpression = Expression.builder()
+			.expression("begins_with(pk, :productPrefix)")
+			.expressionValues(eav)
+			.build();
+
+		return reviewTable()
+			.scan(ScanEnhancedRequest.builder().filterExpression(filterExpression).build())
+			.items()
+			.stream()
+			.collect(Collectors.toList());
+	}
+
+	public void deleteByPkAndSk(String pk, String sk) {
+		Key key = Key.builder().partitionValue(pk).sortValue(sk).build();
+		reviewTable().deleteItem(key);
+	}
 }

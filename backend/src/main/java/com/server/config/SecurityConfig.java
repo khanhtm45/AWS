@@ -44,7 +44,7 @@ public class SecurityConfig {
 				
 				// Cho phép truy cập các endpoint API (tạm thời permitAll)
 				// Có thể thêm JWT authentication sau
-				.requestMatchers("/api/**").permitAll()
+				.requestMatchers("/api/**","/api/**/*","/api/**/*/*").permitAll()
 				
 				// Tất cả các request khác cần authentication
 				.anyRequest().authenticated()

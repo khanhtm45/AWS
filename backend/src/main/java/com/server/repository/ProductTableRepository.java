@@ -48,6 +48,12 @@ public class ProductTableRepository {
 		return Optional.ofNullable(productTable().getItem(key));
 	}
 
+	// Find product by PK (PRODUCT#<product_id>) with SK = "META"
+	public Optional<ProductTable> findProductByPk(String pk) {
+		Key key = Key.builder().partitionValue(pk).sortValue("META").build();
+		return Optional.ofNullable(productTable().getItem(key));
+	}
+
 	// Find all variants for a product
 	public List<ProductTable> findVariantsByPk(String pk) {
 		return productTable()
@@ -130,6 +136,22 @@ public class ProductTableRepository {
 			.collect(Collectors.toList());
 	}
 
+	public List<ProductTable> findAllTypes() {
+		Map<String, AttributeValue> eav = new HashMap<>();
+		eav.put(":typePrefix", AttributeValue.builder().s("TYPE#").build());
+		eav.put(":meta", AttributeValue.builder().s("META").build());
+		Expression filterExpression = Expression.builder()
+			.expression("begins_with(PK, :typePrefix) AND SK = :meta")
+			.expressionValues(eav)
+			.build();
+
+		return productTable()
+			.scan(ScanEnhancedRequest.builder().filterExpression(filterExpression).build())
+			.items()
+			.stream()
+			.collect(Collectors.toList());
+	}
+
 	// Find active products
 	public List<ProductTable> findByIsActiveTrue() {
 		Map<String, AttributeValue> eav = new HashMap<>();
@@ -137,6 +159,23 @@ public class ProductTableRepository {
 		eav.put(":meta", AttributeValue.builder().s("META").build());
 		Expression filterExpression = Expression.builder()
 			.expression("isActive = :true AND sk = :meta")
+			.expressionValues(eav)
+			.build();
+
+		return productTable()
+			.scan(ScanEnhancedRequest.builder().filterExpression(filterExpression).build())
+			.items()
+			.stream()
+			.collect(Collectors.toList());
+	}
+
+	// Find all products
+	public List<ProductTable> findAllProducts() {
+		Map<String, AttributeValue> eav = new HashMap<>();
+		eav.put(":productPrefix", AttributeValue.builder().s("PRODUCT#").build());
+		eav.put(":meta", AttributeValue.builder().s("META").build());
+		Expression filterExpression = Expression.builder()
+			.expression("begins_with(PK, :productPrefix) AND SK = :meta")
 			.expressionValues(eav)
 			.build();
 

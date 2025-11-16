@@ -23,7 +23,7 @@ public class DynamoDBConfig {
     @Value("${aws.secret.access.key:}")
     private String awsSecretAccessKey;
 
-    @Value("${aws.dynamodb.region:ap-southeast-2}")
+    @Value("${aws.dynamodb.region:us-east-1}")
     private String awsRegion;
 
     @Bean
