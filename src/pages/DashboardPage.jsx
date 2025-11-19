@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AddProductModal } from '../components/AddProductModal';
 import './DashboardPage.css';
 
 const DashboardPage = () => {
@@ -47,14 +48,8 @@ const DashboardPage = () => {
   const [currentProductPage, setCurrentProductPage] = useState(1);
   const [showProductModal, setShowProductModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [productForm, setProductForm] = useState({
-    name: '',
-    category: '',
-    price: '',
-    quantity: '',
-    description: '',
-    colors: []
-  });
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false);
+  const [productCategories, setProductCategories] = useState([]);
   const productsPerPage = 10;
 
   useEffect(() => {
@@ -77,7 +72,7 @@ const DashboardPage = () => {
       loadUsersData();
     }
     
-    // Load products data
+    // Load products data from API
     loadProductsData();
   }, [navigate]);
 
@@ -255,6 +250,52 @@ const DashboardPage = () => {
     setFilteredOrders(mockOrders);
   };
 
+  // Load products data from API
+  const loadProductsData = async () => {
+    setIsLoadingProducts(true);
+    try {
+      const response = await fetch('http://localhost:8080/api/products');
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const productsData = await response.json();
+      console.log('Loaded products from API:', productsData);
+
+      // Transform API data to match dashboard display format
+      const transformedProducts = productsData.map(product => ({
+        id: product.productId,
+        name: product.name,
+        category: product.categoryId,
+        price: product.price,
+        quantity: 10, // Default since API doesn't return stock info
+        description: product.description,
+        colors: ['black'], // Default since API doesn't return colors
+        image: '/api/placeholder/60/60', // Default image
+        isActive: product.isActive,
+        isPreorder: product.isPreorder,
+        typeId: product.typeId
+      }));
+
+      setProducts(transformedProducts);
+      setFilteredProducts(transformedProducts);
+
+      // Extract unique categories for filter dropdown
+      const uniqueCategories = [...new Set(productsData.map(p => p.categoryId))];
+      setProductCategories(uniqueCategories);
+
+    } catch (error) {
+      console.error('Error loading products:', error);
+      alert(`Lỗi tải danh sách sản phẩm: ${error.message}`);
+      // Set empty arrays if API fails
+      setProducts([]);
+      setFilteredProducts([]);
+    } finally {
+      setIsLoadingProducts(false);
+    }
+  };
+
   // Load users data (admin only)
   const loadUsersData = () => {
     const mockUsers = [
@@ -352,36 +393,14 @@ const DashboardPage = () => {
     setFilteredUsers(mockUsers);
   };
 
-  // Load products data
-  const loadProductsData = () => {
-    setProducts(mockProducts);
-    setFilteredProducts(mockProducts);
-  };
-
   // Product management functions
   const handleProductAdd = () => {
     setSelectedProduct(null);
-    setProductForm({
-      name: '',
-      category: '',
-      price: '',
-      quantity: '',
-      description: '',
-      colors: []
-    });
     setShowProductModal(true);
   };
 
   const handleProductEdit = (product) => {
     setSelectedProduct(product);
-    setProductForm({
-      name: product.name,
-      category: product.category,
-      price: product.price.toString(),
-      quantity: product.quantity.toString(),
-      description: product.description,
-      colors: product.colors
-    });
     setShowProductModal(true);
   };
 
@@ -393,70 +412,36 @@ const DashboardPage = () => {
     }
   };
 
-  const handleProductFormChange = (e) => {
-    const { name, value } = e.target;
-    setProductForm(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
 
-  const handleColorToggle = (color) => {
-    setProductForm(prev => ({
-      ...prev,
-      colors: prev.colors.includes(color)
-        ? prev.colors.filter(c => c !== color)
-        : [...prev.colors, color]
-    }));
-  };
 
-  const availableColors = [
-    { name: 'black', label: 'Đen' },
-    { name: 'silver', label: 'Bạc' },
-    { name: 'rose-gold', label: 'Hồng vàng' },
-    { name: 'red', label: 'Đỏ' },
-    { name: 'blue', label: 'Xanh dương' },
-    { name: 'yellow', label: 'Vàng' },
-    { name: 'maroon', label: 'Nâu đỏ' },
-    { name: 'light-blue', label: 'Xanh nhạt' },
-    { name: 'navy', label: 'Xanh navy' },
-    { name: 'purple', label: 'Tím' }
-  ];
-
-  const handleProductSave = (e) => {
-    e.preventDefault();
+  const handleProductSave = (productData) => {
     if (selectedProduct) {
-      // Edit existing product
-      const updatedProducts = products.map(product =>
-        product.id === selectedProduct.id
-          ? {
-              ...product,
-              name: productForm.name,
-              category: productForm.category,
-              price: parseFloat(productForm.price),
-              quantity: parseInt(productForm.quantity),
-              description: productForm.description,
-              colors: productForm.colors
-            }
-          : product
-      );
-      setProducts(updatedProducts);
-      setFilteredProducts(updatedProducts);
+      // Edit existing product - for now we'll skip this since the new modal is focused on creation
+      console.log('Edit functionality not implemented with new modal structure');
     } else {
-      // Add new product
+      // Add new product - productData now contains the API response
+      console.log('Product created via API:', productData);
+      
+      // Convert API response format to dashboard display format
       const newProduct = {
-        id: products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 1,
-        name: productForm.name,
-        category: productForm.category,
-        price: parseFloat(productForm.price),
-        quantity: parseInt(productForm.quantity),
-        description: productForm.description,
-        colors: productForm.colors,
-        image: '/api/placeholder/60/60' // Default placeholder image
+        id: productData.product.productId || products.length + 1,
+        name: productData.product.name,
+        category: productData.product.categoryId,
+        price: productData.product.price,
+        quantity: 10, // Default quantity since API doesn't return stock info
+        description: productData.product.description,
+        colors: ['black'], // Default color since new modal doesn't have color selection
+        image: productData.media.length > 0 ? productData.media[0]?.mediaUrl || '/api/placeholder/60/60' : '/api/placeholder/60/60'
       };
+      
       const updatedProducts = [...products, newProduct];
       setProducts(updatedProducts);
       setFilteredProducts(updatedProducts);
+      
+      // Refresh products list to get updated data from server
+      setTimeout(() => {
+        loadProductsData();
+      }, 1000); // Small delay to ensure API has processed
     }
     setShowProductModal(false);
     setSelectedProduct(null);
@@ -641,60 +626,6 @@ const DashboardPage = () => {
       changeType: 'positive',
       icon: '⏳',
       color: 'pink'
-    }
-  ];
-
-  // Mock products data
-  const mockProducts = [
-    {
-      id: 1,
-      name: 'Apple Watch Series 4',
-      category: 'Digital Product',
-      price: 690.00,
-      quantity: 63,
-      image: '/api/placeholder/60/60',
-      colors: ['black', 'silver', 'rose-gold'],
-      description: 'Apple Watch Series 4 với nhiều tính năng thông minh và thiết kế hiện đại.'
-    },
-    {
-      id: 2,
-      name: 'Microsoft Headsquare',
-      category: 'Digital Product',
-      price: 190.00,
-      quantity: 13,
-      image: '/api/placeholder/60/60',
-      colors: ['black', 'red', 'blue', 'yellow'],
-      description: 'Tai nghe Microsoft Headsquare chất lượng cao với âm thanh tuyệt vời.'
-    },
-    {
-      id: 3,
-      name: "Women's Dress",
-      category: 'Fashion',
-      price: 640.00,
-      quantity: 635,
-      image: '/api/placeholder/60/60',
-      colors: ['maroon', 'light-blue', 'navy', 'purple'],
-      description: 'Váy nữ thời trang cao cấp với thiết kế thanh lịch và chất liệu mềm mại.'
-    },
-    {
-      id: 4,
-      name: 'Samsung A50',
-      category: 'Mobile',
-      price: 400.00,
-      quantity: 67,
-      image: '/api/placeholder/60/60',
-      colors: ['blue', 'black', 'red'],
-      description: 'Điện thoại Samsung A50 với màn hình lớn và camera chất lượng cao.'
-    },
-    {
-      id: 5,
-      name: 'Camera',
-      category: 'Electronic',
-      price: 420.00,
-      quantity: 52,
-      image: '/api/placeholder/60/60',
-      colors: ['blue', 'black', 'red'],
-      description: 'Máy ảnh chuyên nghiệp với khả năng chụp ảnh và quay video chất lượng 4K.'
     }
   ];
 
@@ -1317,16 +1248,25 @@ const DashboardPage = () => {
                     className="filter-select"
                   >
                     <option value="all">Tất cả danh mục</option>
-                    <option value="Digital Product">Digital Product</option>
-                    <option value="Fashion">Fashion</option>
-                    <option value="Mobile">Mobile</option>
-                    <option value="Electronic">Electronic</option>
+                    {productCategories.map((category) => (
+                      <option key={category} value={category}>
+                        {category}
+                      </option>
+                    ))}
                   </select>
                   <button 
                     className="add-product-btn"
                     onClick={handleProductAdd}
                   >
                     + Thêm sản phẩm
+                  </button>
+                  <button 
+                    className="refresh-btn"
+                    onClick={loadProductsData}
+                    disabled={isLoadingProducts}
+                    title="Làm mới danh sách"
+                  >
+                    {isLoadingProducts ? '🔄' : '↻'} Làm mới
                   </button>
                 </div>
               </div>
@@ -1342,7 +1282,17 @@ const DashboardPage = () => {
                   <div>Chi tiết</div>
                 </div>
                 
-                {currentProducts.map((product) => (
+                {isLoadingProducts ? (
+                  <div className="loading-products">
+                    <p>Đang tải danh sách sản phẩm...</p>
+                  </div>
+                ) : currentProducts.length === 0 ? (
+                  <div className="no-products">
+                    <p>Không có sản phẩm nào được tìm thấy.</p>
+                  </div>
+                ) : null}
+                
+                {!isLoadingProducts && currentProducts.map((product) => (
                   <div key={product.id} className="products-table-row">
                     <div className="product-image">
                       <img src={product.image} alt={product.name} />
@@ -1400,103 +1350,12 @@ const DashboardPage = () => {
             </div>
           )}
 
-          {/* Product Edit Modal */}
-          {showProductModal && (
-            <div className="modal-overlay">
-              <div className="modal-content">
-                <div className="modal-header">
-                  <h3>{selectedProduct ? 'Chỉnh sửa Sản phẩm' : 'Thêm Sản phẩm mới'}</h3>
-                  <button 
-                    className="close-btn"
-                    onClick={() => setShowProductModal(false)}
-                  >
-                    ×
-                  </button>
-                </div>
-                <form onSubmit={handleProductSave} className="product-form">
-                  <div className="form-group">
-                    <label>Tên sản phẩm:</label>
-                    <input
-                      type="text"
-                      name="name"
-                      value={productForm.name}
-                      onChange={handleProductFormChange}
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Danh mục:</label>
-                    <select
-                      name="category"
-                      value={productForm.category}
-                      onChange={handleProductFormChange}
-                      required
-                    >
-                      <option value="">Chọn danh mục</option>
-                      <option value="Digital Product">Digital Product</option>
-                      <option value="Fashion">Fashion</option>
-                      <option value="Mobile">Mobile</option>
-                      <option value="Electronic">Electronic</option>
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label>Giá:</label>
-                    <input
-                      type="number"
-                      name="price"
-                      value={productForm.price}
-                      onChange={handleProductFormChange}
-                      step="0.01"
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Số lượng:</label>
-                    <input
-                      type="number"
-                      name="quantity"
-                      value={productForm.quantity}
-                      onChange={handleProductFormChange}
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Mô tả:</label>
-                    <textarea
-                      name="description"
-                      value={productForm.description}
-                      onChange={handleProductFormChange}
-                      rows="4"
-                      required
-                    ></textarea>
-                  </div>
-                  <div className="form-group">
-                    <label>Màu sắc có sẵn:</label>
-                    <div className="color-selection">
-                      {availableColors.map((color) => (
-                        <div 
-                          key={color.name}
-                          className={`color-option ${productForm.colors.includes(color.name) ? 'selected' : ''}`}
-                          onClick={() => handleColorToggle(color.name)}
-                        >
-                          <span className={`color-dot color-${color.name}`}></span>
-                          <span className="color-label">{color.label}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="form-actions">
-                    <button type="button" onClick={() => setShowProductModal(false)}>
-                      Hủy
-                    </button>
-                    <button type="submit">
-                      {selectedProduct ? 'Lưu thay đổi' : 'Thêm sản phẩm'}
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          )}
+          {/* Product Modal */}
+          <AddProductModal
+            open={showProductModal}
+            onOpenChange={setShowProductModal}
+            onSubmit={handleProductSave}
+          />
         </div>
       </div>
     </div>

@@ -1,334 +1,487 @@
 import { useState } from 'react';
+import { X, Upload } from 'lucide-react';
+import { ImageWithFallback } from './ImageWithFallback';
 import './AddProductModal.css';
 
-export function AddProductModal({ open, onOpenChange, onSubmit }) {
-  const [step, setStep] = useState(1);
-  const [formData, setFormData] = useState({
-    name: '',
-    category: '',
-    imageUrl: '',
-    price: '',
-    color: '',
-    sizes: [], // Changed to array for multiple sizes
-    quantity: ''
-  });
-  const [imagePreview, setImagePreview] = useState('');
+const defaultImages = [
+  "https://images.unsplash.com/photo-1760287363699-a08d553fb8a9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBmYXNoaW9uJTIwcHJvZHVjdHxlbnwxfHx8fDE3NjM1NDM3OTl8MA&ixlib=rb-4.1.0&q=80&w=1080",
+  "https://images.unsplash.com/photo-1589270216117-7972b3082c7d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtaW5pbWFsJTIwY2xvdGhpbmclMjBzdHlsZXxlbnwxfHx8fDE3NjM1NDM4MDB8MA&ixlib=rb-4.1.0&q=80&w=1080",
+  "https://images.unsplash.com/photo-1670946838999-5809cb066126?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxibGFjayUyMHdoaXRlJTIwcHJvZHVjdHxlbnwxfHx8fDE3NjM1NDM4MDB8MA&ixlib=rb-4.1.0&q=80&w=1080",
+  "https://images.unsplash.com/photo-1632773004171-02bc1c4a726a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBhcHBhcmVsJTIwZGVzaWdufGVufDF8fHx8MTc2MzU0MzgwMHww&ixlib=rb-4.1.0&q=80&w=1080"
+];
 
-  const availableSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+export function AddProductModal({ open, onOpenChange, onSubmit }) {
+  const [formData, setFormData] = useState({
+    productId: '',
+    name: '',
+    description: '',
+    price: 0,
+    categoryId: '',
+    typeId: '',
+    isPreorder: false,
+    preorderDays: 0,
+    isActive: true
+  });
+
+  const [media, setMedia] = useState([]);
+  const [errors, setErrors] = useState({});
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const validateForm = () => {
+    const newErrors = {};
+    
+    if (!formData.productId.trim()) newErrors.productId = 'Product ID is required';
+    if (!formData.name.trim()) newErrors.name = 'Name is required';
+    if (!formData.description.trim()) newErrors.description = 'Description is required';
+    if (!formData.price || formData.price <= 0) newErrors.price = 'Price is required and must be greater than 0';
+    if (!formData.categoryId.trim()) newErrors.categoryId = 'Category ID is required';
+    if (!formData.typeId.trim()) newErrors.typeId = 'Type ID is required';
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleSizeToggle = (size) => {
-    setFormData(prev => {
-      const sizes = prev.sizes.includes(size)
-        ? prev.sizes.filter(s => s !== size)
-        : [...prev.sizes, size];
-      return { ...prev, sizes };
-    });
-  };
-
-  const handleImageUrlChange = (value) => {
-    setFormData(prev => ({ ...prev, imageUrl: value }));
-    setImagePreview(value);
-  };
-
-  const handleNext = () => {
-    if (step === 1) {
-      setStep(2);
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: '' }));
     }
   };
 
-  const handleBack = () => {
-    if (step === 2) {
-      setStep(1);
+  const handleImageUpload = (e) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      const newMedia = [];
+      Array.from(files).forEach((file, index) => {
+        const url = URL.createObjectURL(file);
+        newMedia.push({
+          mediaId: `MEDIA-${media.length + index + 1}`,
+          mediaUrl: url,
+          mediaType: 'image',
+          mediaOrder: media.length + index + 1
+        });
+      });
+      setMedia([...media, ...newMedia]);
     }
   };
 
-  const handleSubmit = () => {
-    // Tạo sản phẩm mới
-    const newProduct = {
-      id: Date.now(), // Tạo ID tạm thời
-      name: formData.name,
-      category: formData.category,
-      image: formData.imageUrl,
-      price: parseInt(formData.price),
-      color: formData.color,
-      sizes: formData.sizes,
-      quantity: parseInt(formData.quantity),
-      status: 'active'
-    };
-
-    // Gọi hàm onSubmit để thêm sản phẩm
-    if (onSubmit) {
-      onSubmit(newProduct);
-    }
-
-    // Reset form
-    setFormData({
-      name: '',
-      category: '',
-      imageUrl: '',
-      price: '',
-      color: '',
-      sizes: [],
-      quantity: ''
-    });
-    setImagePreview('');
-    setStep(1);
-    onOpenChange(false);
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragOver(true);
   };
 
-  const isStep1Valid = formData.name && formData.category && formData.imageUrl;
-  const isStep2Valid = formData.price && formData.color && formData.sizes.length > 0 && formData.quantity;
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      const newMedia = [];
+      Array.from(files).forEach((file, index) => {
+        if (file.type.startsWith('image/')) {
+          const url = URL.createObjectURL(file);
+          newMedia.push({
+            mediaId: `MEDIA-${media.length + index + 1}`,
+            mediaUrl: url,
+            mediaType: 'image',
+            mediaOrder: media.length + index + 1
+          });
+        }
+      });
+      setMedia([...media, ...newMedia]);
+    }
+  };
+
+  const removeImage = (index) => {
+    const newMedia = media.filter((_, i) => i !== index);
+    setMedia(newMedia);
+  };
+
+  const loadDefaultImages = () => {
+    const defaultMedia = defaultImages.map((url, index) => ({
+      mediaId: `MEDIA-${index + 1}`,
+      mediaUrl: url,
+      mediaType: 'image',
+      mediaOrder: index + 1
+    }));
+    setMedia(defaultMedia);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    try {
+      // Prepare the request body according to API specification
+      const requestBody = {
+        productId: formData.productId,
+        name: formData.name,
+        description: formData.description,
+        price: parseFloat(formData.price),
+        categoryId: formData.categoryId,
+        typeId: formData.typeId,
+        isPreorder: formData.isPreorder,
+        isActive: formData.isActive
+      };
+
+      console.log('Sending request to create product:', requestBody);
+
+      const response = await fetch('http://localhost:8080/api/products', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorData}`);
+      }
+
+      const createdProduct = await response.json();
+      console.log('Product created successfully:', createdProduct);
+
+      // Call the onSubmit callback with the created product data
+      if (onSubmit) {
+        const formattedData = {
+          product: createdProduct,
+          media: media
+        };
+        onSubmit(formattedData);
+      }
+
+      // Reset form
+      setFormData({
+        productId: '',
+        name: '',
+        description: '',
+        price: 0,
+        categoryId: '',
+        typeId: '',
+        isPreorder: false,
+        preorderDays: 0,
+        isActive: true
+      });
+      setErrors({});
+      setMedia([]);
+      onOpenChange(false);
+      
+      // Show success message
+      alert('Sản phẩm đã được tạo thành công!');
+      
+    } catch (error) {
+      console.error('Error creating product:', error);
+      alert(`Lỗi tạo sản phẩm: ${error.message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   if (!open) return null;
 
   return (
-    <div className="modal-overlay" onClick={() => onOpenChange(false)}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2 className="modal-title">Thêm Sản Phẩm Mới</h2>
-          <button className="modal-close" onClick={() => onOpenChange(false)}>
-            ×
+    <div className="add-product-modal fixed inset-0 z-50 flex items-center justify-center">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/50"
+        onClick={() => onOpenChange(false)}
+      ></div>
+
+      {/* Modal */}
+      <div className="relative bg-white w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl">
+        {/* Header */}
+        <div className="sticky top-0 bg-black text-white px-6 py-4 flex items-center justify-between border-b border-white/10">
+          <h2>Create New Product</h2>
+          <button
+            onClick={() => onOpenChange(false)}
+            className="hover:bg-white/10 p-2 transition-colors"
+          >
+            <X className="w-6 h-6" />
           </button>
         </div>
 
-        <div className="progress-section">
-          <div className="step-indicators">
-            <div className="step-item">
-              <div className={`step-circle ${step >= 1 ? 'active' : ''}`}>
-                {step > 1 ? '✓' : '1'}
-              </div>
-              <span className={`step-label ${step === 1 ? 'active' : ''}`}>
-                Thông tin cơ bản
-              </span>
-            </div>
-            <div className="step-line">
-              <div className={`step-line-fill ${step === 2 ? 'filled' : ''}`}></div>
-            </div>
-            <div className="step-item">
-              <div className={`step-circle ${step === 2 ? 'active' : ''}`}>
-                2
-              </div>
-              <span className={`step-label ${step === 2 ? 'active' : ''}`}>
-                Chi tiết sản phẩm
-              </span>
-            </div>
-          </div>
-          <div className="progress-bar">
-            <div className="progress-bar-fill" style={{ width: step === 1 ? '50%' : '100%' }}></div>
-          </div>
-        </div>
-
-        <div className="modal-body">
-          {step === 1 && (
-            <div className="form-container">
-              <div className="form-group">
-                <label htmlFor="name">
-                  Tên sản phẩm <span className="required">*</span>
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Left Column */}
+            <div className="space-y-6">
+              {/* Product ID */}
+              <div>
+                <label className="block text-black mb-2">
+                  Product ID *
                 </label>
                 <input
-                  id="name"
                   type="text"
-                  className="form-input"
-                  placeholder="Nhập tên sản phẩm"
+                  value={formData.productId}
+                  onChange={(e) => handleInputChange('productId', e.target.value)}
+                  className="w-full px-4 py-3 border border-neutral-300 focus:border-black focus:outline-none transition-colors"
+                  placeholder="123"
+                />
+                {errors.productId && (
+                  <p className="text-red-600 mt-1">{errors.productId}</p>
+                )}
+              </div>
+
+              {/* Name */}
+              <div>
+                <label className="block text-black mb-2">
+                  Product Name *
+                </label>
+                <input
+                  type="text"
                   value={formData.name}
                   onChange={(e) => handleInputChange('name', e.target.value)}
+                  className="w-full px-4 py-3 border border-neutral-300 focus:border-black focus:outline-none transition-colors"
+                  placeholder="Enter product name"
                 />
+                {errors.name && (
+                  <p className="text-red-600 mt-1">{errors.name}</p>
+                )}
               </div>
 
-              <div className="form-group">
-                <label htmlFor="category">
-                  Danh mục <span className="required">*</span>
+              {/* Description */}
+              <div>
+                <label className="block text-black mb-2">
+                  Description *
                 </label>
-                <select
-                  id="category"
-                  className="form-select"
-                  value={formData.category}
-                  onChange={(e) => handleInputChange('category', e.target.value)}
-                >
-                  <option value="">Chọn danh mục</option>
-                  <option value="ao-thun">Áo thun</option>
-                  <option value="quan">Quần</option>
-                  <option value="ao-khoac">Áo khoác</option>
-                  <option value="phu-kien">Phụ kiện</option>
-                </select>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => handleInputChange('description', e.target.value)}
+                  rows={4}
+                  className="w-full px-4 py-3 border border-neutral-300 focus:border-black focus:outline-none transition-colors resize-none"
+                  placeholder="Enter product description"
+                />
+                {errors.description && (
+                  <p className="text-red-600 mt-1">{errors.description}</p>
+                )}
               </div>
 
-              <div className="form-group">
-                <label htmlFor="imageUrl">
-                  URL hình ảnh <span className="required">*</span>
+              {/* Price */}
+              <div>
+                <label className="block text-black mb-2">
+                  Price *
                 </label>
-                <div className="image-input-wrapper">
-                  <input
-                    id="imageUrl"
-                    type="text"
-                    className="form-input"
-                    placeholder="https://example.com/image.jpg"
-                    value={formData.imageUrl}
-                    onChange={(e) => handleImageUrlChange(e.target.value)}
-                  />
-                  <svg className="upload-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                  </svg>
-                </div>
-                {imagePreview ? (
-                  <div className="image-preview">
-                    <img
-                      src={imagePreview}
-                      alt="Preview"
-                      onError={() => setImagePreview('')}
-                    />
-                  </div>
-                ) : (
-                  <div className="image-placeholder">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                    </svg>
-                    <p>Nhập URL để xem trước hình ảnh</p>
-                  </div>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={formData.price}
+                  onChange={(e) => handleInputChange('price', parseFloat(e.target.value) || 0)}
+                  className="w-full px-4 py-3 border border-neutral-300 focus:border-black focus:outline-none transition-colors"
+                  placeholder="0.00"
+                />
+                {errors.price && (
+                  <p className="text-red-600 mt-1">{errors.price}</p>
+                )}
+              </div>
+
+              {/* Category ID */}
+              <div>
+                <label className="block text-black mb-2">
+                  Category ID *
+                </label>
+                <input
+                  type="text"
+                  value={formData.categoryId}
+                  onChange={(e) => handleInputChange('categoryId', e.target.value)}
+                  className="w-full px-4 py-3 border border-neutral-300 focus:border-black focus:outline-none transition-colors"
+                  placeholder="CAT045"
+                />
+                {errors.categoryId && (
+                  <p className="text-red-600 mt-1">{errors.categoryId}</p>
+                )}
+              </div>
+
+              {/* Type ID */}
+              <div>
+                <label className="block text-black mb-2">
+                  Type ID *
+                </label>
+                <input
+                  type="text"
+                  value={formData.typeId}
+                  onChange={(e) => handleInputChange('typeId', e.target.value)}
+                  className="w-full px-4 py-3 border border-neutral-300 focus:border-black focus:outline-none transition-colors"
+                  placeholder="Enter type ID"
+                />
+                {errors.typeId && (
+                  <p className="text-red-600 mt-1">{errors.typeId}</p>
                 )}
               </div>
             </div>
-          )}
 
-          {step === 2 && (
-            <div className="form-container">
-              <div className="form-group">
-                <label htmlFor="price">
-                  Giá sản phẩm (VNĐ) <span className="required">*</span>
-                </label>
-                <input
-                  id="price"
-                  type="number"
-                  className="form-input"
-                  placeholder="0"
-                  value={formData.price}
-                  onChange={(e) => handleInputChange('price', e.target.value)}
-                />
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="color">
-                    Màu sắc <span className="required">*</span>
+            {/* Right Column */}
+            <div className="space-y-6">
+              {/* Preorder Settings */}
+              <div className="border border-neutral-300 p-4">
+                <div className="flex items-center gap-3 mb-4">
+                  <input
+                    type="checkbox"
+                    id="isPreorder"
+                    checked={formData.isPreorder}
+                    onChange={(e) => handleInputChange('isPreorder', e.target.checked)}
+                    className="w-5 h-5 accent-black"
+                  />
+                  <label htmlFor="isPreorder" className="text-black cursor-pointer">
+                    Enable Preorder
                   </label>
-                  <select
-                    id="color"
-                    className="form-select"
-                    value={formData.color}
-                    onChange={(e) => handleInputChange('color', e.target.value)}
-                  >
-                    <option value="">Chọn màu</option>
-                    <option value="black">Đen</option>
-                    <option value="white">Trắng</option>
-                    <option value="red">Đỏ</option>
-                    <option value="blue">Xanh dương</option>
-                    <option value="green">Xanh lá</option>
-                    <option value="yellow">Vàng</option>
-                    <option value="pink">Hồng</option>
-                    <option value="gray">Xám</option>
-                  </select>
                 </div>
 
-              <div className="form-group">
-                <label>
-                  Kích thước <span className="required">*</span>
-                </label>
-                <p className="size-instruction">Chọn các size còn hàng</p>
-                <div className="size-boxes">
-                  {availableSizes.map((size) => (
-                    <button
-                      key={size}
-                      type="button"
-                      className={`size-box ${formData.sizes.includes(size) ? 'selected' : ''}`}
-                      onClick={() => handleSizeToggle(size)}
-                    >
-                      {size}
-                      {formData.sizes.includes(size) && (
-                        <svg className="size-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                        </svg>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="quantity">
-                  Số lượng <span className="required">*</span>
-                </label>
-                <input
-                  id="quantity"
-                  type="number"
-                  className="form-input"
-                  placeholder="0"
-                  value={formData.quantity}
-                  onChange={(e) => handleInputChange('quantity', e.target.value)}
-                />
-              </div>
-
-              {imagePreview && (
-                <div className="product-preview">
-                  <p className="preview-title">Xem trước thông tin sản phẩm:</p>
-                  <div className="preview-content">
-                    <img src={imagePreview} alt="Product" />
-                    <div className="preview-info">
-                      <p className="preview-name">{formData.name || 'Tên sản phẩm'}</p>
-                      <p className="preview-category">{formData.category || 'Danh mục'}</p>
-                      <p className="preview-price">
-                        {formData.price ? `${parseInt(formData.price).toLocaleString('vi-VN')} ₫` : 'Giá'}
-                      </p>
-                    </div>
+                {formData.isPreorder && (
+                  <div>
+                    <label className="block text-black mb-2">
+                      Preorder Days
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.preorderDays}
+                      onChange={(e) => handleInputChange('preorderDays', parseInt(e.target.value) || 0)}
+                      className="w-full px-4 py-3 border border-neutral-300 focus:border-black focus:outline-none transition-colors"
+                      placeholder="0"
+                      min="0"
+                    />
                   </div>
+                )}
+              </div>
+
+              {/* Active Status */}
+              <div className="border border-neutral-300 p-4">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="isActive"
+                    checked={formData.isActive}
+                    onChange={(e) => handleInputChange('isActive', e.target.checked)}
+                    className="w-5 h-5 accent-black"
+                  />
+                  <label htmlFor="isActive" className="text-black cursor-pointer">
+                    Active Product
+                  </label>
                 </div>
-              )}
+              </div>
+
+              {/* Product Images */}
+              <div>
+                <label className="block text-black mb-2">
+                  Product Images
+                </label>
+                
+                {/* Upload Section */}
+                <div className="mb-4">
+                  <label 
+                    htmlFor="image-upload" 
+                    className={`flex items-center justify-center gap-2 w-full px-4 py-8 border-2 border-dashed transition-colors cursor-pointer ${
+                      isDragOver 
+                        ? 'border-black bg-neutral-200' 
+                        : 'border-neutral-300 bg-neutral-50 hover:border-black hover:bg-neutral-100'
+                    }`}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                  >
+                    <Upload className="w-6 h-6 text-neutral-600" />
+                    <span className="text-neutral-700">
+                      {isDragOver ? 'Drop images here' : 'Click to upload images or drag and drop'}
+                    </span>
+                    <input
+                      id="image-upload"
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+
+                {/* Default Images */}
+                {media.length === 0 && (
+                  <div className="mb-4">
+                    <p className="text-neutral-600 mb-3">Or use default images:</p>
+                    <button
+                      type="button"
+                      onClick={loadDefaultImages}
+                      className="px-4 py-2 bg-neutral-100 text-black border border-neutral-300 hover:bg-neutral-200 transition-colors"
+                    >
+                      Load Default Images
+                    </button>
+                  </div>
+                )}
+
+                {/* Image Grid */}
+                {media.length > 0 && (
+                  <>
+                    <p className="text-neutral-600 mb-3">Hover over images to see removal options</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      {media.map((item, index) => (
+                        <div
+                          key={item.mediaId}
+                          className="relative aspect-square group overflow-hidden ring-1 ring-neutral-300"
+                        >
+                          <ImageWithFallback
+                            src={item.mediaUrl}
+                            alt={`Product image ${index + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                          
+                          {/* Overlay with actions */}
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all">
+                            <div className="absolute top-2 right-2 flex gap-2">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  removeImage(index);
+                                }}
+                                className="bg-white text-black p-2 hover:bg-red-600 hover:text-white transition-colors opacity-0 group-hover:opacity-100"
+                                title="Remove image"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
-          )}
-        </div>
+          </div>
 
-        <div className="modal-footer">
-          <button
-            className="btn btn-secondary"
-            onClick={handleBack}
-            disabled={step === 1}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Quay lại
-          </button>
-
-          {step === 1 && (
+          {/* Footer */}
+          <div className="flex justify-end gap-4 mt-8 pt-6 border-t border-neutral-200">
             <button
-              className="btn btn-primary"
-              onClick={handleNext}
-              disabled={!isStep1Valid}
+              type="button"
+              onClick={() => onOpenChange(false)}
+              className="px-8 py-3 border border-neutral-300 text-black hover:bg-neutral-100 transition-colors"
             >
-              Tiếp theo
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
+              Cancel
             </button>
-          )}
-
-          {step === 2 && (
             <button
-              className="btn btn-success"
-              onClick={handleSubmit}
-              disabled={!isStep2Valid}
+              type="submit"
+              disabled={isSubmitting}
+              className={`px-8 py-3 text-white transition-colors ${
+                isSubmitting 
+                  ? 'bg-neutral-400 cursor-not-allowed' 
+                  : 'bg-black hover:bg-neutral-800'
+              }`}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              Hoàn thành
+              {isSubmitting ? 'Đang tạo...' : 'Create Product'}
             </button>
-          )}
-        </div>
+          </div>
+        </form>
       </div>
     </div>
   );
