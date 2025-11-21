@@ -70,18 +70,12 @@ public class WarehouseTableRepository {
 		return Optional.ofNullable(warehouseTable().getItem(key));
 	}
 
-	// Find all warehouses (scan META items)
+// Find all warehouses (scan META items)
 	public List<WarehouseTable> findAll() {
 		Map<String, AttributeValue> eav = new HashMap<>();
 		eav.put(":meta", AttributeValue.builder().s("META").build());
-		
-		// Use attributeNames to map correctly to DynamoDB attribute names
-		Map<String, String> attributeNames = new HashMap<>();
-		attributeNames.put("#sk", "SK");
-		
 		Expression filterExpression = Expression.builder()
-			.expression("#sk = :meta")
-			.expressionNames(attributeNames)
+			.expression("sk = :meta")
 			.expressionValues(eav)
 			.build();
 
@@ -94,27 +88,23 @@ public class WarehouseTableRepository {
 
 	// Find active warehouses
 	public List<WarehouseTable> findByIsActiveTrue() {
-		Map<String, AttributeValue> eav = new HashMap<>();
-		eav.put(":true", AttributeValue.builder().bool(true).build());
-		eav.put(":meta", AttributeValue.builder().s("META").build());
-		
-		// Use attributeNames to map correctly to DynamoDB attribute names
-		Map<String, String> attributeNames = new HashMap<>();
-		attributeNames.put("#sk", "SK");
-		attributeNames.put("#isActive", "isActive");
-		
-		Expression filterExpression = Expression.builder()
-			.expression("#isActive = :true AND #sk = :meta")
-			.expressionNames(attributeNames)
-			.expressionValues(eav)
-			.build();
+    Map<String, AttributeValue> eav = new HashMap<>();
+    eav.put(":true", AttributeValue.builder().bool(true).build());
+    eav.put(":meta", AttributeValue.builder().s("META").build());
 
-		return warehouseTable()
-			.scan(ScanEnhancedRequest.builder().filterExpression(filterExpression).build())
-			.items()
-			.stream()
-			.collect(Collectors.toList());
-	}
+    Expression filterExpression = Expression.builder()
+            .expression("isActive = :true AND SK = :meta")  // SK hoa, isActive đúng kiểu
+            .expressionValues(eav)
+            .build();
+
+    return warehouseTable()
+            .scan(ScanEnhancedRequest.builder()
+                    .filterExpression(filterExpression)
+                    .build())
+            .items()
+            .stream()
+            .collect(Collectors.toList());
+}
 
 	// Find warehouse by PK with SK = "META"
 	public Optional<WarehouseTable> findWarehouseByPk(String pk) {
