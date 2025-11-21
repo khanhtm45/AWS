@@ -78,6 +78,49 @@ public class ProductMediaService {
 			.collect(Collectors.toList());
 	}
 
+	public List<ProductMediaResponse> createBatchProductMedia(String productId, List<ProductMediaRequest> mediaList) {
+		// Verify product exists
+		String productPk = DynamoDBKeyUtil.productPk(productId);
+		Optional<ProductTable> product = productTableRepository.findProductByPk(productPk);
+		if (product.isEmpty()) {
+			throw new IllegalArgumentException("Product not found with id " + productId);
+		}
+
+		long now = Instant.now().toEpochMilli();
+		
+		// Validate all media IDs are unique
+		List<String> mediaIds = mediaList.stream()
+			.map(ProductMediaRequest::getMediaId)
+			.collect(Collectors.toList());
+		
+		long distinctCount = mediaIds.stream().distinct().count();
+		if (distinctCount != mediaIds.size()) {
+			throw new IllegalArgumentException("Duplicate media IDs found in batch request");
+		}
+
+		// Check if any media already exists
+		for (ProductMediaRequest request : mediaList) {
+			String mediaSk = DynamoDBKeyUtil.productMediaSk(request.getMediaId());
+			Optional<ProductTable> existing = productTableRepository.findMediaByPkAndSk(productPk, mediaSk);
+			if (existing.isPresent()) {
+				throw new IllegalArgumentException("ProductMedia already exists with id " + request.getMediaId() + " for product " + productId);
+			}
+		}
+
+		// Create all media items
+		List<ProductTable> mediaItems = mediaList.stream()
+			.map(request -> buildMediaItem(productId, request, now, now))
+			.collect(Collectors.toList());
+
+		// Save all media items
+		mediaItems.forEach(productTableRepository::save);
+
+		// Return responses
+		return mediaItems.stream()
+			.map(item -> toResponse(productId, item))
+			.collect(Collectors.toList());
+	}
+
 	public void deleteProductMedia(String productId, String mediaId) {
 		String productPk = DynamoDBKeyUtil.productPk(productId);
 		String mediaSk = DynamoDBKeyUtil.productMediaSk(mediaId);

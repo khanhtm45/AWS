@@ -62,9 +62,13 @@ public class SecurityConfig {
 		configuration.setAllowedOrigins(Arrays.asList(
 			"http://localhost:3000",
 			"http://localhost:3001",
+			"http://localhost:5500",  // VS Code Live Server default port
+			"http://localhost:8000",  // Python HTTP server default port
 			"http://localhost:8080",
 			"http://127.0.0.1:3000",
 			"http://127.0.0.1:3001",
+			"http://127.0.0.1:5500",  // VS Code Live Server default port
+			"http://127.0.0.1:8000",  // Python HTTP server default port
 			"http://127.0.0.1:8080",
 			"https://dna-chain-wed-fpt-89yn.vercel.app",
 			"https://dna-chain-bloodline.vercel.app",

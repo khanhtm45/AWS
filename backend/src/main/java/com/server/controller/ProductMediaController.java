@@ -1,5 +1,6 @@
 package com.server.controller;
 
+import com.server.dto.productmedia.BatchProductMediaRequest;
 import com.server.dto.productmedia.ProductMediaRequest;
 import com.server.dto.productmedia.ProductMediaResponse;
 import com.server.service.ProductMediaService;
@@ -34,6 +35,19 @@ public class ProductMediaController {
 		@Valid @RequestBody ProductMediaRequest request
 	) {
 		return ResponseEntity.status(HttpStatus.CREATED).body(productMediaService.createProductMedia(productId, request));
+	}
+
+	/**
+	 * Upload nhiều ảnh cùng lúc cho một product
+	 * Endpoint: POST /api/products/{productId}/media/batch
+	 */
+	@PostMapping("/batch")
+	public ResponseEntity<List<ProductMediaResponse>> createBatchProductMedia(
+		@PathVariable String productId,
+		@Valid @RequestBody BatchProductMediaRequest request
+	) {
+		return ResponseEntity.status(HttpStatus.CREATED)
+			.body(productMediaService.createBatchProductMedia(productId, request.getMediaList()));
 	}
 
 	@PutMapping("/{mediaId}")
