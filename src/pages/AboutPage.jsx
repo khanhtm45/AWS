@@ -10,7 +10,7 @@ const AboutPage = ({ storeName = "Leaf Shop" }) => {
 
   return (
     <div className="about-page">
-      <div className="about-container">
+      <div className="about-conntainer">
         <h1 className="about-title">Giới thiệu</h1>
 
         <div className="about-content">

@@ -110,6 +110,7 @@ function ProductDetailPage() {
       case 'tím': return '#800080';
       case 'nâu': return '#8B4513';
       default: return '#CCCCCC';
+      case 'xanh nhạt': return '#ADD8E6'; // màu xanh nhạt
     }
   };
 

@@ -5,25 +5,21 @@ import ChatBox from '../components/ChatBox';
 
 function HomePage() {
   const navigate = useNavigate();
-  const [showAllMen, setShowAllMen] = useState(false);
-  const [showAllGirl, setShowAllGirl] = useState(false);
+  const [products, setProducts] = useState([]);
 
-  // Scroll to top when component mounts
+  // Fetch dữ liệu từ API khi component mount
   useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
-
-  const products = [
+    const initialProducts = [
     {
       id: 1,
-      name: "Áo Thun Thể Thao Ultra Stretch The Trainer Trắng",
+      name: "Áo Thun Thể Thao Ultra Stretch The Trainer",
       price: "297.000 VND",
       category: "men",
       image: "/ao-thun-the-trainer-004-tr-ng-1178529222.webp"
     },
     {
       id: 2,
-      name: "Áo Thun Thể Thao Ultra Stretch The Trainer Đen",
+      name: "Áo Sơ Mi Modal Fabric Cổ Bẻ Tay Ngắn",
       price: "297.000 VND",
       category: "men",
       image: "/ao-thun-the-trainer-004-den-1178529233.webp"
@@ -127,16 +123,53 @@ function HomePage() {
       image: '/ao-s-mi-non-branded-19-xanh-d-ng-1174884367.webp'
     }
   ];
+    
+    const fetchProductImages = async () => {
+      const updatedProducts = await Promise.all(
+        initialProducts.map(async (product) => {
+          try {
+            const formattedId = String(product.id).padStart(2, '0');
+            const [productRes, mediaRes] = await Promise.all([
+              fetch(`http://localhost:8080/api/products/${formattedId}`),
+              fetch(`http://localhost:8080/api/products/${formattedId}/media`)
+            ]);
+            
+            if (productRes.ok && mediaRes.ok) {
+              const productData = await productRes.json();
+              const mediaData = await mediaRes.json();
+              const firstMedia = mediaData.sort((a, b) => a.mediaOrder - b.mediaOrder)[0];
+              
+              console.log('Product API Data:', productData);
+              
+              return {
+                id: product.id,
+                name: productData.productName || productData.name || product.name,
+                price: productData.price ? `${new Intl.NumberFormat('vi-VN').format(productData.price)} VND` : product.price,
+                category: product.category,
+                image: firstMedia?.mediaUrl || '/LEAF.png'
+              };
+            }
+          } catch (error) {
+            console.error(`Error fetching product ${product.id}:`, error);
+          }
+          return product;
+        })
+      );
+      setProducts(updatedProducts);
+    };
 
-  // Lấy sản phẩm theo danh mục và số lượng hiển thị
+    fetchProductImages();
+  }, []);
+
+  // Lấy sản phẩm theo danh mục và giới hạn 4 sản phẩm
   const getMenProducts = () => {
     const menProducts = products.filter(product => product.category === "men");
-    return showAllMen ? menProducts : menProducts.slice(0, 4);
+    return menProducts.slice(0, 4);
   };
 
   const getGirlProducts = () => {
     const girlProducts = products.filter(product => product.category === "girl");
-    return showAllGirl ? girlProducts : girlProducts.slice(0, 4);
+    return girlProducts.slice(0, 4);
   };
 
   return (
@@ -151,7 +184,7 @@ function HomePage() {
             <h1>Title-Website headline</h1>
             <p>Fall 25 vintage meets modern — cozy, easy-to-style pieces for every day.</p>
             <p>We embrace both softly-refined silhouettes and warm tones crafted for comfort, versatility, and a purely confident look.</p>
-            <button className="learn-more-btn">Learn more</button>
+            <button className="learn-more-btn" onClick={() => navigate('/about')}>Learn more</button>
           </div>
           <div className="hero-image">
             <div className="fall-badge">FALL '25</div>
@@ -172,7 +205,13 @@ function HomePage() {
             >
               <div className="product-image">
                 {product.image ? (
-                  <img src={product.image} alt={product.name} />
+                  <img 
+                    src={product.image} 
+                    alt={product.name}
+                    onError={(e) => {
+                      e.target.src = '/LEAF.png';
+                    }}
+                  />
                 ) : (
                   <div className="placeholder-image"></div>
                 )}
@@ -186,9 +225,9 @@ function HomePage() {
         </div>
         <button 
           className="view-all-btn" 
-          onClick={() => setShowAllMen(!showAllMen)}
+          onClick={() => navigate('/products')}
         >
-          {showAllMen ? 'Thu gọn' : 'Xem Tất Cả'}
+          Xem Tất Cả
         </button>
       </section>
 
@@ -204,7 +243,13 @@ function HomePage() {
             >
               <div className="product-image">
                 {product.image ? (
-                  <img src={product.image} alt={product.name} />
+                  <img 
+                    src={product.image} 
+                    alt={product.name}
+                    onError={(e) => {
+                      e.target.src = '/LEAF.png';
+                    }}
+                  />
                 ) : (
                   <div className="placeholder-image"></div>
                 )}
@@ -218,9 +263,9 @@ function HomePage() {
         </div>
         <button 
           className="view-all-btn"
-          onClick={() => setShowAllGirl(!showAllGirl)}
+          onClick={() => navigate('/products')}
         >
-          {showAllGirl ? 'Thu gọn' : 'Xem Tất Cả'}
+          Xem Tất Cả
         </button>
       </section>
     </div>

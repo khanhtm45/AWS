@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AddProductModal } from '../components/AddProductModal';
 import './DashboardPage.css';
 
 const DashboardPage = () => {
@@ -48,9 +47,29 @@ const DashboardPage = () => {
   const [currentProductPage, setCurrentProductPage] = useState(1);
   const [showProductModal, setShowProductModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [isLoadingProducts, setIsLoadingProducts] = useState(false);
-  const [productCategories, setProductCategories] = useState([]);
+  const [productForm, setProductForm] = useState({
+    name: '',
+    category: '',
+    price: '',
+    quantity: '',
+    description: '',
+    colors: []
+  });
   const productsPerPage = 10;
+
+  // Categories state
+  const [categories, setCategories] = useState([]);
+  const [filteredCategories, setFilteredCategories] = useState([]);
+  const [categorySearchTerm, setCategorySearchTerm] = useState('');
+  const [currentCategoryPage, setCurrentCategoryPage] = useState(1);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [categoryForm, setCategoryForm] = useState({
+    name: '',
+    parentCategory: '',
+    imageUrl: ''
+  });
+  const categoriesPerPage = 10;
 
   useEffect(() => {
     // Kiểm tra user đã đăng nhập
@@ -72,8 +91,11 @@ const DashboardPage = () => {
       loadUsersData();
     }
     
-    // Load products data from API
+    // Load products data
     loadProductsData();
+    
+    // Load categories data
+    loadCategoriesData();
   }, [navigate]);
 
   const handleLogout = () => {
@@ -250,52 +272,6 @@ const DashboardPage = () => {
     setFilteredOrders(mockOrders);
   };
 
-  // Load products data from API
-  const loadProductsData = async () => {
-    setIsLoadingProducts(true);
-    try {
-      const response = await fetch('http://localhost:8080/api/products');
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const productsData = await response.json();
-      console.log('Loaded products from API:', productsData);
-
-      // Transform API data to match dashboard display format
-      const transformedProducts = productsData.map(product => ({
-        id: product.productId,
-        name: product.name,
-        category: product.categoryId,
-        price: product.price,
-        quantity: 10, // Default since API doesn't return stock info
-        description: product.description,
-        colors: ['black'], // Default since API doesn't return colors
-        image: '/api/placeholder/60/60', // Default image
-        isActive: product.isActive,
-        isPreorder: product.isPreorder,
-        typeId: product.typeId
-      }));
-
-      setProducts(transformedProducts);
-      setFilteredProducts(transformedProducts);
-
-      // Extract unique categories for filter dropdown
-      const uniqueCategories = [...new Set(productsData.map(p => p.categoryId))];
-      setProductCategories(uniqueCategories);
-
-    } catch (error) {
-      console.error('Error loading products:', error);
-      alert(`Lỗi tải danh sách sản phẩm: ${error.message}`);
-      // Set empty arrays if API fails
-      setProducts([]);
-      setFilteredProducts([]);
-    } finally {
-      setIsLoadingProducts(false);
-    }
-  };
-
   // Load users data (admin only)
   const loadUsersData = () => {
     const mockUsers = [
@@ -393,14 +369,69 @@ const DashboardPage = () => {
     setFilteredUsers(mockUsers);
   };
 
+  // Load products data
+  const loadProductsData = () => {
+    setProducts(mockProducts);
+    setFilteredProducts(mockProducts);
+  };
+
+  // Load categories data
+  const loadCategoriesData = () => {
+    const mockCategories = [
+      {
+        id: 1,
+        name: 'Áo Nam',
+        parentCategory: '—'
+      },
+      {
+        id: 2,
+        name: 'Quần Nam',
+        parentCategory: '—'
+      },
+      {
+        id: 3,
+        name: 'Áo Thun',
+        parentCategory: 'Áo Nam'
+      },
+      {
+        id: 4,
+        name: 'Áo Sơ Mi',
+        parentCategory: 'Áo Nam'
+      },
+      {
+        id: 5,
+        name: 'Quần Jeans',
+        parentCategory: 'Quần Nam'
+      }
+    ];
+    setCategories(mockCategories);
+    setFilteredCategories(mockCategories);
+  };
+
   // Product management functions
   const handleProductAdd = () => {
     setSelectedProduct(null);
+    setProductForm({
+      name: '',
+      category: '',
+      price: '',
+      quantity: '',
+      description: '',
+      colors: []
+    });
     setShowProductModal(true);
   };
 
   const handleProductEdit = (product) => {
     setSelectedProduct(product);
+    setProductForm({
+      name: product.name,
+      category: product.category,
+      price: product.price.toString(),
+      quantity: product.quantity.toString(),
+      description: product.description,
+      colors: product.colors
+    });
     setShowProductModal(true);
   };
 
@@ -412,36 +443,70 @@ const DashboardPage = () => {
     }
   };
 
+  const handleProductFormChange = (e) => {
+    const { name, value } = e.target;
+    setProductForm(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
 
+  const handleColorToggle = (color) => {
+    setProductForm(prev => ({
+      ...prev,
+      colors: prev.colors.includes(color)
+        ? prev.colors.filter(c => c !== color)
+        : [...prev.colors, color]
+    }));
+  };
 
-  const handleProductSave = (productData) => {
+  const availableColors = [
+    { name: 'black', label: 'Đen' },
+    { name: 'silver', label: 'Bạc' },
+    { name: 'rose-gold', label: 'Hồng vàng' },
+    { name: 'red', label: 'Đỏ' },
+    { name: 'blue', label: 'Xanh dương' },
+    { name: 'yellow', label: 'Vàng' },
+    { name: 'maroon', label: 'Nâu đỏ' },
+    { name: 'light-blue', label: 'Xanh nhạt' },
+    { name: 'navy', label: 'Xanh navy' },
+    { name: 'purple', label: 'Tím' }
+  ];
+
+  const handleProductSave = (e) => {
+    e.preventDefault();
     if (selectedProduct) {
-      // Edit existing product - for now we'll skip this since the new modal is focused on creation
-      console.log('Edit functionality not implemented with new modal structure');
+      // Edit existing product
+      const updatedProducts = products.map(product =>
+        product.id === selectedProduct.id
+          ? {
+              ...product,
+              name: productForm.name,
+              category: productForm.category,
+              price: parseFloat(productForm.price),
+              quantity: parseInt(productForm.quantity),
+              description: productForm.description,
+              colors: productForm.colors
+            }
+          : product
+      );
+      setProducts(updatedProducts);
+      setFilteredProducts(updatedProducts);
     } else {
-      // Add new product - productData now contains the API response
-      console.log('Product created via API:', productData);
-      
-      // Convert API response format to dashboard display format
+      // Add new product
       const newProduct = {
-        id: productData.product.productId || products.length + 1,
-        name: productData.product.name,
-        category: productData.product.categoryId,
-        price: productData.product.price,
-        quantity: 10, // Default quantity since API doesn't return stock info
-        description: productData.product.description,
-        colors: ['black'], // Default color since new modal doesn't have color selection
-        image: productData.media.length > 0 ? productData.media[0]?.mediaUrl || '/api/placeholder/60/60' : '/api/placeholder/60/60'
+        id: products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 1,
+        name: productForm.name,
+        category: productForm.category,
+        price: parseFloat(productForm.price),
+        quantity: parseInt(productForm.quantity),
+        description: productForm.description,
+        colors: productForm.colors,
+        image: '/api/placeholder/60/60' // Default placeholder image
       };
-      
       const updatedProducts = [...products, newProduct];
       setProducts(updatedProducts);
       setFilteredProducts(updatedProducts);
-      
-      // Refresh products list to get updated data from server
-      setTimeout(() => {
-        loadProductsData();
-      }, 1000); // Small delay to ensure API has processed
     }
     setShowProductModal(false);
     setSelectedProduct(null);
@@ -629,6 +694,60 @@ const DashboardPage = () => {
     }
   ];
 
+  // Mock products data
+  const mockProducts = [
+    {
+      id: 1,
+      name: 'Apple Watch Series 4',
+      category: 'Digital Product',
+      price: 690.00,
+      quantity: 63,
+      image: '/api/placeholder/60/60',
+      colors: ['black', 'silver', 'rose-gold'],
+      description: 'Apple Watch Series 4 với nhiều tính năng thông minh và thiết kế hiện đại.'
+    },
+    {
+      id: 2,
+      name: 'Microsoft Headsquare',
+      category: 'Digital Product',
+      price: 190.00,
+      quantity: 13,
+      image: '/api/placeholder/60/60',
+      colors: ['black', 'red', 'blue', 'yellow'],
+      description: 'Tai nghe Microsoft Headsquare chất lượng cao với âm thanh tuyệt vời.'
+    },
+    {
+      id: 3,
+      name: "Women's Dress",
+      category: 'Fashion',
+      price: 640.00,
+      quantity: 635,
+      image: '/api/placeholder/60/60',
+      colors: ['maroon', 'light-blue', 'navy', 'purple'],
+      description: 'Váy nữ thời trang cao cấp với thiết kế thanh lịch và chất liệu mềm mại.'
+    },
+    {
+      id: 4,
+      name: 'Samsung A50',
+      category: 'Mobile',
+      price: 400.00,
+      quantity: 67,
+      image: '/api/placeholder/60/60',
+      colors: ['blue', 'black', 'red'],
+      description: 'Điện thoại Samsung A50 với màn hình lớn và camera chất lượng cao.'
+    },
+    {
+      id: 5,
+      name: 'Camera',
+      category: 'Electronic',
+      price: 420.00,
+      quantity: 52,
+      image: '/api/placeholder/60/60',
+      colors: ['blue', 'black', 'red'],
+      description: 'Máy ảnh chuyên nghiệp với khả năng chụp ảnh và quay video chất lượng 4K.'
+    }
+  ];
+
   const orderData = [
     {
       id: 1,
@@ -658,17 +777,19 @@ const DashboardPage = () => {
 
   const menuItems = user?.role === 'admin' ? [
     { name: 'Dashboard', icon: '⚡' },
-    { name: 'Thông tin đặt hàng', icon: '�' },
-    { name: 'Inbox', icon: '�' },
+    { name: 'Thông tin đặt hàng', icon: '📦' },
+    { name: 'Inbox', icon: '📧' },
     { name: 'Sản Phẩm', icon: '🎯' },
+    { name: 'Danh Mục', icon: '📋' },
     { name: 'Người dùng', icon: '👥' },
     { name: 'Tạo tài khoản Nhân viên', icon: '➕' },
     { name: 'Settings', icon: '⚙️' }
   ] : [
     { name: 'Dashboard', icon: '⚡' },
-    { name: 'Thông tin đặt hàng', icon: '�' },
-    { name: 'Inbox', icon: '�' },
+    { name: 'Thông tin đặt hàng', icon: '📦' },
+    { name: 'Inbox', icon: '📧' },
     { name: 'Sản Phẩm', icon: '🎯' },
+    { name: 'Danh Mục', icon: '📋' },
     { name: 'Settings', icon: '⚙️' }
   ];
 
@@ -1248,25 +1369,16 @@ const DashboardPage = () => {
                     className="filter-select"
                   >
                     <option value="all">Tất cả danh mục</option>
-                    {productCategories.map((category) => (
-                      <option key={category} value={category}>
-                        {category}
-                      </option>
-                    ))}
+                    <option value="Digital Product">Digital Product</option>
+                    <option value="Fashion">Fashion</option>
+                    <option value="Mobile">Mobile</option>
+                    <option value="Electronic">Electronic</option>
                   </select>
                   <button 
                     className="add-product-btn"
                     onClick={handleProductAdd}
                   >
                     + Thêm sản phẩm
-                  </button>
-                  <button 
-                    className="refresh-btn"
-                    onClick={loadProductsData}
-                    disabled={isLoadingProducts}
-                    title="Làm mới danh sách"
-                  >
-                    {isLoadingProducts ? '🔄' : '↻'} Làm mới
                   </button>
                 </div>
               </div>
@@ -1282,17 +1394,7 @@ const DashboardPage = () => {
                   <div>Chi tiết</div>
                 </div>
                 
-                {isLoadingProducts ? (
-                  <div className="loading-products">
-                    <p>Đang tải danh sách sản phẩm...</p>
-                  </div>
-                ) : currentProducts.length === 0 ? (
-                  <div className="no-products">
-                    <p>Không có sản phẩm nào được tìm thấy.</p>
-                  </div>
-                ) : null}
-                
-                {!isLoadingProducts && currentProducts.map((product) => (
+                {currentProducts.map((product) => (
                   <div key={product.id} className="products-table-row">
                     <div className="product-image">
                       <img src={product.image} alt={product.name} />
@@ -1350,12 +1452,322 @@ const DashboardPage = () => {
             </div>
           )}
 
-          {/* Product Modal */}
-          <AddProductModal
-            open={showProductModal}
-            onOpenChange={setShowProductModal}
-            onSubmit={handleProductSave}
-          />
+          {/* Product Edit Modal */}
+          {showProductModal && (
+            <div className="modal-overlay">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h3>{selectedProduct ? 'Chỉnh sửa Sản phẩm' : 'Thêm Sản phẩm mới'}</h3>
+                  <button 
+                    className="close-btn"
+                    onClick={() => setShowProductModal(false)}
+                  >
+                    ×
+                  </button>
+                </div>
+                <form onSubmit={handleProductSave} className="product-form">
+                  <div className="form-group">
+                    <label>Tên sản phẩm:</label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={productForm.name}
+                      onChange={handleProductFormChange}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Danh mục:</label>
+                    <select
+                      name="category"
+                      value={productForm.category}
+                      onChange={handleProductFormChange}
+                      required
+                    >
+                      <option value="">Chọn danh mục</option>
+                      <option value="Digital Product">Digital Product</option>
+                      <option value="Fashion">Fashion</option>
+                      <option value="Mobile">Mobile</option>
+                      <option value="Electronic">Electronic</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label>Giá:</label>
+                    <input
+                      type="number"
+                      name="price"
+                      value={productForm.price}
+                      onChange={handleProductFormChange}
+                      step="0.01"
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Số lượng:</label>
+                    <input
+                      type="number"
+                      name="quantity"
+                      value={productForm.quantity}
+                      onChange={handleProductFormChange}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Mô tả:</label>
+                    <textarea
+                      name="description"
+                      value={productForm.description}
+                      onChange={handleProductFormChange}
+                      rows="4"
+                      required
+                    ></textarea>
+                  </div>
+                  <div className="form-group">
+                    <label>Màu sắc có sẵn:</label>
+                    <div className="color-selection">
+                      {availableColors.map((color) => (
+                        <div 
+                          key={color.name}
+                          className={`color-option ${productForm.colors.includes(color.name) ? 'selected' : ''}`}
+                          onClick={() => handleColorToggle(color.name)}
+                        >
+                          <span className={`color-dot color-${color.name}`}></span>
+                          <span className="color-label">{color.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="form-actions">
+                    <button type="button" onClick={() => setShowProductModal(false)}>
+                      Hủy
+                    </button>
+                    <button type="submit">
+                      {selectedProduct ? 'Lưu thay đổi' : 'Thêm sản phẩm'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* Categories Section */}
+          {selectedMenu === 'Danh Mục' && (
+            <div className="categories-section">
+              <div className="categories-header">
+                <h1>Phân Loại</h1>
+                <p className="categories-subtitle">Quản lý phân loại</p>
+              </div>
+
+              <div className="categories-container">
+                <div className="categories-controls">
+                  <div className="categories-title-section">
+                    <h2>Danh mục phân loại</h2>
+                    <div className="categories-count">
+                      {filteredCategories.length} danh mục
+                    </div>
+                  </div>
+
+                  <div className="categories-actions">
+                    <div className="search-box">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <path d="M21 21L15 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                      </svg>
+                      <input
+                        type="text"
+                        placeholder="Tìm kiếm danh mục..."
+                        value={categorySearchTerm}
+                        onChange={(e) => {
+                          setCategorySearchTerm(e.target.value);
+                          const filtered = categories.filter(cat =>
+                            cat.name.toLowerCase().includes(e.target.value.toLowerCase())
+                          );
+                          setFilteredCategories(filtered);
+                          setCurrentCategoryPage(1);
+                        }}
+                      />
+                    </div>
+                    <button 
+                      className="add-category-btn"
+                      onClick={() => {
+                        setSelectedCategory(null);
+                        setCategoryForm({ 
+                          name: '', 
+                          parentCategory: ''
+                        });
+                        setShowCategoryModal(true);
+                      }}
+                    >
+                      + Thêm danh mục
+                    </button>
+                  </div>
+                </div>
+
+                <div className="categories-table-wrapper">
+                  <table className="categories-table">
+                    <thead>
+                      <tr>
+                        <th>Danh Mục Cha</th>
+                        <th>Danh Mục Con</th>
+                        <th>Chi tiết</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredCategories
+                        .slice((currentCategoryPage - 1) * categoriesPerPage, currentCategoryPage * categoriesPerPage)
+                        .map((category) => (
+                        <tr key={category.id}>
+                          <td>{category.name}</td>
+                          <td>{category.parentCategory}</td>
+                          <td>
+                            <div className="category-actions">
+                              <button 
+                                className="action-btn edit-btn"
+                                onClick={() => {
+                                  setSelectedCategory(category);
+                                  setCategoryForm({
+                                    name: category.name,
+                                    parentCategory: category.parentCategory === '—' ? '' : category.parentCategory
+                                  });
+                                  setShowCategoryModal(true);
+                                }}
+                                title="Chỉnh sửa"
+                              >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                  <path d="M3 17.25V21H6.75L17.81 9.94L14.06 6.19L3 17.25ZM20.71 7.04C21.1 6.65 21.1 6.02 20.71 5.63L18.37 3.29C17.98 2.9 17.35 2.9 16.96 3.29L15.13 5.12L18.88 8.87L20.71 7.04Z" fill="currentColor"/>
+                                </svg>
+                              </button>
+                              <button 
+                                className="action-btn delete-btn"
+                                onClick={() => {
+                                  if (window.confirm('Bạn có chắc chắn muốn xóa danh mục này?')) {
+                                    const updated = categories.filter(c => c.id !== category.id);
+                                    setCategories(updated);
+                                    setFilteredCategories(updated);
+                                  }
+                                }}
+                                title="Xóa"
+                              >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                  <path d="M6 19C6 20.1 6.9 21 8 21H16C17.1 21 18 20.1 18 19V7H6V19ZM19 4H15.5L14.5 3H9.5L8.5 4H5V6H19V4Z" fill="currentColor"/>
+                                </svg>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {Math.ceil(filteredCategories.length / categoriesPerPage) > 1 && (
+                  <div className="categories-pagination">
+                    <button 
+                      onClick={() => setCurrentCategoryPage(prev => Math.max(prev - 1, 1))}
+                      disabled={currentCategoryPage === 1}
+                      className="pagination-btn"
+                    >
+                      ← Trước
+                    </button>
+                    <span className="pagination-info">
+                      Trang {currentCategoryPage} / {Math.ceil(filteredCategories.length / categoriesPerPage)}
+                    </span>
+                    <button 
+                      onClick={() => setCurrentCategoryPage(prev => Math.min(prev + 1, Math.ceil(filteredCategories.length / categoriesPerPage)))}
+                      disabled={currentCategoryPage === Math.ceil(filteredCategories.length / categoriesPerPage)}
+                      className="pagination-btn"
+                    >
+                      Sau →
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Category Modal */}
+          {showCategoryModal && (
+            <div className="modal-overlay" onClick={() => setShowCategoryModal(false)}>
+              <div className="modal-content category-modal-new" onClick={(e) => e.stopPropagation()}>
+                <div className="category-modal-header">
+                  <div className="category-modal-title-section">
+                    <h3>{selectedCategory ? 'Chỉnh sửa Danh mục' : 'Thêm Danh Mục Mới'}</h3>
+                    <p className="category-modal-subtitle">Điền thông tin để tạo danh mục sản phẩm mới</p>
+                  </div>
+                  <button 
+                    className="category-close-btn"
+                    onClick={() => setShowCategoryModal(false)}
+                  >
+                    ×
+                  </button>
+                </div>
+                <form 
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (selectedCategory) {
+                      const updated = categories.map(cat =>
+                        cat.id === selectedCategory.id
+                          ? { 
+                              ...cat, 
+                              name: categoryForm.name, 
+                              parentCategory: categoryForm.parentCategory || '—'
+                            }
+                          : cat
+                      );
+                      setCategories(updated);
+                      setFilteredCategories(updated);
+                    } else {
+                      const newCategory = {
+                        id: categories.length > 0 ? Math.max(...categories.map(c => c.id)) + 1 : 1,
+                        name: categoryForm.name,
+                        parentCategory: categoryForm.parentCategory || '—'
+                      };
+                      const updated = [...categories, newCategory];
+                      setCategories(updated);
+                      setFilteredCategories(updated);
+                    }
+                    setShowCategoryModal(false);
+                  }}
+                  className="category-form-new"
+                >
+                  <div className="form-group-new">
+                    <label>
+                       Danh Mục Cha <span className="required-star">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={categoryForm.name}
+                      onChange={(e) => setCategoryForm({...categoryForm, name: e.target.value})}
+                      placeholder="Ví dụ: Áo Nam"
+                      required
+                      className="form-input-new"
+                    />
+                  </div>
+
+                  <div className="form-group-new">
+                    <label>Danh Mục Con</label>
+                    <input
+                      type="text"
+                      name="parentCategory"
+                      value={categoryForm.parentCategory}
+                      onChange={(e) => setCategoryForm({...categoryForm, parentCategory: e.target.value})}
+                      placeholder="Ví dụ: Áo Thun, Áo Sơ Mi (để trống nếu là danh mục gốc)"
+                      className="form-input-new"
+                    />
+                  </div>
+
+                  <div className="form-actions-new">
+                    <button type="button" onClick={() => setShowCategoryModal(false)} className="cancel-btn-new">
+                      Hủy
+                    </button>
+                    <button type="submit" className="submit-btn-new">
+                      {selectedCategory ? 'Cập nhật' : 'Thêm Danh Mục'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -13,21 +13,8 @@ const LoginPage = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
-    if (!email.trim()) {
-      alert('Vui lòng nhập email!');
-      return;
-    }
-    
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      alert('Vui lòng nhập email hợp lệ!');
-      return;
-    }
-    
-    // Chuyển đến trang xác nhận với email
-    navigate('/verification', { state: { email } });
+    // Xử lý logic đăng nhập
+    console.log('Login with email:', email);
   };
 
   const handleGoBack = () => {
