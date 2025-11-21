@@ -74,8 +74,14 @@ public class WarehouseTableRepository {
 	public List<WarehouseTable> findAll() {
 		Map<String, AttributeValue> eav = new HashMap<>();
 		eav.put(":meta", AttributeValue.builder().s("META").build());
+		
+		// Use attributeNames to map correctly to DynamoDB attribute names
+		Map<String, String> attributeNames = new HashMap<>();
+		attributeNames.put("#sk", "SK");
+		
 		Expression filterExpression = Expression.builder()
-			.expression("sk = :meta")
+			.expression("#sk = :meta")
+			.expressionNames(attributeNames)
 			.expressionValues(eav)
 			.build();
 
@@ -91,8 +97,15 @@ public class WarehouseTableRepository {
 		Map<String, AttributeValue> eav = new HashMap<>();
 		eav.put(":true", AttributeValue.builder().bool(true).build());
 		eav.put(":meta", AttributeValue.builder().s("META").build());
+		
+		// Use attributeNames to map correctly to DynamoDB attribute names
+		Map<String, String> attributeNames = new HashMap<>();
+		attributeNames.put("#sk", "SK");
+		attributeNames.put("#isActive", "isActive");
+		
 		Expression filterExpression = Expression.builder()
-			.expression("isActive = :true AND sk = :meta")
+			.expression("#isActive = :true AND #sk = :meta")
+			.expressionNames(attributeNames)
 			.expressionValues(eav)
 			.build();
 
