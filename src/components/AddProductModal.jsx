@@ -200,9 +200,9 @@ export function AddProductModal({ open, onOpenChange, onSubmit }) {
       ></div>
 
       {/* Modal */}
-      <div className="relative bg-white w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl">
+      <div className="relative bg-white w-full max-w-4xl max-h-[75vh] overflow-y-auto shadow-2xl">
         {/* Header */}
-        <div className="sticky top-0 bg-black text-white px-6 py-4 flex items-center justify-between border-b border-white/10">
+        <div className="sticky top-0 bg-black text-white px-4 py-3 flex items-center justify-between border-b border-white/10">
           <h2>Create New Product</h2>
           <button
             onClick={() => onOpenChange(false)}
@@ -213,10 +213,10 @@ export function AddProductModal({ open, onOpenChange, onSubmit }) {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <form onSubmit={handleSubmit} className="p-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Left Column */}
-            <div className="space-y-6">
+            <div className="space-y-4">
               {/* Product ID */}
               <div>
                 <label className="block text-black mb-2">
@@ -226,7 +226,7 @@ export function AddProductModal({ open, onOpenChange, onSubmit }) {
                   type="text"
                   value={formData.productId}
                   onChange={(e) => handleInputChange('productId', e.target.value)}
-                  className="w-full px-4 py-3 border border-neutral-300 focus:border-black focus:outline-none transition-colors"
+                  className="w-full px-3 py-2 border border-neutral-300 focus:border-black focus:outline-none transition-colors"
                   placeholder="123"
                 />
                 {errors.productId && (
@@ -243,7 +243,7 @@ export function AddProductModal({ open, onOpenChange, onSubmit }) {
                   type="text"
                   value={formData.name}
                   onChange={(e) => handleInputChange('name', e.target.value)}
-                  className="w-full px-4 py-3 border border-neutral-300 focus:border-black focus:outline-none transition-colors"
+                  className="w-full px-3 py-2 border border-neutral-300 focus:border-black focus:outline-none transition-colors"
                   placeholder="Enter product name"
                 />
                 {errors.name && (
@@ -259,8 +259,8 @@ export function AddProductModal({ open, onOpenChange, onSubmit }) {
                 <textarea
                   value={formData.description}
                   onChange={(e) => handleInputChange('description', e.target.value)}
-                  rows={4}
-                  className="w-full px-4 py-3 border border-neutral-300 focus:border-black focus:outline-none transition-colors resize-none"
+                  rows={3}
+                  className="w-full px-3 py-2 border border-neutral-300 focus:border-black focus:outline-none transition-colors resize-none"
                   placeholder="Enter product description"
                 />
                 {errors.description && (
@@ -278,7 +278,7 @@ export function AddProductModal({ open, onOpenChange, onSubmit }) {
                   step="0.01"
                   value={formData.price}
                   onChange={(e) => handleInputChange('price', parseFloat(e.target.value) || 0)}
-                  className="w-full px-4 py-3 border border-neutral-300 focus:border-black focus:outline-none transition-colors"
+                  className="w-full px-3 py-2 border border-neutral-300 focus:border-black focus:outline-none transition-colors"
                   placeholder="0.00"
                 />
                 {errors.price && (
@@ -295,7 +295,7 @@ export function AddProductModal({ open, onOpenChange, onSubmit }) {
                   type="text"
                   value={formData.categoryId}
                   onChange={(e) => handleInputChange('categoryId', e.target.value)}
-                  className="w-full px-4 py-3 border border-neutral-300 focus:border-black focus:outline-none transition-colors"
+                  className="w-full px-3 py-2 border border-neutral-300 focus:border-black focus:outline-none transition-colors"
                   placeholder="CAT045"
                 />
                 {errors.categoryId && (
@@ -312,7 +312,7 @@ export function AddProductModal({ open, onOpenChange, onSubmit }) {
                   type="text"
                   value={formData.typeId}
                   onChange={(e) => handleInputChange('typeId', e.target.value)}
-                  className="w-full px-4 py-3 border border-neutral-300 focus:border-black focus:outline-none transition-colors"
+                  className="w-full px-3 py-2 border border-neutral-300 focus:border-black focus:outline-none transition-colors"
                   placeholder="Enter type ID"
                 />
                 {errors.typeId && (
@@ -322,7 +322,7 @@ export function AddProductModal({ open, onOpenChange, onSubmit }) {
             </div>
 
             {/* Right Column */}
-            <div className="space-y-6">
+            <div className="space-y-4">
               {/* Preorder Settings */}
               <div className="border border-neutral-300 p-4">
                 <div className="flex items-center gap-3 mb-4">
@@ -347,7 +347,7 @@ export function AddProductModal({ open, onOpenChange, onSubmit }) {
                       type="number"
                       value={formData.preorderDays}
                       onChange={(e) => handleInputChange('preorderDays', parseInt(e.target.value) || 0)}
-                      className="w-full px-4 py-3 border border-neutral-300 focus:border-black focus:outline-none transition-colors"
+                      className="w-full px-3 py-2 border border-neutral-300 focus:border-black focus:outline-none transition-colors"
                       placeholder="0"
                       min="0"
                     />
@@ -381,7 +381,7 @@ export function AddProductModal({ open, onOpenChange, onSubmit }) {
                 <div className="mb-4">
                   <label 
                     htmlFor="image-upload" 
-                    className={`flex items-center justify-center gap-2 w-full px-4 py-8 border-2 border-dashed transition-colors cursor-pointer ${
+                    className={`flex items-center justify-center gap-2 w-full px-4 py-6 border-2 border-dashed transition-colors cursor-pointer ${
                       isDragOver 
                         ? 'border-black bg-neutral-200' 
                         : 'border-neutral-300 bg-neutral-50 hover:border-black hover:bg-neutral-100'
@@ -461,18 +461,18 @@ export function AddProductModal({ open, onOpenChange, onSubmit }) {
           </div>
 
           {/* Footer */}
-          <div className="flex justify-end gap-4 mt-8 pt-6 border-t border-neutral-200">
+          <div className="flex justify-end gap-4 mt-6 pt-4 border-t border-neutral-200">
             <button
               type="button"
               onClick={() => onOpenChange(false)}
-              className="px-8 py-3 border border-neutral-300 text-black hover:bg-neutral-100 transition-colors"
+              className="px-6 py-2 border border-neutral-300 text-black hover:bg-neutral-100 transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className={`px-8 py-3 text-white transition-colors ${
+              className={`px-6 py-2 text-white transition-colors ${
                 isSubmitting 
                   ? 'bg-neutral-400 cursor-not-allowed' 
                   : 'bg-black hover:bg-neutral-800'
