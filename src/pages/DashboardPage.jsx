@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ProductModal } from '../components/ProductModal';
 import './DashboardPage.css';
 
 const DashboardPage = () => {
@@ -46,15 +47,6 @@ const DashboardPage = () => {
   const [productCategoryFilter, setProductCategoryFilter] = useState('all');
   const [currentProductPage, setCurrentProductPage] = useState(1);
   const [showProductModal, setShowProductModal] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState(null);
-  const [productForm, setProductForm] = useState({
-    name: '',
-    category: '',
-    price: '',
-    quantity: '',
-    description: '',
-    colors: []
-  });
   const productsPerPage = 10;
 
   // Categories state
@@ -410,28 +402,6 @@ const DashboardPage = () => {
 
   // Product management functions
   const handleProductAdd = () => {
-    setSelectedProduct(null);
-    setProductForm({
-      name: '',
-      category: '',
-      price: '',
-      quantity: '',
-      description: '',
-      colors: []
-    });
-    setShowProductModal(true);
-  };
-
-  const handleProductEdit = (product) => {
-    setSelectedProduct(product);
-    setProductForm({
-      name: product.name,
-      category: product.category,
-      price: product.price.toString(),
-      quantity: product.quantity.toString(),
-      description: product.description,
-      colors: product.colors
-    });
     setShowProductModal(true);
   };
 
@@ -443,73 +413,38 @@ const DashboardPage = () => {
     }
   };
 
-  const handleProductFormChange = (e) => {
-    const { name, value } = e.target;
-    setProductForm(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleColorToggle = (color) => {
-    setProductForm(prev => ({
-      ...prev,
-      colors: prev.colors.includes(color)
-        ? prev.colors.filter(c => c !== color)
-        : [...prev.colors, color]
-    }));
-  };
-
-  const availableColors = [
-    { name: 'black', label: 'Đen' },
-    { name: 'silver', label: 'Bạc' },
-    { name: 'rose-gold', label: 'Hồng vàng' },
-    { name: 'red', label: 'Đỏ' },
-    { name: 'blue', label: 'Xanh dương' },
-    { name: 'yellow', label: 'Vàng' },
-    { name: 'maroon', label: 'Nâu đỏ' },
-    { name: 'light-blue', label: 'Xanh nhạt' },
-    { name: 'navy', label: 'Xanh navy' },
-    { name: 'purple', label: 'Tím' }
-  ];
-
-  const handleProductSave = (e) => {
-    e.preventDefault();
-    if (selectedProduct) {
-      // Edit existing product
-      const updatedProducts = products.map(product =>
-        product.id === selectedProduct.id
-          ? {
-              ...product,
-              name: productForm.name,
-              category: productForm.category,
-              price: parseFloat(productForm.price),
-              quantity: parseInt(productForm.quantity),
-              description: productForm.description,
-              colors: productForm.colors
-            }
-          : product
-      );
-      setProducts(updatedProducts);
-      setFilteredProducts(updatedProducts);
-    } else {
-      // Add new product
+  // Handle create product with new modal
+  const handleCreateProduct = (productData) => {
+    try {
+      // Get existing products from localStorage
+      const existingProducts = JSON.parse(localStorage.getItem('products') || '[]');
+      
+      // Create new product with unique ID
       const newProduct = {
-        id: products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 1,
-        name: productForm.name,
-        category: productForm.category,
-        price: parseFloat(productForm.price),
-        quantity: parseInt(productForm.quantity),
-        description: productForm.description,
-        colors: productForm.colors,
-        image: '/api/placeholder/60/60' // Default placeholder image
+        ...productData,
+        id: Date.now(),
+        createdAt: new Date().toISOString(),
+        createdBy: user?.username || 'Admin'
       };
-      const updatedProducts = [...products, newProduct];
+      
+      // Add to products list
+      const updatedProducts = [newProduct, ...existingProducts];
+      localStorage.setItem('products', JSON.stringify(updatedProducts));
+      
+      // Update state
       setProducts(updatedProducts);
       setFilteredProducts(updatedProducts);
+      
+      // Close modal
+      setShowProductModal(false);
+      
+      // Show success message (you can add a toast notification here)
+      alert('Tạo sản phẩm thành công!');
+      
+    } catch (error) {
+      console.error('Error creating product:', error);
+      alert('Có lỗi xảy ra khi tạo sản phẩm');
     }
-    setShowProductModal(false);
-    setSelectedProduct(null);
   };
 
   // Effect to filter orders when criteria change
@@ -1414,13 +1349,6 @@ const DashboardPage = () => {
                     </div>
                     <div className="product-actions">
                       <button 
-                        className="edit-btn"
-                        onClick={() => handleProductEdit(product)}
-                        title="Chỉnh sửa"
-                      >
-                        📝
-                      </button>
-                      <button 
                         className="delete-btn"
                         onClick={() => handleProductDelete(product.id)}
                         title="Xóa"
@@ -1449,104 +1377,6 @@ const DashboardPage = () => {
                   </button>
                 </div>
               )}
-            </div>
-          )}
-
-          {/* Product Edit Modal */}
-          {showProductModal && (
-            <div className="modal-overlay">
-              <div className="modal-content">
-                <div className="modal-header">
-                  <h3>{selectedProduct ? 'Chỉnh sửa Sản phẩm' : 'Thêm Sản phẩm mới'}</h3>
-                  <button 
-                    className="close-btn"
-                    onClick={() => setShowProductModal(false)}
-                  >
-                    ×
-                  </button>
-                </div>
-                <form onSubmit={handleProductSave} className="product-form">
-                  <div className="form-group">
-                    <label>Tên sản phẩm:</label>
-                    <input
-                      type="text"
-                      name="name"
-                      value={productForm.name}
-                      onChange={handleProductFormChange}
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Danh mục:</label>
-                    <select
-                      name="category"
-                      value={productForm.category}
-                      onChange={handleProductFormChange}
-                      required
-                    >
-                      <option value="">Chọn danh mục</option>
-                      <option value="Digital Product">Digital Product</option>
-                      <option value="Fashion">Fashion</option>
-                      <option value="Mobile">Mobile</option>
-                      <option value="Electronic">Electronic</option>
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label>Giá:</label>
-                    <input
-                      type="number"
-                      name="price"
-                      value={productForm.price}
-                      onChange={handleProductFormChange}
-                      step="0.01"
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Số lượng:</label>
-                    <input
-                      type="number"
-                      name="quantity"
-                      value={productForm.quantity}
-                      onChange={handleProductFormChange}
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Mô tả:</label>
-                    <textarea
-                      name="description"
-                      value={productForm.description}
-                      onChange={handleProductFormChange}
-                      rows="4"
-                      required
-                    ></textarea>
-                  </div>
-                  <div className="form-group">
-                    <label>Màu sắc có sẵn:</label>
-                    <div className="color-selection">
-                      {availableColors.map((color) => (
-                        <div 
-                          key={color.name}
-                          className={`color-option ${productForm.colors.includes(color.name) ? 'selected' : ''}`}
-                          onClick={() => handleColorToggle(color.name)}
-                        >
-                          <span className={`color-dot color-${color.name}`}></span>
-                          <span className="color-label">{color.label}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="form-actions">
-                    <button type="button" onClick={() => setShowProductModal(false)}>
-                      Hủy
-                    </button>
-                    <button type="submit">
-                      {selectedProduct ? 'Lưu thay đổi' : 'Thêm sản phẩm'}
-                    </button>
-                  </div>
-                </form>
-              </div>
             </div>
           )}
 
@@ -1769,6 +1599,13 @@ const DashboardPage = () => {
             </div>
           )}
         </div>
+
+        {/* New Product Modal */}
+        <ProductModal 
+          isOpen={showProductModal} 
+          onClose={() => setShowProductModal(false)}
+          onSubmit={handleCreateProduct}
+        />
       </div>
     </div>
   );
