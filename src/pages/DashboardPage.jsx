@@ -5,9 +5,10 @@ import './DashboardPage.css';
 
 const DashboardPage = () => {
   const navigate = useNavigate();
+
   const [user, setUser] = useState(null);
   const [selectedMenu, setSelectedMenu] = useState('Dashboard');
-  
+
   // Staff creation form state
   const [staffForm, setStaffForm] = useState({
     fullName: '',
@@ -40,7 +41,7 @@ const DashboardPage = () => {
   const [selectedUserName, setSelectedUserName] = useState('');
   const usersPerPage = 10;
 
-  // Products state
+  // Products state (mock)
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [productSearchTerm, setProductSearchTerm] = useState('');
@@ -49,45 +50,40 @@ const DashboardPage = () => {
   const [showProductModal, setShowProductModal] = useState(false);
   const productsPerPage = 10;
 
-  // Categories state
+  // Categories state (KẾT NỐI API THẬT)
   const [categories, setCategories] = useState([]);
   const [filteredCategories, setFilteredCategories] = useState([]);
   const [categorySearchTerm, setCategorySearchTerm] = useState('');
   const [currentCategoryPage, setCurrentCategoryPage] = useState(1);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState(null);
   const [categoryForm, setCategoryForm] = useState({
-    name: '',
-    parentCategory: '',
-    imageUrl: ''
+    categoryId: '',
+    categoryName: '',
+    parentCategoryId: '',
+    categoryLevel: 0,
+    categoryImage: '',
+    isActive: true
   });
+  const [editingCategoryId, setEditingCategoryId] = useState(null); // null = tạo mới, khác null = đang sửa
   const categoriesPerPage = 10;
 
+  // ======================= CHECK LOGIN & LOAD DATA =======================
   useEffect(() => {
-    // Kiểm tra user đã đăng nhập
     const userData = localStorage.getItem('staffAdminUser');
     if (!userData) {
-      // Chưa đăng nhập, redirect về trang login
       navigate('/staff-admin-login');
       return;
     }
 
     const parsedUser = JSON.parse(userData);
     setUser(parsedUser);
-    
-    // Load orders data when component mounts
+
     loadOrdersData();
-    
-    // Load users data if admin
     if (parsedUser.role === 'admin') {
       loadUsersData();
     }
-    
-    // Load products data
     loadProductsData();
-    
-    // Load categories data
-    loadCategoriesData();
+    loadCategoriesData(); // <-- GỌI API CATEGORY
   }, [navigate]);
 
   const handleLogout = () => {
@@ -95,7 +91,7 @@ const DashboardPage = () => {
     navigate('/staff-admin-login');
   };
 
-  // Handle staff form input changes
+  // ======================= STAFF CREATION =======================
   const handleStaffFormChange = (e) => {
     const { name, value } = e.target;
     setStaffForm(prev => ({
@@ -104,16 +100,14 @@ const DashboardPage = () => {
     }));
   };
 
-  // Handle staff creation
   const handleCreateStaff = (e) => {
     e.preventDefault();
-    
-    // Validation
+
     if (!staffForm.fullName || !staffForm.username || !staffForm.password || !staffForm.email) {
       setStaffCreationMessage('Vui lòng điền đầy đủ thông tin bắt buộc');
       return;
     }
-    
+
     if (staffForm.password !== staffForm.confirmPassword) {
       setStaffCreationMessage('Mật khẩu xác nhận không khớp');
       return;
@@ -124,18 +118,14 @@ const DashboardPage = () => {
       return;
     }
 
-    // Mock API call - In real app, this would be an API call
     try {
-      // Get existing staff accounts from localStorage or create empty array
       const existingStaff = JSON.parse(localStorage.getItem('staffAccounts') || '[]');
-      
-      // Check if username already exists
+
       if (existingStaff.find(staff => staff.username === staffForm.username)) {
         setStaffCreationMessage('Tên đăng nhập đã tồn tại');
         return;
       }
 
-      // Create new staff account
       const newStaff = {
         id: Date.now(),
         fullName: staffForm.fullName,
@@ -148,11 +138,9 @@ const DashboardPage = () => {
         createdBy: user.username
       };
 
-      // Save to localStorage
       const updatedStaff = [...existingStaff, newStaff];
       localStorage.setItem('staffAccounts', JSON.stringify(updatedStaff));
 
-      // Reset form and show success message
       setStaffForm({
         fullName: '',
         username: '',
@@ -163,15 +151,13 @@ const DashboardPage = () => {
       });
       setStaffCreationMessage('Tạo tài khoản nhân viên thành công!');
 
-      // Clear success message after 3 seconds
       setTimeout(() => setStaffCreationMessage(''), 3000);
-
     } catch (error) {
       setStaffCreationMessage('Có lỗi xảy ra khi tạo tài khoản');
     }
   };
 
-  // Load orders data
+  // ======================= MOCK ORDERS =======================
   const loadOrdersData = () => {
     const mockOrders = [
       {
@@ -229,34 +215,6 @@ const DashboardPage = () => {
         quantity: 3,
         size: 'S',
         color: 'Trắng'
-      },
-      {
-        id: '00005',
-        productName: 'Quần Short Thun 9 Inch Thoáng Mát',
-        customerName: 'Hoàng Văn E',
-        orderDate: '2/1/2025',
-        price: '167.000đ',
-        status: 'pending',
-        statusText: 'Chờ Xử Lý',
-        phone: '0258741963',
-        address: '654 Đường JKL, Quận 5, TP.HCM',
-        quantity: 2,
-        size: 'M',
-        color: 'Đen'
-      },
-      {
-        id: '00006',
-        productName: 'Áo Sơ Mi Jean Tay Ngắn Oversized',
-        customerName: 'Võ Thị F',
-        orderDate: '3/1/2025',
-        price: '347.000đ',
-        status: 'completed',
-        statusText: 'Hoàn Thành',
-        phone: '0147258369',
-        address: '987 Đường MNO, Quận 6, TP.HCM',
-        quantity: 1,
-        size: 'L',
-        color: 'Xanh Nhạt'
       }
     ];
 
@@ -264,7 +222,7 @@ const DashboardPage = () => {
     setFilteredOrders(mockOrders);
   };
 
-  // Load users data (admin only)
+  // ======================= MOCK USERS =======================
   const loadUsersData = () => {
     const mockUsers = [
       {
@@ -288,72 +246,6 @@ const DashboardPage = () => {
         totalOrders: 3,
         totalSpent: '891,000đ',
         avatar: '/api/placeholder/40/40'
-      },
-      {
-        id: 'USR003',
-        name: 'Matt Johnson',
-        email: 'matt@example.com',
-        phone: '0369852147',
-        joinDate: '25/12/2024',
-        status: 'banned',
-        totalOrders: 2,
-        totalSpent: '594,000đ',
-        avatar: '/api/placeholder/40/40'
-      },
-      {
-        id: 'USR004',
-        name: 'Andy Smith',
-        email: 'andy@example.com',
-        phone: '0741852963',
-        joinDate: '28/12/2024',
-        status: 'active',
-        totalOrders: 7,
-        totalSpent: '2,079,000đ',
-        avatar: '/api/placeholder/40/40'
-      },
-      {
-        id: 'USR005',
-        name: 'Luke Wilson',
-        email: 'luke@example.com',
-        phone: '0258741963',
-        joinDate: '02/01/2025',
-        status: 'active',
-        totalOrders: 1,
-        totalSpent: '297,000đ',
-        avatar: '/api/placeholder/40/40'
-      },
-      {
-        id: 'USR006',
-        name: 'Kate Davis',
-        email: 'kate@example.com',
-        phone: '0147258369',
-        joinDate: '05/01/2025',
-        status: 'active',
-        totalOrders: 4,
-        totalSpent: '1,188,000đ',
-        avatar: '/api/placeholder/40/40'
-      },
-      {
-        id: 'USR007',
-        name: 'Tom Brown',
-        email: 'tom@example.com',
-        phone: '0456789123',
-        joinDate: '08/01/2025',
-        status: 'banned',
-        totalOrders: 0,
-        totalSpent: '0đ',
-        avatar: '/api/placeholder/40/40'
-      },
-      {
-        id: 'USR008',
-        name: 'Anna Taylor',
-        email: 'anna@example.com',
-        phone: '0789123456',
-        joinDate: '10/01/2025',
-        status: 'active',
-        totalOrders: 2,
-        totalSpent: '774,000đ',
-        avatar: '/api/placeholder/40/40'
       }
     ];
 
@@ -361,40 +253,44 @@ const DashboardPage = () => {
     setFilteredUsers(mockUsers);
   };
 
-  // Load products data
+  // ======================= MOCK PRODUCTS =======================
+  const mockProducts = [
+    {
+      id: 1,
+      name: 'Apple Watch Series 4',
+      category: 'Digital Product',
+      price: 690.0,
+      quantity: 63,
+      image: '/api/placeholder/60/60',
+      colors: ['black', 'silver', 'rose-gold'],
+      description: 'Apple Watch Series 4 với nhiều tính năng thông minh và thiết kế hiện đại.'
+    },
+    {
+      id: 2,
+      name: 'Microsoft Headsquare',
+      category: 'Digital Product',
+      price: 190.0,
+      quantity: 13,
+      image: '/api/placeholder/60/60',
+      colors: ['black', 'red', 'blue', 'yellow'],
+      description: 'Tai nghe Microsoft Headsquare chất lượng cao với âm thanh tuyệt vời.'
+    }
+  ];
+
   const loadProductsData = () => {
     setProducts(mockProducts);
     setFilteredProducts(mockProducts);
   };
 
-  // Load categories data
-  const loadCategoriesData = () => {
-    const mockCategories = [
-      {
-        id: 1,
-        name: 'Áo Nam',
-        parentCategory: '—'
-      },
-      {
-        id: 2,
-        name: 'Quần Nam',
-        parentCategory: '—'
-      },
-      {
-        id: 3,
-        name: 'Áo Thun',
-        parentCategory: 'Áo Nam'
-      },
-      {
-        id: 4,
-        name: 'Áo Sơ Mi',
-        parentCategory: 'Áo Nam'
-      },
-      {
-        id: 5,
-        name: 'Quần Jeans',
-        parentCategory: 'Quần Nam'
+  // ======================= CATEGORY API (GET/POST/PUT/DELETE) =======================
+  const loadCategoriesData = async () => {
+    try {
+      const res = await fetch('http://localhost:8080/api/categories');
+      if (!res.ok) {
+        console.error('Lỗi gọi API categories, status:', res.status);
+        return;
       }
+<<<<<<< HEAD
     ];
     setCategories(mockCategories);
     setFilteredCategories(mockCategories);
@@ -444,29 +340,141 @@ const DashboardPage = () => {
     } catch (error) {
       console.error('Error creating product:', error);
       alert('Có lỗi xảy ra khi tạo sản phẩm');
+=======
+      const data = await res.json();
+      setCategories(data);
+      setFilteredCategories(data);
+    } catch (error) {
+      console.error('Không thể load categories:', error);
     }
   };
 
-  // Effect to filter orders when criteria change
+  const handleCategoryFormChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setCategoryForm(prev => ({
+      ...prev,
+      [name]:
+        type === 'checkbox'
+          ? checked
+          : name === 'categoryLevel'
+          ? Number(value || 0)
+          : value
+    }));
+  };
+
+  const handleOpenCategoryModal = () => {
+    setCategoryForm({
+      categoryId: '',
+      categoryName: '',
+      parentCategoryId: '',
+      categoryLevel: 0,
+      categoryImage: '',
+      isActive: true
+    });
+    setEditingCategoryId(null); // tạo mới
+    setShowCategoryModal(true);
+  };
+
+  const handleEditCategory = (cat) => {
+    setCategoryForm({
+      categoryId: cat.categoryId,
+      categoryName: cat.categoryName,
+      parentCategoryId: cat.parentCategoryId || '',
+      categoryLevel: cat.categoryLevel || 0,
+      categoryImage: cat.categoryImage || '',
+      isActive: cat.isActive
+    });
+    setEditingCategoryId(cat.categoryId); // đang sửa
+    setShowCategoryModal(true);
+  };
+
+  const handleDeleteCategory = async (categoryId) => {
+    const ok = window.confirm(`Bạn có chắc chắn muốn xóa danh mục ${categoryId}?`);
+    if (!ok) return;
+
+    try {
+      const res = await fetch(
+        `http://localhost:8080/api/categories/${encodeURIComponent(categoryId)}`,
+        {
+          method: 'DELETE'
+        }
+      );
+
+      if (!res.ok) {
+        const text = await res.text();
+        console.error('Lỗi xóa category:', text);
+        alert('Xóa danh mục thất bại! Kiểm tra log backend.');
+        return;
+      }
+
+      alert('Xóa danh mục thành công!');
+      loadCategoriesData();
+    } catch (error) {
+      console.error('API error khi xóa:', error);
+      alert('Không thể kết nối API khi xóa!');
+>>>>>>> 2dead36fabb4f72f3ea1f116f55402577bc22e4e
+    }
+  };
+
+  const handleSaveCategory = async (e) => {
+    e.preventDefault();
+
+    if (!categoryForm.categoryId || !categoryForm.categoryName) {
+      alert('Vui lòng nhập Category ID và Tên danh mục');
+      return;
+    }
+
+    const isEdit = !!editingCategoryId;
+
+    const url = isEdit
+      ? `http://localhost:8080/api/categories/${encodeURIComponent(editingCategoryId)}`
+      : 'http://localhost:8080/api/categories';
+
+    const method = isEdit ? 'PUT' : 'POST';
+
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(categoryForm)
+      });
+
+      if (res.ok) {
+        alert(isEdit ? 'Cập nhật danh mục thành công!' : 'Lưu danh mục thành công!');
+        setShowCategoryModal(false);
+        setEditingCategoryId(null);
+        await loadCategoriesData();
+      } else {
+        const text = await res.text();
+        console.error('Lỗi lưu category:', text);
+        alert('Lưu danh mục thất bại! Xem log backend.');
+      }
+    } catch (error) {
+      console.error('API error:', error);
+      alert('Không thể kết nối API!');
+    }
+  };
+
+  // ======================= FILTER EFFECTS =======================
+  // Orders filter
   useEffect(() => {
     if (orders.length > 0) {
       let filtered = [...orders];
 
-      // Filter by search term (order ID)
       if (searchTerm) {
         filtered = filtered.filter(order =>
           order.id.toLowerCase().includes(searchTerm.toLowerCase())
         );
       }
 
-      // Filter by customer search
       if (customerSearch) {
         filtered = filtered.filter(order =>
           order.customerName.toLowerCase().includes(customerSearch.toLowerCase())
         );
       }
 
-      // Filter by date
       if (selectedDate) {
         filtered = filtered.filter(order => {
           const orderDate = new Date(order.orderDate.split('/').reverse().join('-'));
@@ -475,7 +483,6 @@ const DashboardPage = () => {
         });
       }
 
-      // Filter by status
       if (statusFilter !== 'all') {
         filtered = filtered.filter(order => order.status === statusFilter);
       }
@@ -485,63 +492,11 @@ const DashboardPage = () => {
     }
   }, [searchTerm, customerSearch, selectedDate, statusFilter, orders]);
 
-  // Get status color
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'completed':
-        return '#10B981'; // Green
-      case 'processing':
-        return '#F59E0B'; // Yellow
-      case 'shipping':
-        return '#3B82F6'; // Blue
-      case 'pending':
-        return '#EF4444'; // Red
-      default:
-        return '#6B7280'; // Gray
-    }
-  };
-
-  // Pagination logic
-  const indexOfLastOrder = currentPage * ordersPerPage;
-  const indexOfFirstOrder = indexOfLastOrder - ordersPerPage;
-  const currentOrders = filteredOrders.slice(indexOfFirstOrder, indexOfLastOrder);
-  const totalPages = Math.ceil(filteredOrders.length / ordersPerPage);
-
-  // User management handlers
-  const toggleUserStatus = (userId) => {
-    setUsers(prevUsers => 
-      prevUsers.map(user => 
-        user.id === userId 
-          ? { ...user, status: user.status === 'active' ? 'banned' : 'active' }
-          : user
-      )
-    );
-    // Also update filtered users
-    setFilteredUsers(prevUsers => 
-      prevUsers.map(user => 
-        user.id === userId 
-          ? { ...user, status: user.status === 'active' ? 'banned' : 'active' }
-          : user
-      )
-    );
-  };
-
-  const viewUserOrders = (userId, userName) => {
-    // Filter orders by user (mock - in real app would be by user ID)
-    const userOrders = orders.filter(order => 
-      order.customerName.toLowerCase().includes(userName.toLowerCase().split(' ')[0])
-    );
-    setSelectedUserOrders(userOrders);
-    setSelectedUserName(userName);
-    setShowUserOrdersModal(true);
-  };
-
-  // User filtering effect
+  // User filter
   useEffect(() => {
     if (users.length > 0) {
       let filtered = [...users];
 
-      // Filter by search term (name or email)
       if (userSearchTerm) {
         filtered = filtered.filter(user =>
           user.name.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
@@ -549,7 +504,6 @@ const DashboardPage = () => {
         );
       }
 
-      // Filter by status
       if (userStatusFilter !== 'all') {
         filtered = filtered.filter(user => user.status === userStatusFilter);
       }
@@ -559,19 +513,17 @@ const DashboardPage = () => {
     }
   }, [userSearchTerm, userStatusFilter, users]);
 
-  // Product filtering effect
+  // Product filter
   useEffect(() => {
     if (products.length > 0) {
       let filtered = [...products];
 
-      // Filter by search term (name)
       if (productSearchTerm) {
         filtered = filtered.filter(product =>
           product.name.toLowerCase().includes(productSearchTerm.toLowerCase())
         );
       }
 
-      // Filter by category
       if (productCategoryFilter !== 'all') {
         filtered = filtered.filter(product => product.category === productCategoryFilter);
       }
@@ -581,19 +533,81 @@ const DashboardPage = () => {
     }
   }, [productSearchTerm, productCategoryFilter, products]);
 
-  // User pagination logic
+  // Category filter
+  useEffect(() => {
+    if (categories.length > 0) {
+      let filtered = [...categories];
+
+      if (categorySearchTerm) {
+        filtered = filtered.filter(cat =>
+          cat.categoryName.toLowerCase().includes(categorySearchTerm.toLowerCase())
+        );
+      }
+
+      setFilteredCategories(filtered);
+      setCurrentCategoryPage(1);
+    }
+  }, [categorySearchTerm, categories]);
+
+  // ======================= HELPERS =======================
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'completed':
+        return '#10B981';
+      case 'processing':
+        return '#F59E0B';
+      case 'shipping':
+        return '#3B82F6';
+      case 'pending':
+        return '#EF4444';
+      default:
+        return '#6B7280';
+    }
+  };
+
+  // Pagination orders
+  const indexOfLastOrder = currentPage * ordersPerPage;
+  const indexOfFirstOrder = indexOfLastOrder - ordersPerPage;
+  const currentOrders = filteredOrders.slice(indexOfFirstOrder, indexOfLastOrder);
+  const totalPages = Math.ceil(filteredOrders.length / ordersPerPage);
+
+  // Pagination users
   const indexOfLastUser = currentUserPage * usersPerPage;
   const indexOfFirstUser = indexOfLastUser - usersPerPage;
   const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
   const totalUserPages = Math.ceil(filteredUsers.length / usersPerPage);
 
-  // Product pagination logic
+  // Pagination products
   const indexOfLastProduct = currentProductPage * productsPerPage;
   const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
   const currentProducts = filteredProducts.slice(indexOfFirstProduct, indexOfLastProduct);
   const totalProductPages = Math.ceil(filteredProducts.length / productsPerPage);
 
-  // Mock data cho dashboard
+  // Pagination categories
+  const indexOfLastCategory = currentCategoryPage * categoriesPerPage;
+  const indexOfFirstCategory = indexOfLastCategory - categoriesPerPage;
+  const currentCategories = filteredCategories.slice(indexOfFirstCategory, indexOfLastCategory);
+  const totalCategoryPages = Math.ceil(filteredCategories.length / categoriesPerPage);
+
+  // Toggle user status
+  const toggleUserStatus = (userId) => {
+    setUsers(prev =>
+      prev.map(u =>
+        u.id === userId ? { ...u, status: u.status === 'active' ? 'banned' : 'active' } : u
+      )
+    );
+  };
+
+  const viewUserOrders = (userId, userName) => {
+    const userOrders = orders.filter(order =>
+      order.customerName.toLowerCase().includes(userName.toLowerCase().split(' ')[0])
+    );
+    setSelectedUserOrders(userOrders);
+    setSelectedUserName(userName);
+    setShowUserOrdersModal(true);
+  };
+
+  // Dashboard stats
   const dashboardStats = [
     {
       title: 'Total User',
@@ -605,7 +619,7 @@ const DashboardPage = () => {
     },
     {
       title: 'Total Order',
-      value: '10293',
+      value: '10,293',
       change: '1.3% Up from past week',
       changeType: 'positive',
       icon: '📦',
@@ -621,65 +635,11 @@ const DashboardPage = () => {
     },
     {
       title: 'Total Pending',
-      value: '2040',
+      value: '2,040',
       change: '1.8% Up from yesterday',
       changeType: 'positive',
       icon: '⏳',
       color: 'pink'
-    }
-  ];
-
-  // Mock products data
-  const mockProducts = [
-    {
-      id: 1,
-      name: 'Apple Watch Series 4',
-      category: 'Digital Product',
-      price: 690.00,
-      quantity: 63,
-      image: '/api/placeholder/60/60',
-      colors: ['black', 'silver', 'rose-gold'],
-      description: 'Apple Watch Series 4 với nhiều tính năng thông minh và thiết kế hiện đại.'
-    },
-    {
-      id: 2,
-      name: 'Microsoft Headsquare',
-      category: 'Digital Product',
-      price: 190.00,
-      quantity: 13,
-      image: '/api/placeholder/60/60',
-      colors: ['black', 'red', 'blue', 'yellow'],
-      description: 'Tai nghe Microsoft Headsquare chất lượng cao với âm thanh tuyệt vời.'
-    },
-    {
-      id: 3,
-      name: "Women's Dress",
-      category: 'Fashion',
-      price: 640.00,
-      quantity: 635,
-      image: '/api/placeholder/60/60',
-      colors: ['maroon', 'light-blue', 'navy', 'purple'],
-      description: 'Váy nữ thời trang cao cấp với thiết kế thanh lịch và chất liệu mềm mại.'
-    },
-    {
-      id: 4,
-      name: 'Samsung A50',
-      category: 'Mobile',
-      price: 400.00,
-      quantity: 67,
-      image: '/api/placeholder/60/60',
-      colors: ['blue', 'black', 'red'],
-      description: 'Điện thoại Samsung A50 với màn hình lớn và camera chất lượng cao.'
-    },
-    {
-      id: 5,
-      name: 'Camera',
-      category: 'Electronic',
-      price: 420.00,
-      quantity: 52,
-      image: '/api/placeholder/60/60',
-      colors: ['blue', 'black', 'red'],
-      description: 'Máy ảnh chuyên nghiệp với khả năng chụp ảnh và quay video chất lượng 4K.'
     }
   ];
 
@@ -710,28 +670,31 @@ const DashboardPage = () => {
     }
   ];
 
-  const menuItems = user?.role === 'admin' ? [
-    { name: 'Dashboard', icon: '⚡' },
-    { name: 'Thông tin đặt hàng', icon: '📦' },
-    { name: 'Inbox', icon: '📧' },
-    { name: 'Sản Phẩm', icon: '🎯' },
-    { name: 'Danh Mục', icon: '📋' },
-    { name: 'Người dùng', icon: '👥' },
-    { name: 'Tạo tài khoản Nhân viên', icon: '➕' },
-    { name: 'Settings', icon: '⚙️' }
-  ] : [
-    { name: 'Dashboard', icon: '⚡' },
-    { name: 'Thông tin đặt hàng', icon: '📦' },
-    { name: 'Inbox', icon: '📧' },
-    { name: 'Sản Phẩm', icon: '🎯' },
-    { name: 'Danh Mục', icon: '📋' },
-    { name: 'Settings', icon: '⚙️' }
-  ];
+  const menuItems = user?.role === 'admin'
+    ? [
+        { name: 'Dashboard', icon: '⚡' },
+        { name: 'Thông tin đặt hàng', icon: '📦' },
+        { name: 'Inbox', icon: '📧' },
+        { name: 'Sản Phẩm', icon: '🎯' },
+        { name: 'Danh Mục', icon: '📋' },
+        { name: 'Người dùng', icon: '👥' },
+        { name: 'Tạo tài khoản Nhân viên', icon: '➕' },
+        { name: 'Settings', icon: '⚙️' }
+      ]
+    : [
+        { name: 'Dashboard', icon: '⚡' },
+        { name: 'Thông tin đặt hàng', icon: '📦' },
+        { name: 'Inbox', icon: '📧' },
+        { name: 'Sản Phẩm', icon: '🎯' },
+        { name: 'Danh Mục', icon: '📋' },
+        { name: 'Settings', icon: '⚙️' }
+      ];
 
   if (!user) {
     return <div className="loading">Đang tải...</div>;
   }
 
+  // ======================= RENDER =======================
   return (
     <div className="dashboard-container">
       {/* Sidebar */}
@@ -759,11 +722,12 @@ const DashboardPage = () => {
 
       {/* Main Content */}
       <div className="dashboard-main">
-        {/* Dashboard Content */}
         <div className="dashboard-content">
+          {/* DASHBOARD */}
           {selectedMenu === 'Dashboard' && (
             <>
               <h1>Dashboard</h1>
+
               {/* Stats Cards */}
               <div className="stats-grid">
                 {dashboardStats.map((stat, index) => (
@@ -780,7 +744,7 @@ const DashboardPage = () => {
                 ))}
               </div>
 
-              {/* Sales Chart */}
+              {/* Sales Chart (simple) */}
               <div className="chart-section">
                 <div className="chart-header">
                   <h3>Sales Details</h3>
@@ -794,7 +758,6 @@ const DashboardPage = () => {
                   <div className="chart-info">
                     <div className="chart-peak">84,3664.77</div>
                     <div className="chart-visual">
-                      {/* Simplified chart visualization */}
                       <svg width="100%" height="200" className="chart-svg">
                         <polyline
                           fill="none"
@@ -809,7 +772,7 @@ const DashboardPage = () => {
                 </div>
               </div>
 
-              {/* Orders Table */}
+              {/* Orders widget */}
               <div className="orders-section">
                 <div className="orders-header">
                   <h3>Thông tin đặt hàng</h3>
@@ -819,7 +782,7 @@ const DashboardPage = () => {
                     <option>Tháng 11</option>
                   </select>
                 </div>
-                
+
                 <div className="orders-table">
                   <div className="table-header">
                     <div>Tên Sản Phẩm</div>
@@ -828,18 +791,26 @@ const DashboardPage = () => {
                     <div>Giá tiền</div>
                     <div>Trạng Thái</div>
                   </div>
-                  
-                  {orderData.map((order) => (
+
+                  {orderData.map(order => (
                     <div key={order.id} className="table-row">
                       <div className="product-info">
-                        <div className="product-image"></div>
+                        <div className="product-image" />
                         <span>{order.productName}</span>
                       </div>
                       <div>{order.location}</div>
                       <div>{order.customer}</div>
                       <div className="price">{order.price}</div>
                       <div>
-                        <span className={`status ${order.status === 'Đang giao' ? 'delivering' : order.status === 'Đã giao' ? 'delivered' : 'processing'}`}>
+                        <span
+                          className={`status ${
+                            order.status === 'Đang giao'
+                              ? 'delivering'
+                              : order.status === 'Đã giao'
+                              ? 'delivered'
+                              : 'processing'
+                          }`}
+                        >
                           {order.status}
                         </span>
                       </div>
@@ -850,6 +821,7 @@ const DashboardPage = () => {
             </>
           )}
 
+          {/* TẠO NHÂN VIÊN */}
           {selectedMenu === 'Tạo tài khoản Nhân viên' && user?.role === 'admin' && (
             <div className="staff-creation-container">
               <h1>Tạo tài khoản Nhân viên</h1>
@@ -859,13 +831,24 @@ const DashboardPage = () => {
                     <div className="avatar-upload">
                       <div className="avatar-placeholder">
                         <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
-                          <path d="M12 12C14.7614 12 17 9.76142 17 7C17 4.23858 14.7614 2 12 2C9.23858 2 7 4.23858 7 7C7 9.76142 9.23858 12 12 12Z" fill="#9CA3AF"/>
-                          <path d="M12 14C16.4183 14 20 17.5817 20 22H4C4 17.5817 7.58172 14 12 14Z" fill="#9CA3AF"/>
+                          <path
+                            d="M12 12C14.7614 12 17 9.76142 17 7C17 4.23858 14.7614 2 12 2C9.23858 2 7 4.23858 7 7C7 9.76142 9.23858 12 12 12Z"
+                            fill="#9CA3AF"
+                          />
+                          <path
+                            d="M12 14C16.4183 14 20 17.5817 20 22H4C4 17.5817 7.58172 14 12 14Z"
+                            fill="#9CA3AF"
+                          />
                         </svg>
                       </div>
                       <button type="button" className="upload-btn">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                          <path d="M12 2V22M2 12H22" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                          <path
+                            d="M12 2V22M2 12H22"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                          />
                         </svg>
                       </button>
                     </div>
@@ -875,7 +858,7 @@ const DashboardPage = () => {
                   <div className="form-grid">
                     <div className="form-row">
                       <div className="form-group">
-                        <label htmlFor="fullName">Tên khoản *</label>
+                        <label htmlFor="fullName">Tên tài khoản *</label>
                         <input
                           type="text"
                           id="fullName"
@@ -887,7 +870,7 @@ const DashboardPage = () => {
                         />
                       </div>
                       <div className="form-group">
-                        <label htmlFor="username">Mật khẩu *</label>
+                        <label htmlFor="username">Tên đăng nhập *</label>
                         <input
                           type="text"
                           id="username"
@@ -902,7 +885,7 @@ const DashboardPage = () => {
 
                     <div className="form-row">
                       <div className="form-group">
-                        <label htmlFor="password">Xác nhận mật khẩu *</label>
+                        <label htmlFor="password">Mật khẩu *</label>
                         <input
                           type="password"
                           id="password"
@@ -925,10 +908,40 @@ const DashboardPage = () => {
                         />
                       </div>
                     </div>
+
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label htmlFor="email">Email *</label>
+                        <input
+                          type="email"
+                          id="email"
+                          name="email"
+                          value={staffForm.email}
+                          onChange={handleStaffFormChange}
+                          placeholder="Nhập email"
+                          required
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label htmlFor="phone">Số điện thoại</label>
+                        <input
+                          type="text"
+                          id="phone"
+                          name="phone"
+                          value={staffForm.phone}
+                          onChange={handleStaffFormChange}
+                          placeholder="Nhập số điện thoại"
+                        />
+                      </div>
+                    </div>
                   </div>
 
                   {staffCreationMessage && (
-                    <div className={`message ${staffCreationMessage.includes('thành công') ? 'success' : 'error'}`}>
+                    <div
+                      className={`message ${
+                        staffCreationMessage.includes('thành công') ? 'success' : 'error'
+                      }`}
+                    >
                       {staffCreationMessage}
                     </div>
                   )}
@@ -941,13 +954,13 @@ const DashboardPage = () => {
             </div>
           )}
 
+          {/* THÔNG TIN ĐẶT HÀNG FULL */}
           {selectedMenu === 'Thông tin đặt hàng' && (
             <div className="orders-tab-container">
               <div className="orders-tab-header">
                 <h1>Thông tin đặt hàng</h1>
               </div>
 
-              {/* Orders Filters */}
               <div className="orders-tab-filters">
                 <div className="filter-row">
                   <div className="filter-group">
@@ -959,7 +972,7 @@ const DashboardPage = () => {
                       className="filter-input"
                     />
                   </div>
-                  
+
                   <div className="filter-group">
                     <label>Trạng thái:</label>
                     <select
@@ -976,8 +989,8 @@ const DashboardPage = () => {
                     </select>
                   </div>
 
-                  <button 
-                    className="reset-btn" 
+                  <button
+                    className="reset-btn"
                     onClick={() => {
                       setSearchTerm('');
                       setCustomerSearch('');
@@ -1014,7 +1027,6 @@ const DashboardPage = () => {
                 </div>
               </div>
 
-              {/* Orders Table */}
               <div className="orders-tab-table-container">
                 <table className="orders-tab-table">
                   <thead>
@@ -1029,7 +1041,7 @@ const DashboardPage = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {currentOrders.map((order) => (
+                    {currentOrders.map(order => (
                       <tr key={order.id}>
                         <td className="order-id">{order.id}</td>
                         <td className="product-name">{order.productName}</td>
@@ -1037,7 +1049,7 @@ const DashboardPage = () => {
                         <td className="order-date">{order.orderDate}</td>
                         <td className="order-price">{order.price}</td>
                         <td>
-                          <span 
+                          <span
                             className="status-badge"
                             style={{ backgroundColor: getStatusColor(order.status) }}
                           >
@@ -1045,273 +1057,96 @@ const DashboardPage = () => {
                           </span>
                         </td>
                         <td>
-                          <button 
+                          <button
                             className="detail-btn"
-                            onClick={() => {/* Handle view detail */}}
+                            onClick={() => {}}
                             title="Xem chi tiết"
                           >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M3 17.25V21H6.75L17.81 9.94L14.06 6.19L3 17.25ZM20.71 7.04C21.1 6.65 21.1 6.02 20.71 5.63L18.37 3.29C17.98 2.9 17.35 2.9 16.96 3.29L15.13 5.12L18.88 8.87L20.71 7.04Z" fill="currentColor"/>
+                            <svg
+                              width="16"
+                              height="16"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <path
+                                d="M3 17.25V21H6.75L17.81 9.94L14.06 6.19L3 17.25Z"
+                                fill="currentColor"
+                              />
                             </svg>
                           </button>
                         </td>
                       </tr>
                     ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="orders-tab-pagination">
-                  <button 
-                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                    disabled={currentPage === 1}
-                    className="pagination-btn"
-                  >
-                    ← Prev Date
-                  </button>
-                  
-                  <div className="pagination-info">
-                    Trang {currentPage} / {totalPages} • Hiển thị {currentOrders.length} / {filteredOrders.length} đơn hàng
-                  </div>
-                  
-                  <button 
-                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                    disabled={currentPage === totalPages}
-                    className="pagination-btn"
-                  >
-                    Next Date →
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {selectedMenu === 'Người dùng' && user?.role === 'admin' && (
-            <div className="users-tab-container">
-              <div className="users-tab-header">
-                <h1>Người dùng</h1>
-                <div className="users-count">
-                  {filteredUsers.length} of {users.length}
-                </div>
-              </div>
-
-              {/* User Filters */}
-              <div className="users-tab-filters">
-                <div className="filter-row">
-                  <div className="search-group">
-                    <label>Tìm kiếm:</label>
-                    <input
-                      type="text"
-                      placeholder="Tìm theo tên hoặc email..."
-                      value={userSearchTerm}
-                      onChange={(e) => setUserSearchTerm(e.target.value)}
-                      className="search-input"
-                    />
-                  </div>
-
-                  <div className="filter-group">
-                    <label>Trạng thái:</label>
-                    <select
-                      value={userStatusFilter}
-                      onChange={(e) => setUserStatusFilter(e.target.value)}
-                      className="filter-select"
-                    >
-                      <option value="all">Tất cả</option>
-                      <option value="active">Hoạt động</option>
-                      <option value="banned">Đã cấm</option>
-                    </select>
-                  </div>
-
-                  <button 
-                    className="reset-btn" 
-                    onClick={() => {
-                      setUserSearchTerm('');
-                      setUserStatusFilter('all');
-                    }}
-                  >
-                    Reset Filter
-                  </button>
-                </div>
-              </div>
-
-              {/* Users Table */}
-              <div className="users-tab-table-container">
-                <table className="users-tab-table">
-                  <thead>
-                    <tr>
-                      <th>ID</th>
-                      <th>Tên</th>
-                      <th>Email</th>
-                      <th>Ngày tham gia</th>
-                      <th>Đơn hàng</th>
-                      <th>Tổng chi tiêu</th>
-                      <th>Trạng thái</th>
-                      <th>Hành động</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {currentUsers.map((userItem) => (
-                      <tr key={userItem.id}>
-                        <td className="user-id">{userItem.id}</td>
-                        <td>
-                          <div className="user-info">
-                            <img src={userItem.avatar} alt={userItem.name} className="user-avatar" />
-                            <span className="user-name">{userItem.name}</span>
-                          </div>
-                        </td>
-                        <td className="user-email">{userItem.email}</td>
-                        <td className="join-date">{userItem.joinDate}</td>
-                        <td className="total-orders">{userItem.totalOrders}</td>
-                        <td className="total-spent">{userItem.totalSpent}</td>
-                        <td>
-                          <span 
-                            className={`status-badge ${userItem.status === 'active' ? 'active-status' : 'banned-status'}`}
-                          >
-                            {userItem.status === 'active' ? 'Hoạt động' : 'Đã cấm'}
-                          </span>
-                        </td>
-                        <td>
-                          <div className="action-buttons">
-                            <button 
-                              className="view-orders-btn"
-                              onClick={() => viewUserOrders(userItem.id, userItem.name)}
-                              title="Xem đơn hàng"
-                            >
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                                <path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 1H5C3.89 1 3 1.89 3 3V21C3 22.1 3.89 23 5 23H19C20.1 23 21 22.1 21 21V9M19 9H14V4H5V21H19V9Z" fill="currentColor"/>
-                              </svg>
-                            </button>
-                            <button 
-                              className={`ban-btn ${userItem.status === 'banned' ? 'unban' : 'ban'}`}
-                              onClick={() => toggleUserStatus(userItem.id)}
-                              title={userItem.status === 'active' ? 'Cấm người dùng' : 'Bỏ cấm người dùng'}
-                            >
-                              {userItem.status === 'active' ? (
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                                  <path d="M12 2C17.5 2 22 6.5 22 12S17.5 22 12 22 2 17.5 2 12 6.5 2 12 2M12 4C7.58 4 4 7.58 4 12S7.58 20 12 20 20 16.42 20 12 16.42 4 12 4M7.5 8.5L8.5 7.5L16.5 15.5L15.5 16.5L7.5 8.5Z" fill="currentColor"/>
-                                </svg>
-                              ) : (
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                                  <path d="M12 2C17.5 2 22 6.5 22 12S17.5 22 12 22 2 17.5 2 12 6.5 2 12 2M12 4C7.58 4 4 7.58 4 12S7.58 20 12 20 20 16.42 20 12 16.42 4 12 4Z" fill="currentColor"/>
-                                </svg>
-                              )}
-                            </button>
-                          </div>
+                    {currentOrders.length === 0 && (
+                      <tr>
+                        <td colSpan="7" style={{ textAlign: 'center', padding: '1rem' }}>
+                          Không có đơn hàng nào
                         </td>
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                 </table>
               </div>
 
-              {/* User Pagination */}
-              {totalUserPages > 1 && (
-                <div className="users-tab-pagination">
-                  <button 
-                    onClick={() => setCurrentUserPage(prev => Math.max(prev - 1, 1))}
-                    disabled={currentUserPage === 1}
-                    className="pagination-btn"
-                  >
-                    ← Trước
-                  </button>
-                  
-                  <div className="pagination-info">
-                    Trang {currentUserPage} / {totalUserPages} • Hiển thị {currentUsers.length} / {filteredUsers.length} người dùng
-                  </div>
-                  
-                  <button 
-                    onClick={() => setCurrentUserPage(prev => Math.min(prev + 1, totalUserPages))}
-                    disabled={currentUserPage === totalUserPages}
-                    className="pagination-btn"
-                  >
-                    Sau →
-                  </button>
+              <div className="orders-tab-pagination">
+                <button
+                  className="pagination-btn"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(prev => prev - 1)}
+                >
+                  Trang trước
+                </button>
+                <div className="pagination-info">
+                  Trang {currentPage} / {totalPages || 1}
                 </div>
-              )}
-            </div>
-          )}
-
-          {/* User Orders Modal */}
-          {showUserOrdersModal && (
-            <div className="modal-overlay" onClick={() => setShowUserOrdersModal(false)}>
-              <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                <div className="modal-header">
-                  <h2>Đơn hàng của {selectedUserName}</h2>
-                  <button 
-                    className="modal-close-btn"
-                    onClick={() => setShowUserOrdersModal(false)}
-                  >
-                    ×
-                  </button>
-                </div>
-                <div className="modal-body">
-                  {selectedUserOrders.length > 0 ? (
-                    <table className="user-orders-table">
-                      <thead>
-                        <tr>
-                          <th>Mã đơn</th>
-                          <th>Sản phẩm</th>
-                          <th>Ngày đặt</th>
-                          <th>Giá tiền</th>
-                          <th>Trạng thái</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {selectedUserOrders.map((order) => (
-                          <tr key={order.id}>
-                            <td className="order-id">{order.id}</td>
-                            <td className="product-name">{order.productName}</td>
-                            <td>{order.orderDate}</td>
-                            <td className="order-price">{order.price}</td>
-                            <td>
-                              <span 
-                                className="status-badge"
-                                style={{ backgroundColor: getStatusColor(order.status) }}
-                              >
-                                {order.statusText}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  ) : (
-                    <p className="no-orders">Người dùng này chưa có đơn hàng nào.</p>
-                  )}
-                </div>
+                <button
+                  className="pagination-btn"
+                  disabled={currentPage === totalPages || totalPages === 0}
+                  onClick={() => setCurrentPage(prev => prev + 1)}
+                >
+                  Trang sau
+                </button>
               </div>
             </div>
           )}
 
+          {/* SẢN PHẨM (mock) */}
           {selectedMenu === 'Sản Phẩm' && (
             <div className="products-section">
-              <h1>Sản Phẩm</h1>
-              
+              <h1>Quản lý sản phẩm</h1>
+
               <div className="products-controls">
                 <div className="search-controls">
                   <input
                     type="text"
-                    placeholder="Tìm kiếm sản phẩm..."
+                    className="search-input"
+                    placeholder="Tìm sản phẩm..."
                     value={productSearchTerm}
                     onChange={(e) => setProductSearchTerm(e.target.value)}
-                    className="search-input"
                   />
                   <select
+                    className="filter-select"
                     value={productCategoryFilter}
                     onChange={(e) => setProductCategoryFilter(e.target.value)}
-                    className="filter-select"
                   >
                     <option value="all">Tất cả danh mục</option>
                     <option value="Digital Product">Digital Product</option>
-                    <option value="Fashion">Fashion</option>
-                    <option value="Mobile">Mobile</option>
-                    <option value="Electronic">Electronic</option>
                   </select>
-                  <button 
+                  <button
                     className="add-product-btn"
-                    onClick={handleProductAdd}
+                    onClick={() => {
+                      setSelectedProduct(null);
+                      setProductForm({
+                        name: '',
+                        category: '',
+                        price: '',
+                        quantity: '',
+                        description: '',
+                        colors: []
+                      });
+                      setShowProductModal(true);
+                    }}
                   >
                     + Thêm sản phẩm
                   </button>
@@ -1321,65 +1156,94 @@ const DashboardPage = () => {
               <div className="products-table-container">
                 <div className="products-table-header">
                   <div>Ảnh</div>
-                  <div>Tên Sản Phẩm</div>
-                  <div>Loại</div>
-                  <div>Price</div>
-                  <div>Số Lượng</div>
+                  <div>Tên sản phẩm</div>
+                  <div>Danh mục</div>
+                  <div>Giá</div>
+                  <div>Số lượng</div>
                   <div>Màu</div>
-                  <div>Chi tiết</div>
+                  <div>Hành động</div>
                 </div>
-                
-                {currentProducts.map((product) => (
+                {currentProducts.map(product => (
                   <div key={product.id} className="products-table-row">
                     <div className="product-image">
                       <img src={product.image} alt={product.name} />
                     </div>
                     <div className="product-name">{product.name}</div>
                     <div className="product-category">{product.category}</div>
-                    <div className="product-price">${product.price.toFixed(2)}</div>
+                    <div className="product-price">{product.price}</div>
                     <div className="product-quantity">{product.quantity}</div>
                     <div className="product-colors">
-                      {product.colors.map((color, index) => (
-                        <span 
-                          key={index} 
-                          className={`color-dot color-${color}`}
-                          title={color}
-                        ></span>
+                      {product.colors.map(color => (
+                        <span key={color} className={`color-dot color-${color}`} />
                       ))}
                     </div>
                     <div className="product-actions">
+<<<<<<< HEAD
                       <button 
+=======
+                      <button
+                        className="edit-btn"
+                        onClick={() => {
+                          setSelectedProduct(product);
+                          setProductForm({
+                            name: product.name,
+                            category: product.category,
+                            price: product.price.toString(),
+                            quantity: product.quantity.toString(),
+                            description: product.description,
+                            colors: product.colors
+                          });
+                          setShowProductModal(true);
+                        }}
+                      >
+                        ✏️
+                      </button>
+                      <button
+>>>>>>> 2dead36fabb4f72f3ea1f116f55402577bc22e4e
                         className="delete-btn"
-                        onClick={() => handleProductDelete(product.id)}
-                        title="Xóa"
+                        onClick={() => {
+                          if (window.confirm('Xóa sản phẩm này?')) {
+                            const updatedProducts = products.filter(p => p.id !== product.id);
+                            setProducts(updatedProducts);
+                            setFilteredProducts(updatedProducts);
+                          }
+                        }}
                       >
                         🗑️
                       </button>
                     </div>
                   </div>
                 ))}
+                {currentProducts.length === 0 && (
+                  <div style={{ padding: '1rem', textAlign: 'center' }}>Không có sản phẩm</div>
+                )}
               </div>
 
-              {totalProductPages > 1 && (
-                <div className="pagination">
-                  <button 
-                    onClick={() => setCurrentProductPage(prev => Math.max(prev - 1, 1))}
-                    disabled={currentProductPage === 1}
-                  >
-                    ←
-                  </button>
-                  <span>{currentProductPage} / {totalProductPages}</span>
-                  <button 
-                    onClick={() => setCurrentProductPage(prev => Math.min(prev + 1, totalProductPages))}
-                    disabled={currentProductPage === totalProductPages}
-                  >
-                    →
-                  </button>
+              <div className="orders-tab-pagination">
+                <button
+                  className="pagination-btn"
+                  disabled={currentProductPage === 1}
+                  onClick={() => setCurrentProductPage(prev => prev - 1)}
+                >
+                  Trang trước
+                </button>
+                <div className="pagination-info">
+                  Trang {currentProductPage} / {totalProductPages || 1}
                 </div>
-              )}
+                <button
+                  className="pagination-btn"
+                  disabled={
+                    currentProductPage === totalProductPages || totalProductPages === 0
+                  }
+                  onClick={() => setCurrentProductPage(prev => prev + 1)}
+                >
+                  Trang sau
+                </button>
+              </div>
             </div>
           )}
 
+<<<<<<< HEAD
           {/* Categories Section */}
           {selectedMenu === 'Danh Mục' && (
             <div className="categories-section">
@@ -1427,13 +1291,40 @@ const DashboardPage = () => {
                         setShowCategoryModal(true);
                       }}
                     >
+=======
+          {/* DANH MỤC - KẾT NỐI API THẬT + CRUD */}
+          {selectedMenu === 'Danh Mục' && (
+            <div className="category-page-wrapper">
+              <div className="category-page-header">
+                <div>
+                  <h1>Phân Loại</h1>
+                  <p className="category-page-subtitle">Quản lý phân loại</p>
+                </div>
+              </div>
+
+              <div className="category-page-content">
+                <div className="category-page-top">
+                  <div className="category-page-title-row">
+                    <h3>Danh mục phân loại</h3>
+                    <span className="category-page-count">{filteredCategories.length} danh mục</span>
+                  </div>
+                  <div className="category-page-controls">
+                    <input
+                      type="text"
+                      className="category-page-search"
+                      placeholder="Tìm kiếm danh mục..."
+                      value={categorySearchTerm}
+                      onChange={(e) => setCategorySearchTerm(e.target.value)}
+                    />
+                    <button className="category-page-add-btn" onClick={handleOpenCategoryModal}>
+>>>>>>> 2dead36fabb4f72f3ea1f116f55402577bc22e4e
                       + Thêm danh mục
                     </button>
                   </div>
                 </div>
 
-                <div className="categories-table-wrapper">
-                  <table className="categories-table">
+                <div className="category-page-table-wrapper">
+                  <table className="category-page-table">
                     <thead>
                       <tr>
                         <th>Danh Mục Cha</th>
@@ -1442,160 +1333,288 @@ const DashboardPage = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredCategories
-                        .slice((currentCategoryPage - 1) * categoriesPerPage, currentCategoryPage * categoriesPerPage)
-                        .map((category) => (
-                        <tr key={category.id}>
-                          <td>{category.name}</td>
-                          <td>{category.parentCategory}</td>
-                          <td>
-                            <div className="category-actions">
-                              <button 
-                                className="action-btn edit-btn"
-                                onClick={() => {
-                                  setSelectedCategory(category);
-                                  setCategoryForm({
-                                    name: category.name,
-                                    parentCategory: category.parentCategory === '—' ? '' : category.parentCategory
-                                  });
-                                  setShowCategoryModal(true);
-                                }}
-                                title="Chỉnh sửa"
-                              >
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                                  <path d="M3 17.25V21H6.75L17.81 9.94L14.06 6.19L3 17.25ZM20.71 7.04C21.1 6.65 21.1 6.02 20.71 5.63L18.37 3.29C17.98 2.9 17.35 2.9 16.96 3.29L15.13 5.12L18.88 8.87L20.71 7.04Z" fill="currentColor"/>
-                                </svg>
-                              </button>
-                              <button 
-                                className="action-btn delete-btn"
-                                onClick={() => {
-                                  if (window.confirm('Bạn có chắc chắn muốn xóa danh mục này?')) {
-                                    const updated = categories.filter(c => c.id !== category.id);
-                                    setCategories(updated);
-                                    setFilteredCategories(updated);
-                                  }
-                                }}
-                                title="Xóa"
-                              >
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                                  <path d="M6 19C6 20.1 6.9 21 8 21H16C17.1 21 18 20.1 18 19V7H6V19ZM19 4H15.5L14.5 3H9.5L8.5 4H5V6H19V4Z" fill="currentColor"/>
-                                </svg>
-                              </button>
-                            </div>
+                      {currentCategories.map(cat => {
+                        return (
+                          <tr key={cat.categoryId}>
+                            <td>{cat.categoryId}</td>
+                            <td>{cat.categoryName}</td>
+                            <td>
+                              <div className="category-page-actions">
+                                <button
+                                  className="category-page-edit-btn"
+                                  onClick={() => handleEditCategory(cat)}
+                                  title="Sửa"
+                                >
+                                  ✏️
+                                </button>
+                                <button
+                                  className="category-page-delete-btn"
+                                  onClick={() => handleDeleteCategory(cat.categoryId)}
+                                  title="Xóa"
+                                >
+                                  🗑️
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {currentCategories.length === 0 && (
+                        <tr>
+                          <td colSpan="3" style={{ textAlign: 'center', padding: '2rem', color: '#6c757d' }}>
+                            Không có danh mục
                           </td>
                         </tr>
-                      ))}
+                      )}
                     </tbody>
                   </table>
                 </div>
-
-                {Math.ceil(filteredCategories.length / categoriesPerPage) > 1 && (
-                  <div className="categories-pagination">
-                    <button 
-                      onClick={() => setCurrentCategoryPage(prev => Math.max(prev - 1, 1))}
-                      disabled={currentCategoryPage === 1}
-                      className="pagination-btn"
-                    >
-                      ← Trước
-                    </button>
-                    <span className="pagination-info">
-                      Trang {currentCategoryPage} / {Math.ceil(filteredCategories.length / categoriesPerPage)}
-                    </span>
-                    <button 
-                      onClick={() => setCurrentCategoryPage(prev => Math.min(prev + 1, Math.ceil(filteredCategories.length / categoriesPerPage)))}
-                      disabled={currentCategoryPage === Math.ceil(filteredCategories.length / categoriesPerPage)}
-                      className="pagination-btn"
-                    >
-                      Sau →
-                    </button>
-                  </div>
-                )}
               </div>
+
+              {/* MODAL FORM CATEGORY */}
+              {showCategoryModal && (
+                <div className="modal-overlay">
+                  <div className="modal-content">
+                    <div className="modal-header">
+                      <h2>{editingCategoryId ? 'Sửa danh mục' : 'Thêm danh mục'}</h2>
+                      <button
+                        className="modal-close-btn"
+                        onClick={() => {
+                          setShowCategoryModal(false);
+                          setEditingCategoryId(null);
+                        }}
+                      >
+                        ×
+                      </button>
+                    </div>
+                    <div className="modal-body">
+                      <form onSubmit={handleSaveCategory} className="staff-creation-form">
+                        <div className="form-grid">
+                          <div className="form-row">
+                            <div className="form-group">
+                              <label>Category ID *</label>
+                              <input
+                                type="text"
+                                name="categoryId"
+                                value={categoryForm.categoryId}
+                                onChange={handleCategoryFormChange}
+                                placeholder="Ví dụ: CAT001"
+                                required
+                                disabled={!!editingCategoryId} // khi sửa thì không cho đổi ID
+                              />
+                            </div>
+                            <div className="form-group">
+                              <label>Tên danh mục *</label>
+                              <input
+                                type="text"
+                                name="categoryName"
+                                value={categoryForm.categoryName}
+                                onChange={handleCategoryFormChange}
+                                placeholder="Tên danh mục"
+                                required
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        <button type="submit" className="create-staff-btn">
+                          {editingCategoryId ? 'Cập nhật' : 'Lưu danh mục'}
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
-          {/* Category Modal */}
-          {showCategoryModal && (
-            <div className="modal-overlay" onClick={() => setShowCategoryModal(false)}>
-              <div className="modal-content category-modal-new" onClick={(e) => e.stopPropagation()}>
-                <div className="category-modal-header">
-                  <div className="category-modal-title-section">
-                    <h3>{selectedCategory ? 'Chỉnh sửa Danh mục' : 'Thêm Danh Mục Mới'}</h3>
-                    <p className="category-modal-subtitle">Điền thông tin để tạo danh mục sản phẩm mới</p>
-                  </div>
-                  <button 
-                    className="category-close-btn"
-                    onClick={() => setShowCategoryModal(false)}
-                  >
-                    ×
-                  </button>
-                </div>
-                <form 
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    if (selectedCategory) {
-                      const updated = categories.map(cat =>
-                        cat.id === selectedCategory.id
-                          ? { 
-                              ...cat, 
-                              name: categoryForm.name, 
-                              parentCategory: categoryForm.parentCategory || '—'
-                            }
-                          : cat
-                      );
-                      setCategories(updated);
-                      setFilteredCategories(updated);
-                    } else {
-                      const newCategory = {
-                        id: categories.length > 0 ? Math.max(...categories.map(c => c.id)) + 1 : 1,
-                        name: categoryForm.name,
-                        parentCategory: categoryForm.parentCategory || '—'
-                      };
-                      const updated = [...categories, newCategory];
-                      setCategories(updated);
-                      setFilteredCategories(updated);
-                    }
-                    setShowCategoryModal(false);
-                  }}
-                  className="category-form-new"
-                >
-                  <div className="form-group-new">
-                    <label>
-                       Danh Mục Cha <span className="required-star">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      name="name"
-                      value={categoryForm.name}
-                      onChange={(e) => setCategoryForm({...categoryForm, name: e.target.value})}
-                      placeholder="Ví dụ: Áo Nam"
-                      required
-                      className="form-input-new"
-                    />
-                  </div>
-
-                  <div className="form-group-new">
-                    <label>Danh Mục Con</label>
-                    <input
-                      type="text"
-                      name="parentCategory"
-                      value={categoryForm.parentCategory}
-                      onChange={(e) => setCategoryForm({...categoryForm, parentCategory: e.target.value})}
-                      placeholder="Ví dụ: Áo Thun, Áo Sơ Mi (để trống nếu là danh mục gốc)"
-                      className="form-input-new"
-                    />
-                  </div>
-
-                  <div className="form-actions-new">
-                    <button type="button" onClick={() => setShowCategoryModal(false)} className="cancel-btn-new">
-                      Hủy
-                    </button>
-                    <button type="submit" className="submit-btn-new">
-                      {selectedCategory ? 'Cập nhật' : 'Thêm Danh Mục'}
-                    </button>
-                  </div>
-                </form>
+          {/* NGƯỜI DÙNG (ADMIN) */}
+          {selectedMenu === 'Người dùng' && user?.role === 'admin' && (
+            <div className="users-tab-container">
+              <div className="users-tab-header">
+                <h1>Quản lý người dùng</h1>
+                <div className="users-count">Tổng: {users.length}</div>
               </div>
+
+              <div className="users-tab-filters">
+                <div className="filter-row">
+                  <div className="search-group">
+                    <label>Tìm kiếm:</label>
+                    <input
+                      type="text"
+                      className="search-input"
+                      placeholder="Tên hoặc email..."
+                      value={userSearchTerm}
+                      onChange={(e) => setUserSearchTerm(e.target.value)}
+                    />
+                  </div>
+                  <div className="filter-group">
+                    <label>Trạng thái:</label>
+                    <select
+                      className="filter-select"
+                      value={userStatusFilter}
+                      onChange={(e) => setUserStatusFilter(e.target.value)}
+                    >
+                      <option value="all">Tất cả</option>
+                      <option value="active">Active</option>
+                      <option value="banned">Banned</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="users-tab-table-container">
+                <table className="users-tab-table">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Người dùng</th>
+                      <th>Email</th>
+                      <th>Ngày tham gia</th>
+                      <th>Tổng đơn</th>
+                      <th>Tổng chi</th>
+                      <th>Trạng thái</th>
+                      <th>Hành động</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {currentUsers.map(u => (
+                      <tr key={u.id}>
+                        <td className="user-id">{u.id}</td>
+                        <td>
+                          <div className="user-info">
+                            <img
+                              src={u.avatar}
+                              alt={u.name}
+                              className="user-avatar"
+                            />
+                            <span className="user-name">{u.name}</span>
+                          </div>
+                        </td>
+                        <td className="user-email">{u.email}</td>
+                        <td className="join-date">{u.joinDate}</td>
+                        <td className="total-orders">{u.totalOrders}</td>
+                        <td className="total-spent">{u.totalSpent}</td>
+                        <td>
+                          <span
+                            className={`status-badge ${
+                              u.status === 'active' ? 'active-status' : 'banned-status'
+                            }`}
+                          >
+                            {u.status}
+                          </span>
+                        </td>
+                        <td>
+                          <div className="action-buttons">
+                            <button
+                              className="view-orders-btn"
+                              onClick={() => viewUserOrders(u.id, u.name)}
+                              title="Xem đơn hàng"
+                            >
+                              📦
+                            </button>
+                            <button
+                              className={`ban-btn ${u.status === 'active' ? 'ban' : 'unban'}`}
+                              onClick={() => toggleUserStatus(u.id)}
+                              title={u.status === 'active' ? 'Ban' : 'Unban'}
+                            >
+                              {u.status === 'active' ? '🚫' : '✅'}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {currentUsers.length === 0 && (
+                      <tr>
+                        <td colSpan="8" style={{ textAlign: 'center', padding: '1rem' }}>
+                          Không có người dùng
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="users-tab-pagination">
+                <button
+                  className="pagination-btn"
+                  disabled={currentUserPage === 1}
+                  onClick={() => setCurrentUserPage(prev => prev - 1)}
+                >
+                  Trang trước
+                </button>
+                <div className="pagination-info">
+                  Trang {currentUserPage} / {totalUserPages || 1}
+                </div>
+                <button
+                  className="pagination-btn"
+                  disabled={
+                    currentUserPage === totalUserPages || totalUserPages === 0
+                  }
+                  onClick={() => setCurrentUserPage(prev => prev + 1)}
+                >
+                  Trang sau
+                </button>
+              </div>
+
+              {/* Modal xem đơn của user */}
+              {showUserOrdersModal && (
+                <div className="modal-overlay">
+                  <div className="modal-content">
+                    <div className="modal-header">
+                      <h2>Đơn hàng của {selectedUserName}</h2>
+                      <button
+                        className="modal-close-btn"
+                        onClick={() => setShowUserOrdersModal(false)}
+                      >
+                        ×
+                      </button>
+                    </div>
+                    <div className="modal-body">
+                      {selectedUserOrders.length === 0 ? (
+                        <p className="no-orders">Không có đơn hàng nào</p>
+                      ) : (
+                        <table className="user-orders-table">
+                          <thead>
+                            <tr>
+                              <th>ID</th>
+                              <th>Sản phẩm</th>
+                              <th>Ngày</th>
+                              <th>Giá</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {selectedUserOrders.map(o => (
+                              <tr key={o.id}>
+                                <td>{o.id}</td>
+                                <td>{o.productName}</td>
+                                <td>{o.orderDate}</td>
+                                <td>{o.price}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* SETTINGS */}
+          {selectedMenu === 'Settings' && (
+            <div>
+              <h1>Settings</h1>
+              <p>Chức năng cài đặt sẽ được bổ sung sau.</p>
+            </div>
+          )}
+
+          {/* INBOX (placeholder) */}
+          {selectedMenu === 'Inbox' && (
+            <div>
+              <h1>Inbox</h1>
+              <p>Chức năng hộp thư sẽ được bổ sung sau.</p>
             </div>
           )}
         </div>
