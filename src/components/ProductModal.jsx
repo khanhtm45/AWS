@@ -4,6 +4,7 @@ import './ProductModal.css';
 export function ProductModal({ isOpen, onClose, onSubmit }) {
   const [step, setStep] = useState(1); // 1: Create Product, 2: Add Variants
   const [createdProductId, setCreatedProductId] = useState(null);
+  const [categories, setCategories] = useState([]); // State for categories from API
   
   const [formData, setFormData] = React.useState({
     productId: '',
@@ -64,8 +65,30 @@ export function ProductModal({ isOpen, onClose, onSubmit }) {
         }
       ]);
       setErrors({});
+    } else {
+      // Fetch categories when modal opens
+      fetchCategories();
     }
   }, [isOpen]);
+
+  // Fetch categories from API
+  const fetchCategories = async () => {
+    try {
+      console.log('📋 Fetching categories from API...');
+      const res = await fetch('http://localhost:8080/api/categories');
+      
+      if (!res.ok) {
+        console.error('Lỗi gọi API categories, status:', res.status);
+        return;
+      }
+      
+      const data = await res.json();
+      console.log('✅ Loaded', data.length, 'categories');
+      setCategories(data);
+    } catch (error) {
+      console.error('Không thể load categories:', error);
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -688,10 +711,11 @@ export function ProductModal({ isOpen, onClose, onSubmit }) {
                       className="product-modal-input"
                     >
                       <option value="">Chọn danh mục</option>
-                      <option value="cat-1">Áo</option>
-                      <option value="cat-2">Quần</option>
-                      <option value="cat-3">Váy</option>
-                      <option value="cat-4">Phụ kiện</option>
+                      {categories.map(category => (
+                        <option key={category.categoryId} value={category.categoryId}>
+                          {category.categoryName}
+                        </option>
+                      ))}
                     </select>
                     {errors.categoryId && (
                       <p className="product-modal-error">{errors.categoryId}</p>

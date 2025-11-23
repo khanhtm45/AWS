@@ -390,12 +390,25 @@
   background: white;
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  grid-column: 1 / -1;
 }
 
 .no-products p {
   font-size: 1.1rem;
   color: #666;
   margin: 0;
+}
+
+/* Loading Message */
+.loading-message {
+  text-align: center;
+  padding: 3rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  grid-column: 1 / -1;
+  font-size: 1.1rem;
+  color: #007bff;
 }
 
 /* Responsive Design */

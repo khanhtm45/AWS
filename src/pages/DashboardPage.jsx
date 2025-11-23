@@ -45,10 +45,11 @@ const DashboardPage = () => {
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [productSearchTerm, setProductSearchTerm] = useState('');
-  const [productCategoryFilter, setProductCategoryFilter] = useState('all');
   const [currentProductPage, setCurrentProductPage] = useState(1);
   const [showProductModal, setShowProductModal] = useState(false);
+  // eslint-disable-next-line no-unused-vars
   const [selectedProduct, setSelectedProduct] = useState(null);
+  // eslint-disable-next-line no-unused-vars
   const [productForm, setProductForm] = useState({
     name: '',
     category: '',
@@ -168,8 +169,9 @@ const DashboardPage = () => {
     if (parsedUser.role === 'admin') {
       loadUsers();
     }
-    loadProducts();
-    loadCategories();
+    loadProductsData();
+    loadCategoriesData(); // <-- GỌI API CATEGORY
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
 
   const handleLogout = () => {
@@ -243,37 +245,202 @@ const DashboardPage = () => {
     }
   };
 
-  // Handle create product with new modal
-  const handleCreateProduct = (productData) => {
+  // ======================= MOCK ORDERS =======================
+  const loadOrdersData = () => {
+    const mockOrders = [
+      {
+        id: '00001',
+        productName: 'Áo Thun Thể Thao Ultra Stretch The Trainer Đen',
+        customerName: 'Nguyễn Văn A',
+        orderDate: '1/1/2025',
+        price: '297.000đ',
+        status: 'completed',
+        statusText: 'Hoàn Thành',
+        phone: '0123456789',
+        address: '123 Đường ABC, Quận 1, TP.HCM',
+        quantity: 1,
+        size: 'M',
+        color: 'Đen'
+      },
+      {
+        id: '00002',
+        productName: 'Áo Polo Classic Premium White',
+        customerName: 'Trần Thị B',
+        orderDate: '1/1/2025',
+        price: '450.000đ',
+        status: 'completed',
+        statusText: 'Hoàn Thành',
+        phone: '0987654321',
+        address: '456 Đường XYZ, Quận 2, TP.HCM',
+        quantity: 2,
+        size: 'L',
+        color: 'Trắng'
+      },
+      {
+        id: '00003',
+        productName: 'Quần Jean Slim Fit Dark Blue',
+        customerName: 'Lê Văn C',
+        orderDate: '1/1/2025',
+        price: '650.000đ',
+        status: 'processing',
+        statusText: 'Đang Xử Lý',
+        phone: '0369852147',
+        address: '789 Đường DEF, Quận 3, TP.HCM',
+        quantity: 1,
+        size: 'XL',
+        color: 'Xanh Đậm'
+      },
+      {
+        id: '00004',
+        productName: 'Áo Thun Jersey Thoáng Mát No Style',
+        customerName: 'Phạm Thị D',
+        orderDate: '2/1/2025',
+        price: '227.000đ',
+        status: 'shipping',
+        statusText: 'Đang Giao',
+        phone: '0741852963',
+        address: '321 Đường GHI, Quận 4, TP.HCM',
+        quantity: 3,
+        size: 'S',
+        color: 'Trắng'
+      }
+    ];
+
+    setOrders(mockOrders);
+    setFilteredOrders(mockOrders);
+  };
+
+  // ======================= MOCK USERS =======================
+  const loadUsersData = () => {
+    const mockUsers = [
+      {
+        id: 'USR001',
+        name: 'John Carter',
+        email: 'john@example.com',
+        phone: '0123456789',
+        joinDate: '15/12/2024',
+        status: 'active',
+        totalOrders: 5,
+        totalSpent: '1,485,000đ',
+        avatar: '/api/placeholder/40/40'
+      },
+      {
+        id: 'USR002',
+        name: 'Sophia Moore',
+        email: 'sophia@example.com',
+        phone: '0987654321',
+        joinDate: '20/12/2024',
+        status: 'active',
+        totalOrders: 3,
+        totalSpent: '891,000đ',
+        avatar: '/api/placeholder/40/40'
+      }
+    ];
+
+    setUsers(mockUsers);
+    setFilteredUsers(mockUsers);
+  };
+
+  // ======================= MOCK PRODUCTS =======================
+  const mockProducts = [
+    {
+      id: 1,
+      name: 'Apple Watch Series 4',
+      category: 'Digital Product',
+      price: 690.0,
+      quantity: 63,
+      image: '/api/placeholder/60/60',
+      colors: ['black', 'silver', 'rose-gold'],
+      description: 'Apple Watch Series 4 với nhiều tính năng thông minh và thiết kế hiện đại.'
+    },
+    {
+      id: 2,
+      name: 'Microsoft Headsquare',
+      category: 'Digital Product',
+      price: 190.0,
+      quantity: 13,
+      image: '/api/placeholder/60/60',
+      colors: ['black', 'red', 'blue', 'yellow'],
+      description: 'Tai nghe Microsoft Headsquare chất lượng cao với âm thanh tuyệt vời.'
+    }
+  ];
+
+  const loadProductsData = async () => {
     try {
-      // Get existing products from localStorage
-      const existingProducts = JSON.parse(localStorage.getItem('products') || '[]');
+      console.log('🔄 Loading products from API...');
       
-      // Create new product with unique ID
-      const newProduct = {
-        ...productData,
-        id: Date.now(),
-        createdAt: new Date().toISOString(),
-        createdBy: user?.username || 'Admin'
-      };
+      // Fetch products and categories in parallel
+      const [productsRes, categoriesRes] = await Promise.all([
+        fetch('http://localhost:8080/api/products'),
+        fetch('http://localhost:8080/api/categories')
+      ]);
       
-      // Add to products list
-      const updatedProducts = [newProduct, ...existingProducts];
-      localStorage.setItem('products', JSON.stringify(updatedProducts));
+      if (!productsRes.ok) {
+        console.error('Lỗi gọi API products, status:', productsRes.status);
+        // Fallback to mock data if API fails
+        console.warn('⚠️ Using mock data as fallback');
+        setProducts(mockProducts);
+        setFilteredProducts(mockProducts);
+        return;
+      }
       
-      // Update state
-      setProducts(updatedProducts);
-      setFilteredProducts(updatedProducts);
+      const productsData = await productsRes.json();
+      const categoriesData = categoriesRes.ok ? await categoriesRes.json() : [];
       
-      // Close modal
+      console.log('✅ Loaded', productsData.length, 'products from API');
+      console.log('✅ Loaded', categoriesData.length, 'categories from API');
+      
+      // Create a map of categoryId to categoryName
+      const categoryMap = {};
+      categoriesData.forEach(cat => {
+        categoryMap[cat.categoryId] = cat.categoryName;
+      });
+      
+      // Map API data to display format
+      const formattedProducts = productsData.map(product => ({
+        id: product.productId,
+        name: product.name || product.productName,
+        category: categoryMap[product.categoryId] || product.categoryId || 'Không xác định',
+        price: product.price || 0,
+        quantity: product.quantity || 0,
+        image: product.images && product.images.length > 0 
+          ? product.images[0].url 
+          : '/api/placeholder/60/60',
+        colors: product.variants 
+          ? product.variants.map(v => v.variantAttributes?.color).filter(Boolean)
+          : [],
+        description: product.description || ''
+      }));
+      
+      setProducts(formattedProducts);
+      setFilteredProducts(formattedProducts);
+    } catch (error) {
+      console.error('Không thể load products:', error);
+      // Fallback to mock data on error
+      console.warn('⚠️ Using mock data due to error');
+      setProducts(mockProducts);
+      setFilteredProducts(mockProducts);
+    }
+  };
+
+  const handleCreateProduct = async (productData) => {
+    try {
+      console.log('✅ Product created successfully via ProductModal');
+      console.log('Product data:', productData);
+      
+      // Close modal first for better UX
       setShowProductModal(false);
       
-      // Show success message (you can add a toast notification here)
-      alert('Tạo sản phẩm thành công!');
+      // Reload products from API to get the latest data
+      console.log('🔄 Reloading products list from API...');
+      await loadProductsData();
+      
+      // Show success message
+      alert('🎉 Tạo sản phẩm thành công!');
       
     } catch (error) {
-      console.error('Error creating product:', error);
-      alert('Có lỗi xảy ra khi tạo sản phẩm');
+      console.error('Error after creating product:', error);
+      alert('Sản phẩm đã tạo nhưng có lỗi khi tải lại danh sách. Vui lòng refresh trang.');
     }
   };
 
@@ -467,14 +634,10 @@ const DashboardPage = () => {
         );
       }
 
-      if (productCategoryFilter !== 'all') {
-        filtered = filtered.filter(product => product.category === productCategoryFilter);
-      }
-
       setFilteredProducts(filtered);
       setCurrentProductPage(1);
     }
-  }, [productSearchTerm, productCategoryFilter, products]);
+  }, [productSearchTerm, products]);
 
   // Category filter
   useEffect(() => {
@@ -524,7 +687,6 @@ const DashboardPage = () => {
   const indexOfLastProduct = currentProductPage * productsPerPage;
   const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
   const currentProducts = filteredProducts.slice(indexOfFirstProduct, indexOfLastProduct);
-  const totalProductPages = Math.ceil(filteredProducts.length / productsPerPage);
 
   // Pagination categories
   const indexOfLastCategory = currentCategoryPage * categoriesPerPage;
@@ -1055,128 +1217,115 @@ const DashboardPage = () => {
 
           {/* SẢN PHẨM (mock) */}
           {selectedMenu === 'Sản Phẩm' && (
-            <div className="products-section">
-              <h1>Quản lý sản phẩm</h1>
-
-              <div className="products-controls">
-                <div className="search-controls">
-                  <input
-                    type="text"
-                    className="search-input"
-                    placeholder="Tìm sản phẩm..."
-                    value={productSearchTerm}
-                    onChange={(e) => setProductSearchTerm(e.target.value)}
-                  />
-                  <select
-                    className="filter-select"
-                    value={productCategoryFilter}
-                    onChange={(e) => setProductCategoryFilter(e.target.value)}
-                  >
-                    <option value="all">Tất cả danh mục</option>
-                    <option value="Digital Product">Digital Product</option>
-                  </select>
-                  <button
-                    className="add-product-btn"
-                    onClick={() => {
-                      setSelectedProduct(null);
-                      setProductForm({
-                        name: '',
-                        category: '',
-                        price: '',
-                        quantity: '',
-                        description: '',
-                        colors: []
-                      });
-                      setShowProductModal(true);
-                    }}
-                  >
-                    + Thêm sản phẩm
-                  </button>
+            <div className="product-page-wrapper">
+              <div className="product-page-header">
+                <div>
+                  <h1>Quản Lý Sản Phẩm</h1>
+                  <p className="product-page-subtitle">Quản lý sản phẩm</p>
                 </div>
               </div>
 
-              <div className="products-table-container">
-                <div className="products-table-header">
-                  <div>Ảnh</div>
-                  <div>Tên sản phẩm</div>
-                  <div>Danh mục</div>
-                  <div>Giá</div>
-                  <div>Số lượng</div>
-                  <div>Màu</div>
-                  <div>Hành động</div>
-                </div>
-                {currentProducts.map(product => (
-                  <div key={product.id} className="products-table-row">
-                    <div className="product-image">
-                      <img src={product.image} alt={product.name} />
-                    </div>
-                    <div className="product-name">{product.name}</div>
-                    <div className="product-category">{product.category}</div>
-                    <div className="product-price">{product.price}</div>
-                    <div className="product-quantity">{product.quantity}</div>
-                    <div className="product-colors">
-                      {product.colors.map(color => (
-                        <span key={color} className={`color-dot color-${color}`} />
-                      ))}
-                    </div>
-                    <div className="product-actions">
-                      <button
-                        className="edit-btn"
-                        onClick={() => {
-                          setSelectedProduct(product);
-                          setProductForm({
-                            name: product.name,
-                            category: product.category,
-                            price: product.price.toString(),
-                            quantity: product.quantity.toString(),
-                            description: product.description,
-                            colors: product.colors
-                          });
-                          setShowProductModal(true);
-                        }}
-                      >
-                        ✏️
-                      </button>
-                      <button
-                        className="delete-btn"
-                        onClick={() => {
-                          if (window.confirm('Xóa sản phẩm này?')) {
-                            const updatedProducts = products.filter(p => p.id !== product.id);
-                            setProducts(updatedProducts);
-                            setFilteredProducts(updatedProducts);
-                          }
-                        }}
-                      >
-                        🗑️
-                      </button>
-                    </div>
+              <div className="product-page-content">
+                <div className="product-page-top">
+                  <div className="product-page-title-row">
+                    <h3>Danh mục sản phẩm</h3>
+                    <span className="product-page-count">{filteredProducts.length} sản phẩm</span>
                   </div>
-                ))}
-                {currentProducts.length === 0 && (
-                  <div style={{ padding: '1rem', textAlign: 'center' }}>Không có sản phẩm</div>
-                )}
-              </div>
-
-              <div className="orders-tab-pagination">
-                <button
-                  className="pagination-btn"
-                  disabled={currentProductPage === 1}
-                  onClick={() => setCurrentProductPage(prev => prev - 1)}
-                >
-                  Trang trước
-                </button>
-                <div className="pagination-info">
-                  Trang {currentProductPage} / {totalProductPages || 1}
+                  <div className="product-page-controls">
+                    <input
+                      type="text"
+                      className="product-page-search"
+                      placeholder="Tìm kiếm sản phẩm..."
+                      value={productSearchTerm}
+                      onChange={(e) => setProductSearchTerm(e.target.value)}
+                    />
+                    <button
+                      className="product-page-add-btn"
+                      onClick={() => {
+                        setSelectedProduct(null);
+                        setProductForm({
+                          name: '',
+                          category: '',
+                          price: '',
+                          quantity: '',
+                          description: '',
+                          colors: []
+                        });
+                        setShowProductModal(true);
+                      }}
+                    >
+                      + Thêm sản phẩm
+                    </button>
+                  </div>
                 </div>
-                <button
-                  className="pagination-btn"
-                  disabled={
-                    currentProductPage === totalProductPages || totalProductPages === 0
-                  }
-                  onClick={() => setCurrentProductPage(prev => prev + 1)}
-                >
-                  Trang sau
-                </button>
+
+                <div className="product-page-table-wrapper">
+                  <table className="product-page-table">
+                    <thead>
+                      <tr>
+                        <th>Mã Sản Phẩm</th>
+                        <th>Tên Sản Phẩm</th>
+                        <th>Giá</th>
+                        <th>Danh Mục</th>
+                        <th>Chi tiết</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {currentProducts.map(product => {
+                        return (
+                          <tr key={product.id}>
+                            <td>{product.id}</td>
+                            <td>{product.name}</td>
+                            <td>{product.price}</td>
+                            <td>{product.category}</td>
+                            <td>
+                              <div className="product-page-actions">
+                                <button
+                                  className="product-page-edit-btn"
+                                  onClick={() => {
+                                    setSelectedProduct(product);
+                                    setProductForm({
+                                      name: product.name,
+                                      category: product.category,
+                                      price: product.price.toString(),
+                                      quantity: product.quantity.toString(),
+                                      description: product.description,
+                                      colors: product.colors
+                                    });
+                                    setShowProductModal(true);
+                                  }}
+                                  title="Sửa"
+                                >
+                                  ✏️
+                                </button>
+                                <button
+                                  className="product-page-delete-btn"
+                                  onClick={() => {
+                                    if (window.confirm('Xóa sản phẩm này?')) {
+                                      const updatedProducts = products.filter(p => p.id !== product.id);
+                                      setProducts(updatedProducts);
+                                      setFilteredProducts(updatedProducts);
+                                    }
+                                  }}
+                                  title="Xóa"
+                                >
+                                  🗑️
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {currentProducts.length === 0 && (
+                        <tr>
+                          <td colSpan="5" style={{ textAlign: 'center', padding: '2rem', color: '#6c757d' }}>
+                            Không có sản phẩm
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}
