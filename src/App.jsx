@@ -36,10 +36,7 @@ function AppContent() {
           <Route path="/" element={<HomePage />} />
           <Route path="/products" element={<ProductsPage />} />
           <Route path="/login" element={<LoginPage />} />
-<<<<<<< HEAD
      
-=======
->>>>>>> 2dead36fabb4f72f3ea1f116f55402577bc22e4e
           <Route path="/signup" element={<SignUpPage />} />
           <Route path="/product/:id" element={<ProductDetailPage />} />
           <Route path="/cart" element={<CartPage />} />

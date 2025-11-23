@@ -48,6 +48,15 @@ const DashboardPage = () => {
   const [productCategoryFilter, setProductCategoryFilter] = useState('all');
   const [currentProductPage, setCurrentProductPage] = useState(1);
   const [showProductModal, setShowProductModal] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [productForm, setProductForm] = useState({
+    name: '',
+    category: '',
+    price: '',
+    quantity: '',
+    description: '',
+    colors: []
+  });
   const productsPerPage = 10;
 
   // Categories state (KẾT NỐI API THẬT)
@@ -78,12 +87,89 @@ const DashboardPage = () => {
     const parsedUser = JSON.parse(userData);
     setUser(parsedUser);
 
-    loadOrdersData();
+    // Define functions inside useEffect to avoid dependency warning
+    const loadOrders = () => {
+      const mockOrders = [
+        {
+          id: 1,
+          customerName: 'Nguyen Van A',
+          productName: 'Apple Watch Series 4',
+          quantity: 1,
+          totalAmount: 690.0,
+          status: 'pending',
+          date: '2024-01-15',
+          orderDate: new Date('2024-01-15')
+        },
+        // ... other mock orders
+      ];
+      setOrders(mockOrders);
+      setFilteredOrders(mockOrders);
+    };
+
+    const loadUsers = () => {
+      const mockUsers = [
+        {
+          id: 1,
+          name: 'John Doe',
+          email: 'john@example.com',
+          registrationDate: '2023-12-01',
+          status: 'active',
+          orders: []
+        },
+        // ... other mock users
+      ];
+      setUsers(mockUsers);
+      setFilteredUsers(mockUsers);
+    };
+
+    const loadProducts = () => {
+      const mockProducts = [
+        {
+          id: 1,
+          name: 'Apple Watch Series 4',
+          category: 'Digital Product',
+          price: 690.0,
+          quantity: 63,
+          image: '/api/placeholder/60/60',
+          colors: ['black', 'silver', 'rose-gold'],
+          description: 'Apple Watch Series 4 với nhiều tính năng thông minh và thiết kế hiện đại.'
+        },
+        {
+          id: 2,
+          name: 'Microsoft Headsquare',
+          category: 'Digital Product',
+          price: 190.0,
+          quantity: 13,
+          image: '/api/placeholder/60/60',
+          colors: ['black', 'red', 'blue', 'yellow'],
+          description: 'Tai nghe Microsoft Headsquare chất lượng cao với âm thanh tuyệt vời.'
+        }
+      ];
+      setProducts(mockProducts);
+      setFilteredProducts(mockProducts);
+    };
+
+    const loadCategories = async () => {
+      try {
+        const res = await fetch('http://localhost:8080/api/categories');
+        if (!res.ok) {
+          console.error('Lỗi gọi API categories, status:', res.status);
+          return;
+        }
+        const data = await res.json();
+        setCategories(data);
+        setFilteredCategories(data);
+      } catch (error) {
+        console.error('Không thể load categories:', error);
+      }
+    };
+
+    loadOrders();
     if (parsedUser.role === 'admin') {
-      loadUsersData();
+      loadUsers();
     }
-    loadProductsData();
-    loadCategoriesData(); // <-- GỌI API CATEGORY
+    loadProducts();
+    loadCategories();
   }, [navigate]);
 
   const handleLogout = () => {
@@ -157,158 +243,6 @@ const DashboardPage = () => {
     }
   };
 
-  // ======================= MOCK ORDERS =======================
-  const loadOrdersData = () => {
-    const mockOrders = [
-      {
-        id: '00001',
-        productName: 'Áo Thun Thể Thao Ultra Stretch The Trainer Đen',
-        customerName: 'Nguyễn Văn A',
-        orderDate: '1/1/2025',
-        price: '297.000đ',
-        status: 'completed',
-        statusText: 'Hoàn Thành',
-        phone: '0123456789',
-        address: '123 Đường ABC, Quận 1, TP.HCM',
-        quantity: 1,
-        size: 'M',
-        color: 'Đen'
-      },
-      {
-        id: '00002',
-        productName: 'Áo Polo Classic Premium White',
-        customerName: 'Trần Thị B',
-        orderDate: '1/1/2025',
-        price: '450.000đ',
-        status: 'completed',
-        statusText: 'Hoàn Thành',
-        phone: '0987654321',
-        address: '456 Đường XYZ, Quận 2, TP.HCM',
-        quantity: 2,
-        size: 'L',
-        color: 'Trắng'
-      },
-      {
-        id: '00003',
-        productName: 'Quần Jean Slim Fit Dark Blue',
-        customerName: 'Lê Văn C',
-        orderDate: '1/1/2025',
-        price: '650.000đ',
-        status: 'processing',
-        statusText: 'Đang Xử Lý',
-        phone: '0369852147',
-        address: '789 Đường DEF, Quận 3, TP.HCM',
-        quantity: 1,
-        size: 'XL',
-        color: 'Xanh Đậm'
-      },
-      {
-        id: '00004',
-        productName: 'Áo Thun Jersey Thoáng Mát No Style',
-        customerName: 'Phạm Thị D',
-        orderDate: '2/1/2025',
-        price: '227.000đ',
-        status: 'shipping',
-        statusText: 'Đang Giao',
-        phone: '0741852963',
-        address: '321 Đường GHI, Quận 4, TP.HCM',
-        quantity: 3,
-        size: 'S',
-        color: 'Trắng'
-      }
-    ];
-
-    setOrders(mockOrders);
-    setFilteredOrders(mockOrders);
-  };
-
-  // ======================= MOCK USERS =======================
-  const loadUsersData = () => {
-    const mockUsers = [
-      {
-        id: 'USR001',
-        name: 'John Carter',
-        email: 'john@example.com',
-        phone: '0123456789',
-        joinDate: '15/12/2024',
-        status: 'active',
-        totalOrders: 5,
-        totalSpent: '1,485,000đ',
-        avatar: '/api/placeholder/40/40'
-      },
-      {
-        id: 'USR002',
-        name: 'Sophia Moore',
-        email: 'sophia@example.com',
-        phone: '0987654321',
-        joinDate: '20/12/2024',
-        status: 'active',
-        totalOrders: 3,
-        totalSpent: '891,000đ',
-        avatar: '/api/placeholder/40/40'
-      }
-    ];
-
-    setUsers(mockUsers);
-    setFilteredUsers(mockUsers);
-  };
-
-  // ======================= MOCK PRODUCTS =======================
-  const mockProducts = [
-    {
-      id: 1,
-      name: 'Apple Watch Series 4',
-      category: 'Digital Product',
-      price: 690.0,
-      quantity: 63,
-      image: '/api/placeholder/60/60',
-      colors: ['black', 'silver', 'rose-gold'],
-      description: 'Apple Watch Series 4 với nhiều tính năng thông minh và thiết kế hiện đại.'
-    },
-    {
-      id: 2,
-      name: 'Microsoft Headsquare',
-      category: 'Digital Product',
-      price: 190.0,
-      quantity: 13,
-      image: '/api/placeholder/60/60',
-      colors: ['black', 'red', 'blue', 'yellow'],
-      description: 'Tai nghe Microsoft Headsquare chất lượng cao với âm thanh tuyệt vời.'
-    }
-  ];
-
-  const loadProductsData = () => {
-    setProducts(mockProducts);
-    setFilteredProducts(mockProducts);
-  };
-
-  // ======================= CATEGORY API (GET/POST/PUT/DELETE) =======================
-  const loadCategoriesData = async () => {
-    try {
-      const res = await fetch('http://localhost:8080/api/categories');
-      if (!res.ok) {
-        console.error('Lỗi gọi API categories, status:', res.status);
-        return;
-      }
-<<<<<<< HEAD
-    ];
-    setCategories(mockCategories);
-    setFilteredCategories(mockCategories);
-  };
-
-  // Product management functions
-  const handleProductAdd = () => {
-    setShowProductModal(true);
-  };
-
-  const handleProductDelete = (productId) => {
-    if (window.confirm('Bạn có chắc chắn muốn xóa sản phẩm này?')) {
-      const updatedProducts = products.filter(product => product.id !== productId);
-      setProducts(updatedProducts);
-      setFilteredProducts(updatedProducts);
-    }
-  };
-
   // Handle create product with new modal
   const handleCreateProduct = (productData) => {
     try {
@@ -340,7 +274,17 @@ const DashboardPage = () => {
     } catch (error) {
       console.error('Error creating product:', error);
       alert('Có lỗi xảy ra khi tạo sản phẩm');
-=======
+    }
+  };
+
+  // ======================= CATEGORY API (GET/POST/PUT/DELETE) =======================
+  const loadCategoriesData = async () => {
+    try {
+      const res = await fetch('http://localhost:8080/api/categories');
+      if (!res.ok) {
+        console.error('Lỗi gọi API categories, status:', res.status);
+        return;
+      }
       const data = await res.json();
       setCategories(data);
       setFilteredCategories(data);
@@ -412,7 +356,6 @@ const DashboardPage = () => {
     } catch (error) {
       console.error('API error khi xóa:', error);
       alert('Không thể kết nối API khi xóa!');
->>>>>>> 2dead36fabb4f72f3ea1f116f55402577bc22e4e
     }
   };
 
@@ -587,7 +530,6 @@ const DashboardPage = () => {
   const indexOfLastCategory = currentCategoryPage * categoriesPerPage;
   const indexOfFirstCategory = indexOfLastCategory - categoriesPerPage;
   const currentCategories = filteredCategories.slice(indexOfFirstCategory, indexOfLastCategory);
-  const totalCategoryPages = Math.ceil(filteredCategories.length / categoriesPerPage);
 
   // Toggle user status
   const toggleUserStatus = (userId) => {
@@ -1178,9 +1120,6 @@ const DashboardPage = () => {
                       ))}
                     </div>
                     <div className="product-actions">
-<<<<<<< HEAD
-                      <button 
-=======
                       <button
                         className="edit-btn"
                         onClick={() => {
@@ -1199,7 +1138,6 @@ const DashboardPage = () => {
                         ✏️
                       </button>
                       <button
->>>>>>> 2dead36fabb4f72f3ea1f116f55402577bc22e4e
                         className="delete-btn"
                         onClick={() => {
                           if (window.confirm('Xóa sản phẩm này?')) {
@@ -1243,55 +1181,6 @@ const DashboardPage = () => {
             </div>
           )}
 
-<<<<<<< HEAD
-          {/* Categories Section */}
-          {selectedMenu === 'Danh Mục' && (
-            <div className="categories-section">
-              <div className="categories-header">
-                <h1>Phân Loại</h1>
-                <p className="categories-subtitle">Quản lý phân loại</p>
-              </div>
-
-              <div className="categories-container">
-                <div className="categories-controls">
-                  <div className="categories-title-section">
-                    <h2>Danh mục phân loại</h2>
-                    <div className="categories-count">
-                      {filteredCategories.length} danh mục
-                    </div>
-                  </div>
-
-                  <div className="categories-actions">
-                    <div className="search-box">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                        <path d="M21 21L15 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                      </svg>
-                      <input
-                        type="text"
-                        placeholder="Tìm kiếm danh mục..."
-                        value={categorySearchTerm}
-                        onChange={(e) => {
-                          setCategorySearchTerm(e.target.value);
-                          const filtered = categories.filter(cat =>
-                            cat.name.toLowerCase().includes(e.target.value.toLowerCase())
-                          );
-                          setFilteredCategories(filtered);
-                          setCurrentCategoryPage(1);
-                        }}
-                      />
-                    </div>
-                    <button 
-                      className="add-category-btn"
-                      onClick={() => {
-                        setSelectedCategory(null);
-                        setCategoryForm({ 
-                          name: '', 
-                          parentCategory: ''
-                        });
-                        setShowCategoryModal(true);
-                      }}
-                    >
-=======
           {/* DANH MỤC - KẾT NỐI API THẬT + CRUD */}
           {selectedMenu === 'Danh Mục' && (
             <div className="category-page-wrapper">
@@ -1317,7 +1206,6 @@ const DashboardPage = () => {
                       onChange={(e) => setCategorySearchTerm(e.target.value)}
                     />
                     <button className="category-page-add-btn" onClick={handleOpenCategoryModal}>
->>>>>>> 2dead36fabb4f72f3ea1f116f55402577bc22e4e
                       + Thêm danh mục
                     </button>
                   </div>
