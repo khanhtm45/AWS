@@ -3,10 +3,9 @@ import { Link } from 'react-router-dom';
 import './ProductsPage.css';
 
 const ProductsPage = () => {
-  // Scroll to top when component mounts
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
+  // State cho products từ API
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   // State cho category filter (áp dụng ngay lập tức)
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -15,79 +14,66 @@ const ProductsPage = () => {
   const [appliedPriceRange, setAppliedPriceRange] = useState([0, 500]);
   const [tempPriceRange, setTempPriceRange] = useState([0, 500]);
 
-  // Mock data sản phẩm
-  const products = [
-    {
-      id: 1,
-      name: "Áo Thun Thể Thao Ultra Stretch The Trainer 004 Trắng",
-      price: 297000,
-      category: "áo-thun",
-      image: "/ao-thun-the-trainer-004-tr-ng-1178529222.webp"
-    },
-    {
-      id: 2,
-      name: "Áo Thun Thể Thao Ultra Stretch The Trainer 004 Đen",
-      price: 297000,
-      category: "áo-thun",
-      image: "/ao-thun-the-trainer-004-den-1178529233.webp"
-    },
-    {
-      id: 3,
-      name: "Fall 25 Plus Mens Fall Skinny Denim A-102 brown",
-      price: 450000,
-      category: "quần",
-      image: "/ao-thun-the-trainer-004-tr-ng-1178529212.webp"
-    },
-    {
-      id: 4,
-      name: "Fall 25 Plus Mens Fall Skinny Denim A-102 blue",
-      price: 450000,
-      category: "quần",
-      image: "/ao-thun-the-trainer-004-tr-ng-1178529213.jpg"
-    },
-    {
-      id: 5,
-      name: "Fall 25 Plus Mens Fall Skinny Denim A-102 black",
-      price: 450000,
-      category: "quần",
-      image: "/ao-thun-the-trainer-004-tr-ng-1178529221.webp"
-    },
-    {
-      id: 6,
-      name: "Áo Thun Premium Cotton Basic Tee",
-      price: 250000,
-      category: "áo-thun",
-      image: "/ao-thun-the-trainer-004-den-1178529231.jpg"
-    },
-    {
-      id: 7,
-      name: "Hoodie Streetwear Urban Style",
-      price: 650000,
-      category: "áo-khoác",
-      image: "/banner-01-png-gbr5.webp"
-    },
-    {
-      id: 8,
-      name: "Jacket Bomber Classic Design",
-      price: 750000,
-      category: "áo-khoác",
-      image: "/24068ts.webp"
-    },
-    {
-      id: 9,
-      name: "Nón Snapback Premium",
-      price: 180000,
-      category: "phụ-kiện",
-      image: "/LEAF.png"
-    },
-    {
-      id: 10,
-      name: "Thắt lưng da cao cấp",
-      price: 350000,
-      category: "phụ-kiện",
-      image: "/LEAF.png"
-    }
-  ];
+  // Fetch products từ API
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    
+    const fetchAllProducts = async () => {
+      try {
+        setLoading(true);
+        // Fetch danh sách tất cả products
+        const response = await fetch('http://localhost:8080/api/products');
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch products');
+        }
+        
+        const productsData = await response.json();
+        
+        // Fetch media cho từng product
+        const productsWithMedia = await Promise.all(
+          productsData.map(async (product) => {
+            try {
+              const mediaResponse = await fetch(`http://localhost:8080/api/products/${product.productId}/media`);
+              
+              if (mediaResponse.ok) {
+                const mediaData = await mediaResponse.json();
+                const firstMedia = mediaData.sort((a, b) => a.mediaOrder - b.mediaOrder)[0];
+                
+                return {
+                  id: parseInt(product.productId),
+                  name: product.productName || product.name,
+                  price: product.price || 0,
+                  category: product.categoryId || 'áo-thun',
+                  image: firstMedia?.mediaUrl || '/LEAF.png'
+                };
+              }
+            } catch (error) {
+              console.error(`Error fetching media for product ${product.productId}:`, error);
+            }
+            
+            return {
+              id: parseInt(product.productId),
+              name: product.productName || product.name,
+              price: product.price || 0,
+              category: product.categoryId || 'áo-thun',
+              image: '/LEAF.png'
+            };
+          })
+        );
+        
+        setProducts(productsWithMedia);
+      } catch (error) {
+        console.error('Error fetching products:', error);
+        // Fallback to empty array if API fails
+        setProducts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchAllProducts();
+  }, []);
 
   // Lọc sản phẩm theo category (ngay lập tức) và giá (sau khi áp dụng)
   const filteredProducts = products.filter(product => {
@@ -217,32 +203,34 @@ const ProductsPage = () => {
           )}
 
           <div className="products-grid">
-            {filteredProducts.map(product => (
-              <div key={product.id} className="product-card">
-                <Link to={`/product/${product.id}`} className="product-link">
-                  <div className="product-image">
-                    <img 
-                      src={product.image} 
-                      alt={product.name}
-                      onError={(e) => {
-                        e.target.src = '/LEAF.png';
-                      }}
-                    />
-                  </div>
-                  <div className="product-info">
-                    <h3 className="product-name">{product.name}</h3>
-                    <p className="product-price">{formatPrice(product.price)}</p>
-                  </div>
-                </Link>
+            {loading ? (
+              <div className="loading-message">Đang tải sản phẩm...</div>
+            ) : filteredProducts.length > 0 ? (
+              filteredProducts.map(product => (
+                <div key={product.id} className="product-card">
+                  <Link to={`/product/${product.id}`} className="product-link">
+                    <div className="product-image">
+                      <img 
+                        src={product.image} 
+                        alt={product.name}
+                        onError={(e) => {
+                          e.target.src = '/LEAF.png';
+                        }}
+                      />
+                    </div>
+                    <div className="product-info">
+                      <h3 className="product-name">{product.name}</h3>
+                      <p className="product-price">{formatPrice(product.price)}</p>
+                    </div>
+                  </Link>
+                </div>
+              ))
+            ) : (
+              <div className="no-products">
+                <p>Không tìm thấy sản phẩm nào.</p>
               </div>
-            ))}
+            )}
           </div>
-
-          {filteredProducts.length === 0 && (
-            <div className="no-products">
-              <p>Không tìm thấy sản phẩm nào.</p>
-            </div>
-          )}
         </div>
       </div>
     </div>

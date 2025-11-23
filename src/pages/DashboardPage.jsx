@@ -45,9 +45,19 @@ const DashboardPage = () => {
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [productSearchTerm, setProductSearchTerm] = useState('');
-  const [productCategoryFilter, setProductCategoryFilter] = useState('all');
   const [currentProductPage, setCurrentProductPage] = useState(1);
   const [showProductModal, setShowProductModal] = useState(false);
+  // eslint-disable-next-line no-unused-vars
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  // eslint-disable-next-line no-unused-vars
+  const [productForm, setProductForm] = useState({
+    name: '',
+    category: '',
+    price: '',
+    quantity: '',
+    description: '',
+    colors: []
+  });
   const productsPerPage = 10;
 
   // Categories state (KẾT NỐI API THẬT)
@@ -84,6 +94,7 @@ const DashboardPage = () => {
     }
     loadProductsData();
     loadCategoriesData(); // <-- GỌI API CATEGORY
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
 
   const handleLogout = () => {
@@ -277,9 +288,83 @@ const DashboardPage = () => {
     }
   ];
 
-  const loadProductsData = () => {
-    setProducts(mockProducts);
-    setFilteredProducts(mockProducts);
+  const loadProductsData = async () => {
+    try {
+      console.log('🔄 Loading products from API...');
+      
+      // Fetch products and categories in parallel
+      const [productsRes, categoriesRes] = await Promise.all([
+        fetch('http://localhost:8080/api/products'),
+        fetch('http://localhost:8080/api/categories')
+      ]);
+      
+      if (!productsRes.ok) {
+        console.error('Lỗi gọi API products, status:', productsRes.status);
+        // Fallback to mock data if API fails
+        console.warn('⚠️ Using mock data as fallback');
+        setProducts(mockProducts);
+        setFilteredProducts(mockProducts);
+        return;
+      }
+      
+      const productsData = await productsRes.json();
+      const categoriesData = categoriesRes.ok ? await categoriesRes.json() : [];
+      
+      console.log('✅ Loaded', productsData.length, 'products from API');
+      console.log('✅ Loaded', categoriesData.length, 'categories from API');
+      
+      // Create a map of categoryId to categoryName
+      const categoryMap = {};
+      categoriesData.forEach(cat => {
+        categoryMap[cat.categoryId] = cat.categoryName;
+      });
+      
+      // Map API data to display format
+      const formattedProducts = productsData.map(product => ({
+        id: product.productId,
+        name: product.name || product.productName,
+        category: categoryMap[product.categoryId] || product.categoryId || 'Không xác định',
+        price: product.price || 0,
+        quantity: product.quantity || 0,
+        image: product.images && product.images.length > 0 
+          ? product.images[0].url 
+          : '/api/placeholder/60/60',
+        colors: product.variants 
+          ? product.variants.map(v => v.variantAttributes?.color).filter(Boolean)
+          : [],
+        description: product.description || ''
+      }));
+      
+      setProducts(formattedProducts);
+      setFilteredProducts(formattedProducts);
+    } catch (error) {
+      console.error('Không thể load products:', error);
+      // Fallback to mock data on error
+      console.warn('⚠️ Using mock data due to error');
+      setProducts(mockProducts);
+      setFilteredProducts(mockProducts);
+    }
+  };
+
+  const handleCreateProduct = async (productData) => {
+    try {
+      console.log('✅ Product created successfully via ProductModal');
+      console.log('Product data:', productData);
+      
+      // Close modal first for better UX
+      setShowProductModal(false);
+      
+      // Reload products from API to get the latest data
+      console.log('🔄 Reloading products list from API...');
+      await loadProductsData();
+      
+      // Show success message
+      alert('🎉 Tạo sản phẩm thành công!');
+      
+    } catch (error) {
+      console.error('Error after creating product:', error);
+      alert('Sản phẩm đã tạo nhưng có lỗi khi tải lại danh sách. Vui lòng refresh trang.');
+    }
   };
 
   // ======================= CATEGORY API (GET/POST/PUT/DELETE) =======================
@@ -290,57 +375,6 @@ const DashboardPage = () => {
         console.error('Lỗi gọi API categories, status:', res.status);
         return;
       }
-<<<<<<< HEAD
-    ];
-    setCategories(mockCategories);
-    setFilteredCategories(mockCategories);
-  };
-
-  // Product management functions
-  const handleProductAdd = () => {
-    setShowProductModal(true);
-  };
-
-  const handleProductDelete = (productId) => {
-    if (window.confirm('Bạn có chắc chắn muốn xóa sản phẩm này?')) {
-      const updatedProducts = products.filter(product => product.id !== productId);
-      setProducts(updatedProducts);
-      setFilteredProducts(updatedProducts);
-    }
-  };
-
-  // Handle create product with new modal
-  const handleCreateProduct = (productData) => {
-    try {
-      // Get existing products from localStorage
-      const existingProducts = JSON.parse(localStorage.getItem('products') || '[]');
-      
-      // Create new product with unique ID
-      const newProduct = {
-        ...productData,
-        id: Date.now(),
-        createdAt: new Date().toISOString(),
-        createdBy: user?.username || 'Admin'
-      };
-      
-      // Add to products list
-      const updatedProducts = [newProduct, ...existingProducts];
-      localStorage.setItem('products', JSON.stringify(updatedProducts));
-      
-      // Update state
-      setProducts(updatedProducts);
-      setFilteredProducts(updatedProducts);
-      
-      // Close modal
-      setShowProductModal(false);
-      
-      // Show success message (you can add a toast notification here)
-      alert('Tạo sản phẩm thành công!');
-      
-    } catch (error) {
-      console.error('Error creating product:', error);
-      alert('Có lỗi xảy ra khi tạo sản phẩm');
-=======
       const data = await res.json();
       setCategories(data);
       setFilteredCategories(data);
@@ -412,7 +446,6 @@ const DashboardPage = () => {
     } catch (error) {
       console.error('API error khi xóa:', error);
       alert('Không thể kết nối API khi xóa!');
->>>>>>> 2dead36fabb4f72f3ea1f116f55402577bc22e4e
     }
   };
 
@@ -524,14 +557,10 @@ const DashboardPage = () => {
         );
       }
 
-      if (productCategoryFilter !== 'all') {
-        filtered = filtered.filter(product => product.category === productCategoryFilter);
-      }
-
       setFilteredProducts(filtered);
       setCurrentProductPage(1);
     }
-  }, [productSearchTerm, productCategoryFilter, products]);
+  }, [productSearchTerm, products]);
 
   // Category filter
   useEffect(() => {
@@ -581,13 +610,11 @@ const DashboardPage = () => {
   const indexOfLastProduct = currentProductPage * productsPerPage;
   const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
   const currentProducts = filteredProducts.slice(indexOfFirstProduct, indexOfLastProduct);
-  const totalProductPages = Math.ceil(filteredProducts.length / productsPerPage);
 
   // Pagination categories
   const indexOfLastCategory = currentCategoryPage * categoriesPerPage;
   const indexOfFirstCategory = indexOfLastCategory - categoriesPerPage;
   const currentCategories = filteredCategories.slice(indexOfFirstCategory, indexOfLastCategory);
-  const totalCategoryPages = Math.ceil(filteredCategories.length / categoriesPerPage);
 
   // Toggle user status
   const toggleUserStatus = (userId) => {
@@ -1113,185 +1140,119 @@ const DashboardPage = () => {
 
           {/* SẢN PHẨM (mock) */}
           {selectedMenu === 'Sản Phẩm' && (
-            <div className="products-section">
-              <h1>Quản lý sản phẩm</h1>
-
-              <div className="products-controls">
-                <div className="search-controls">
-                  <input
-                    type="text"
-                    className="search-input"
-                    placeholder="Tìm sản phẩm..."
-                    value={productSearchTerm}
-                    onChange={(e) => setProductSearchTerm(e.target.value)}
-                  />
-                  <select
-                    className="filter-select"
-                    value={productCategoryFilter}
-                    onChange={(e) => setProductCategoryFilter(e.target.value)}
-                  >
-                    <option value="all">Tất cả danh mục</option>
-                    <option value="Digital Product">Digital Product</option>
-                  </select>
-                  <button
-                    className="add-product-btn"
-                    onClick={() => {
-                      setSelectedProduct(null);
-                      setProductForm({
-                        name: '',
-                        category: '',
-                        price: '',
-                        quantity: '',
-                        description: '',
-                        colors: []
-                      });
-                      setShowProductModal(true);
-                    }}
-                  >
-                    + Thêm sản phẩm
-                  </button>
+            <div className="product-page-wrapper">
+              <div className="product-page-header">
+                <div>
+                  <h1>Quản Lý Sản Phẩm</h1>
+                  <p className="product-page-subtitle">Quản lý sản phẩm</p>
                 </div>
               </div>
 
-              <div className="products-table-container">
-                <div className="products-table-header">
-                  <div>Ảnh</div>
-                  <div>Tên sản phẩm</div>
-                  <div>Danh mục</div>
-                  <div>Giá</div>
-                  <div>Số lượng</div>
-                  <div>Màu</div>
-                  <div>Hành động</div>
-                </div>
-                {currentProducts.map(product => (
-                  <div key={product.id} className="products-table-row">
-                    <div className="product-image">
-                      <img src={product.image} alt={product.name} />
-                    </div>
-                    <div className="product-name">{product.name}</div>
-                    <div className="product-category">{product.category}</div>
-                    <div className="product-price">{product.price}</div>
-                    <div className="product-quantity">{product.quantity}</div>
-                    <div className="product-colors">
-                      {product.colors.map(color => (
-                        <span key={color} className={`color-dot color-${color}`} />
-                      ))}
-                    </div>
-                    <div className="product-actions">
-<<<<<<< HEAD
-                      <button 
-=======
-                      <button
-                        className="edit-btn"
-                        onClick={() => {
-                          setSelectedProduct(product);
-                          setProductForm({
-                            name: product.name,
-                            category: product.category,
-                            price: product.price.toString(),
-                            quantity: product.quantity.toString(),
-                            description: product.description,
-                            colors: product.colors
-                          });
-                          setShowProductModal(true);
-                        }}
-                      >
-                        ✏️
-                      </button>
-                      <button
->>>>>>> 2dead36fabb4f72f3ea1f116f55402577bc22e4e
-                        className="delete-btn"
-                        onClick={() => {
-                          if (window.confirm('Xóa sản phẩm này?')) {
-                            const updatedProducts = products.filter(p => p.id !== product.id);
-                            setProducts(updatedProducts);
-                            setFilteredProducts(updatedProducts);
-                          }
-                        }}
-                      >
-                        🗑️
-                      </button>
-                    </div>
+              <div className="product-page-content">
+                <div className="product-page-top">
+                  <div className="product-page-title-row">
+                    <h3>Danh mục sản phẩm</h3>
+                    <span className="product-page-count">{filteredProducts.length} sản phẩm</span>
                   </div>
-                ))}
-                {currentProducts.length === 0 && (
-                  <div style={{ padding: '1rem', textAlign: 'center' }}>Không có sản phẩm</div>
-                )}
-              </div>
-
-              <div className="orders-tab-pagination">
-                <button
-                  className="pagination-btn"
-                  disabled={currentProductPage === 1}
-                  onClick={() => setCurrentProductPage(prev => prev - 1)}
-                >
-                  Trang trước
-                </button>
-                <div className="pagination-info">
-                  Trang {currentProductPage} / {totalProductPages || 1}
+                  <div className="product-page-controls">
+                    <input
+                      type="text"
+                      className="product-page-search"
+                      placeholder="Tìm kiếm sản phẩm..."
+                      value={productSearchTerm}
+                      onChange={(e) => setProductSearchTerm(e.target.value)}
+                    />
+                    <button
+                      className="product-page-add-btn"
+                      onClick={() => {
+                        setSelectedProduct(null);
+                        setProductForm({
+                          name: '',
+                          category: '',
+                          price: '',
+                          quantity: '',
+                          description: '',
+                          colors: []
+                        });
+                        setShowProductModal(true);
+                      }}
+                    >
+                      + Thêm sản phẩm
+                    </button>
+                  </div>
                 </div>
-                <button
-                  className="pagination-btn"
-                  disabled={
-                    currentProductPage === totalProductPages || totalProductPages === 0
-                  }
-                  onClick={() => setCurrentProductPage(prev => prev + 1)}
-                >
-                  Trang sau
-                </button>
+
+                <div className="product-page-table-wrapper">
+                  <table className="product-page-table">
+                    <thead>
+                      <tr>
+                        <th>Mã Sản Phẩm</th>
+                        <th>Tên Sản Phẩm</th>
+                        <th>Giá</th>
+                        <th>Danh Mục</th>
+                        <th>Chi tiết</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {currentProducts.map(product => {
+                        return (
+                          <tr key={product.id}>
+                            <td>{product.id}</td>
+                            <td>{product.name}</td>
+                            <td>{product.price}</td>
+                            <td>{product.category}</td>
+                            <td>
+                              <div className="product-page-actions">
+                                <button
+                                  className="product-page-edit-btn"
+                                  onClick={() => {
+                                    setSelectedProduct(product);
+                                    setProductForm({
+                                      name: product.name,
+                                      category: product.category,
+                                      price: product.price.toString(),
+                                      quantity: product.quantity.toString(),
+                                      description: product.description,
+                                      colors: product.colors
+                                    });
+                                    setShowProductModal(true);
+                                  }}
+                                  title="Sửa"
+                                >
+                                  ✏️
+                                </button>
+                                <button
+                                  className="product-page-delete-btn"
+                                  onClick={() => {
+                                    if (window.confirm('Xóa sản phẩm này?')) {
+                                      const updatedProducts = products.filter(p => p.id !== product.id);
+                                      setProducts(updatedProducts);
+                                      setFilteredProducts(updatedProducts);
+                                    }
+                                  }}
+                                  title="Xóa"
+                                >
+                                  🗑️
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {currentProducts.length === 0 && (
+                        <tr>
+                          <td colSpan="5" style={{ textAlign: 'center', padding: '2rem', color: '#6c757d' }}>
+                            Không có sản phẩm
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}
 
-<<<<<<< HEAD
-          {/* Categories Section */}
-          {selectedMenu === 'Danh Mục' && (
-            <div className="categories-section">
-              <div className="categories-header">
-                <h1>Phân Loại</h1>
-                <p className="categories-subtitle">Quản lý phân loại</p>
-              </div>
-
-              <div className="categories-container">
-                <div className="categories-controls">
-                  <div className="categories-title-section">
-                    <h2>Danh mục phân loại</h2>
-                    <div className="categories-count">
-                      {filteredCategories.length} danh mục
-                    </div>
-                  </div>
-
-                  <div className="categories-actions">
-                    <div className="search-box">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                        <path d="M21 21L15 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                      </svg>
-                      <input
-                        type="text"
-                        placeholder="Tìm kiếm danh mục..."
-                        value={categorySearchTerm}
-                        onChange={(e) => {
-                          setCategorySearchTerm(e.target.value);
-                          const filtered = categories.filter(cat =>
-                            cat.name.toLowerCase().includes(e.target.value.toLowerCase())
-                          );
-                          setFilteredCategories(filtered);
-                          setCurrentCategoryPage(1);
-                        }}
-                      />
-                    </div>
-                    <button 
-                      className="add-category-btn"
-                      onClick={() => {
-                        setSelectedCategory(null);
-                        setCategoryForm({ 
-                          name: '', 
-                          parentCategory: ''
-                        });
-                        setShowCategoryModal(true);
-                      }}
-                    >
-=======
           {/* DANH MỤC - KẾT NỐI API THẬT + CRUD */}
           {selectedMenu === 'Danh Mục' && (
             <div className="category-page-wrapper">
@@ -1317,7 +1278,6 @@ const DashboardPage = () => {
                       onChange={(e) => setCategorySearchTerm(e.target.value)}
                     />
                     <button className="category-page-add-btn" onClick={handleOpenCategoryModal}>
->>>>>>> 2dead36fabb4f72f3ea1f116f55402577bc22e4e
                       + Thêm danh mục
                     </button>
                   </div>
