@@ -108,4 +108,39 @@ public class AuthService {
 
             return new AuthResponse(token, "Bearer", refreshValue, refresh.getExpiresAt());
     }
+
+        /**
+         * Login for staff/manager/admin accounts using username/password.
+         * Only allows accounts with roleId or role matching STAFF, MANAGER or ADMIN.
+         */
+        public AuthResponse loginStaff(LoginRequest req) {
+            var accountOpt = userTableRepository.findAccountByUsername(req.getUsername());
+            if (accountOpt.isEmpty()) throw new RuntimeException("Invalid credentials");
+            UserTable account = accountOpt.get();
+            if (!passwordEncoder.matches(req.getPassword(), account.getPassword())) {
+                throw new RuntimeException("Invalid credentials");
+            }
+
+            String role = (account.getRoleId() != null) ? account.getRoleId().toUpperCase() : (account.getRole() != null ? account.getRole().toUpperCase() : "");
+            if (!("ADMIN".equals(role) || "MANAGER".equals(role) || "STAFF".equals(role))) {
+                throw new RuntimeException("Not authorized");
+            }
+
+            String token = jwtUtil.generateToken(account.getUsername());
+
+            String refreshValue = UUID.randomUUID().toString();
+            String tokenId = UUID.randomUUID().toString();
+            UserTable refresh = UserTable.builder()
+                .pk(account.getPk())
+                .sk("TOKEN#" + tokenId)
+                .itemType("TOKEN")
+                .tokenValue(refreshValue)
+                .tokenType("REFRESH_TOKEN")
+                .expiresAt(System.currentTimeMillis() + refreshTokenValidityMs)
+                .createdAt(System.currentTimeMillis())
+                .build();
+            userTableRepository.save(refresh);
+
+            return new AuthResponse(token, "Bearer", refreshValue, refresh.getExpiresAt());
+        }
 }

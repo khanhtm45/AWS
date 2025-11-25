@@ -17,6 +17,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import java.util.Map;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -43,9 +44,28 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest req) {
-        AuthResponse resp = authService.login(req);
-        return ResponseEntity.ok(resp);
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest req) {
+        try {
+            AuthResponse resp = authService.login(req);
+            return ResponseEntity.ok(resp);
+        } catch (RuntimeException e) {
+            String msg = e.getMessage() == null ? "Unauthorized" : e.getMessage();
+            return ResponseEntity.status(401).body(Map.of("error", "unauthorized", "message", msg));
+        }
+    }
+
+    @PostMapping("/login-staff")
+    public ResponseEntity<?> loginStaff(@Valid @RequestBody LoginRequest req) {
+        try {
+            AuthResponse resp = authService.loginStaff(req);
+            return ResponseEntity.ok(resp);
+        } catch (RuntimeException e) {
+            String msg = e.getMessage() == null ? "Unauthorized" : e.getMessage();
+            if ("Not authorized".equalsIgnoreCase(msg)) {
+                return ResponseEntity.status(403).body(Map.of("error", "forbidden", "message", msg));
+            }
+            return ResponseEntity.status(401).body(Map.of("error", "unauthorized", "message", msg));
+        }
     }
 
     @PostMapping("/request-reset")
