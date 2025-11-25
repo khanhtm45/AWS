@@ -6,6 +6,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -60,6 +61,22 @@ public class SecurityConfig {
 					// Admin endpoints
 					.requestMatchers("/api/admin/**").hasRole("ADMIN")
 
+					// Allow public read access to products (pages, detail, media, variants)
+					.requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
+
+					// Allow public access to common static resources and error page
+					// Note: avoid complex double-wildcard patterns that can cause PathPattern parsing issues.
+					.requestMatchers(HttpMethod.GET,
+						"/",
+						"/index.html",
+						"/favicon.ico",
+						"/static/**",
+						"/error"
+					).permitAll()
+
+					// Public customer endpoints (used by email+OTP flow)
+					.requestMatchers(HttpMethod.GET, "/api/customer/**").permitAll()
+
 					// Protect all other API endpoints under /api/**
 					.requestMatchers("/api/**").authenticated()
 				
@@ -90,6 +107,8 @@ public class SecurityConfig {
 		// Lấy allowed origins từ application.properties
 		// Nếu không có, sử dụng default
 		configuration.setAllowedOrigins(Arrays.asList(
+				"http://localhost:4000",
+				"http://127.0.0.1:4000",
 			"http://localhost:3000",
 			"http://localhost:3001",
 			"http://localhost:5500",  // VS Code Live Server default port

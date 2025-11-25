@@ -11,8 +11,17 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('user');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
+  });
   const [isLoading, setIsLoading] = useState(false);
+  const [accessToken, setAccessToken] = useState(() => localStorage.getItem('accessToken') || null);
+  const [refreshToken, setRefreshToken] = useState(() => localStorage.getItem('refreshToken') || null);
 
   const login = async (email, password) => {
     setIsLoading(true);
@@ -42,6 +51,36 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     setUser(null);
+    setAccessToken(null);
+    setRefreshToken(null);
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('user');
+  };
+
+  const setAuth = ({ accessToken: at, refreshToken: rt }, userInfo) => {
+    setAccessToken(at);
+    setRefreshToken(rt);
+    if (userInfo) {
+      setUser(userInfo);
+      try {
+        localStorage.setItem('user', JSON.stringify(userInfo));
+      } catch (e) {}
+    }
+    try {
+      if (at) localStorage.setItem('accessToken', at); else localStorage.removeItem('accessToken');
+      if (rt) localStorage.setItem('refreshToken', rt); else localStorage.removeItem('refreshToken');
+    } catch (e) {}
+  };
+
+  const updateUser = (newUser) => {
+    setUser((prev) => {
+      const updated = { ...(prev || {}), ...(newUser || {}) };
+      try {
+        localStorage.setItem('user', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
   };
 
   const value = {
@@ -49,7 +88,11 @@ export const AuthProvider = ({ children }) => {
     isLoading,
     login,
     signup,
-    logout
+    logout,
+    accessToken,
+    refreshToken,
+    setAuth,
+    updateUser
   };
 
   return (

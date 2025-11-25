@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Test OTP Login</title>
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;margin:24px}
+    label{display:block;margin-top:12px}
+    input{padding:8px;width:300px}
+    button{margin-top:8px;padding:8px 12px}
+    pre{background:#f6f8fa;padding:12px;border-radius:6px}
+  </style>
+</head>
+<body>
+  <h2>Test OTP Login (Email)</h2>
+
+  <section>
+    <h3>Request OTP</h3>
+    <label>Email
+      <input id="req-email" type="email" placeholder="you@example.com" value="alice@example.com" />
+    </label>
+    <button id="btn-request">Gửi OTP</button>
+    <div id="req-result"></div>
+  </section>
+
+  <section>
+    <h3>Verify OTP / Login</h3>
+    <label>Email
+      <input id="ver-email" type="email" placeholder="you@example.com" value="alice@example.com" />
+    </label>
+    <label>OTP
+      <input id="ver-otp" type="text" placeholder="123456" />
+    </label>
+    <button id="btn-verify">Xác thực và đăng nhập</button>
+    <h4>Response</h4>
+    <pre id="ver-result">(chưa có)</pre>
+  </section>
+
+  <script>
+    // Cố định backend origin để dễ test khi mở file trực tiếp
+    const base = 'http://localhost:8080';
+
+    document.getElementById('btn-request').addEventListener('click', async () => {
+      const email = document.getElementById('req-email').value.trim();
+      if (!email) return alert('Nhập email');
+      const resDiv = document.getElementById('req-result');
+      resDiv.textContent = 'Đang gửi...';
+      try {
+        const r = await fetch(base + '/api/auth/request-login-otp', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({email})
+        });
+        if (r.ok) {
+          resDiv.textContent = 'OTP đã được gửi (nếu email tồn tại hoặc đã xử lý). Kiểm tra email.';
+        } else {
+          const t = await r.text();
+          resDiv.textContent = 'Lỗi: ' + t;
+        }
+      } catch (e) {
+        resDiv.textContent = 'Lỗi kết nối: ' + e;
+      }
+    });
+
+    document.getElementById('btn-verify').addEventListener('click', async () => {
+      const email = document.getElementById('ver-email').value.trim();
+      const otp = document.getElementById('ver-otp').value.trim();
+      const out = document.getElementById('ver-result');
+      if (!email || !otp) return alert('Nhập email và otp');
+      out.textContent = 'Đang xác thực...';
+      try {
+        const r = await fetch(base + '/api/auth/verify-login-otp', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({email, otp})
+        });
+        const text = await r.text();
+        try {
+          const json = JSON.parse(text);
+          out.textContent = JSON.stringify(json, null, 2);
+        } catch(_) {
+          out.textContent = text || ('HTTP ' + r.status);
+        }
+      } catch (e) {
+        out.textContent = 'Lỗi kết nối: ' + e;
+      }
+    });
+  </script>
+</body>
+</html>

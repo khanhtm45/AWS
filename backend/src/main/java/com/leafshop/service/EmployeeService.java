@@ -19,6 +19,7 @@ public class EmployeeService {
 
     private final UserTableRepository userTableRepository;
     private final PasswordEncoder passwordEncoder;
+    // role repository removed
 
     public EmployeeResponse createEmployee(CreateEmployeeRequest req) {
         String userId = UUID.randomUUID().toString();
@@ -37,6 +38,9 @@ public class EmployeeService {
             .updatedAt(now)
             .build();
 
+        String roleName = req.getRole() != null ? req.getRole() : "Staff";
+        String resolvedRoleId = roleName.toUpperCase();
+
         UserTable account = UserTable.builder()
             .pk(pk)
             .sk("ACCOUNT")
@@ -44,7 +48,8 @@ public class EmployeeService {
             .username(req.getUsername())
             .email(req.getEmail())
             .password(passwordEncoder.encode(req.getPassword()))
-            .role(req.getRole() != null ? req.getRole() : "STAFF")
+            .role(roleName.toUpperCase())
+            .roleId(resolvedRoleId)
             .isActive(true)
             .createdAt(now)
             .updatedAt(now)
@@ -73,7 +78,7 @@ public class EmployeeService {
         resp.setFirstName(meta.getFirstName());
         resp.setLastName(meta.getLastName());
         resp.setEmail(account.getEmail());
-        resp.setPhoneNumber(meta.getPhoneNumber());
+        // phoneNumber removed from META
         resp.setRole(account.getRole());
         resp.setEmployeeCode(employee.getEmployeeCode());
         resp.setDepartment(employee.getDepartment());
@@ -119,7 +124,7 @@ public class EmployeeService {
         EmployeeResponse r = new EmployeeResponse();
         r.setUserId(pk.substring(5));
         accountOpt.ifPresent(a -> r.setUsername(a.getUsername()));
-        metaOpt.ifPresent(m -> { r.setFirstName(m.getFirstName()); r.setLastName(m.getLastName()); r.setPhoneNumber(m.getPhoneNumber()); });
+        metaOpt.ifPresent(m -> { r.setFirstName(m.getFirstName()); r.setLastName(m.getLastName()); });
         accountOpt.ifPresent(a -> { r.setEmail(a.getEmail()); r.setRole(a.getRole()); });
         r.setEmployeeCode(e.getEmployeeCode());
         r.setDepartment(e.getDepartment());
@@ -141,9 +146,11 @@ public class EmployeeService {
 
         if (req.getFirstName() != null) meta.setFirstName(req.getFirstName());
         if (req.getLastName() != null) meta.setLastName(req.getLastName());
-        if (req.getPhoneNumber() != null) meta.setPhoneNumber(req.getPhoneNumber());
         if (req.getEmail() != null) account.setEmail(req.getEmail());
-        if (req.getRole() != null) account.setRole(req.getRole());
+        if (req.getRole() != null) {
+            account.setRole(req.getRole());
+            account.setRoleId(req.getRole().toUpperCase());
+        }
 
         if (req.getEmployeeCode() != null) emp.setEmployeeCode(req.getEmployeeCode());
         if (req.getDepartment() != null) emp.setDepartment(req.getDepartment());

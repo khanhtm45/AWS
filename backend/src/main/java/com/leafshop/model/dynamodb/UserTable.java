@@ -59,6 +59,8 @@ public class UserTable {
 
     private Boolean isActive;
 
+    private String roleId; // e.g., CUSTOMER, ADMIN
+
     // TOKEN fields
     private String tokenValue;
 
@@ -67,9 +69,13 @@ public class UserTable {
     private Long expiresAt;
 
     // ADDRESS fields
-    private String addressLine1;
+    private String address;
 
-    private String addressLine2;
+    private String addressLastName;
+
+    private String addressFirstName;
+
+    private String addressPhone;
 
     private String city;
 
