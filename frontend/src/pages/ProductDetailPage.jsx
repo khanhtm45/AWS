@@ -1,0 +1,290 @@
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useCart } from '../context/CartContext';
+import './ProductDetailPage.css';
+
+// --- 1. HÀM HỖ TRỢ: XỬ LÝ MÔ TẢ TỪ API (Để hiển thị đẹp như thiết kế) ---
+const parseDescription = (fullDesc) => {
+  if (!fullDesc) return { summary: '', details: [], origin: 'Việt Nam' };
+
+  const lines = fullDesc.split('\n').map(line => line.trim()).filter(line => line !== '');
+  let summary = '';
+  const details = [];
+  let origin = 'Việt Nam';
+
+  // Dòng đầu tiên thường là summary
+  if (lines.length > 0 && !lines[0].includes(':')) {
+    summary = lines[0];
+  }
+
+  lines.forEach(line => {
+    if (line === summary || line.toLowerCase().includes('chi tiết sản phẩm')) return;
+
+    // Lấy xuất xứ
+    if (line.toLowerCase().startsWith('xuất xứ') || line.toLowerCase().startsWith('- xuất xứ')) {
+      origin = line.replace(/[-]?\s*Xuất xứ:\s*/i, '').trim();
+      return;
+    }
+
+    // Lấy chi tiết (Kiểu dáng, chất liệu...)
+    if (line.includes(':')) {
+      const parts = line.split(':');
+      let label = parts[0].replace(/^-\s*/, '').trim();
+      let value = parts.slice(1).join(':').trim();
+      if (label && value) details.push({ label, value });
+    }
+  });
+
+  return { summary, details, origin };
+};
+
+function ProductDetailPage() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { addToCart } = useCart();
+  
+  // --- STATE ---
+  const [product, setProduct] = useState(null);
+  const [variants, setVariants] = useState([]);
+  const [media, setMedia] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const [selectedSize, setSelectedSize] = useState('');
+  const [selectedColor, setSelectedColor] = useState('');
+  const [quantity, setQuantity] = useState(1);
+  const [selectedImage, setSelectedImage] = useState(0);
+  const [showProductInfo, setShowProductInfo] = useState(true); 
+
+  // --- 2. GỌI API ---
+  useEffect(() => {
+    const fetchAllData = async () => {
+      setIsLoading(true);
+      try {
+        // Format ID: 1 -> 01
+        const formattedId = id.padStart(2, '0');
+        
+        const [productRes, variantsRes, mediaRes] = await Promise.all([
+          fetch(`http://localhost:8080/api/products/${formattedId}`),
+          fetch(`http://localhost:8080/api/products/${formattedId}/variants`),
+          fetch(`http://localhost:8080/api/products/${formattedId}/media`)
+        ]);
+
+        if (productRes.ok) setProduct(await productRes.json());
+        
+        if (variantsRes.ok) {
+          const variantsData = await variantsRes.json();
+          setVariants(variantsData);
+          // Tự động chọn màu/size đầu tiên
+          if (variantsData.length > 0) {
+            setSelectedColor(variantsData[0].variantAttributes.color);
+            setSelectedSize(variantsData[0].variantAttributes.size);
+          }
+        }
+
+        if (mediaRes.ok) {
+          const mediaData = await mediaRes.json();
+          setMedia(mediaData.sort((a, b) => a.mediaOrder - b.mediaOrder));
+        }
+
+      } catch (error) {
+        console.error("Lỗi tải dữ liệu:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchAllData();
+  }, [id]);
+
+  // --- 3. XỬ LÝ DỮ LIỆU LOGIC ---
+  
+  // Lấy danh sách Size/Màu duy nhất
+  const uniqueSizes = [...new Set(variants.map(v => v.variantAttributes.size))];
+  const uniqueColors = [...new Set(variants.map(v => v.variantAttributes.color))];
+  
+  // Map tên màu sang mã Hex
+  const getColorCode = (name) => {
+    switch(name?.toLowerCase()) {
+      case 'trắng': return '#FFFFFF';
+      case 'đen': return '#000000';
+      case 'đỏ': return '#DC143C'; // Mã màu đỏ đẹp
+      case 'tím': return '#800080';
+      case 'nâu': return '#8B4513';
+      default: return '#CCCCCC';
+      case 'xanh nhạt': return '#ADD8E6'; // màu xanh nhạt
+    }
+  };
+
+  // Lọc hình ảnh theo màu sắc (Cơ bản: Tìm tên màu trong URL ảnh)
+  // Nếu không tìm thấy ảnh theo màu, hiển thị tất cả
+  const filterImagesByColor = () => {
+    if (!selectedColor || media.length === 0) return media.map(m => m.mediaUrl);
+    
+    // Chuyển tên màu thành từ khóa (Ví dụ: "Trắng" -> "trang", "Đỏ" -> "do")
+    // Lưu ý: Cách này phụ thuộc vào việc bạn đặt tên file ảnh có chứa từ khóa màu hay không
+    // Nếu JSON media của bạn chưa có trường 'color', đây là cách tạm thời tốt nhất.
+    const colorKey = selectedColor === 'Trắng' ? 'trang' 
+                   : selectedColor === 'Đen' ? 'den'
+                   : selectedColor === 'Đỏ' ? 'do'
+                   : selectedColor === 'Tím' ? 'tim'
+                   : '';
+                   
+    const filtered = media.filter(m => m.mediaUrl.toLowerCase().includes(colorKey));
+    
+    // Nếu lọc được ảnh thì trả về ảnh lọc, không thì trả về toàn bộ
+    const finalMedia = filtered.length > 0 ? filtered : media;
+    return finalMedia.map(m => m.mediaUrl);
+  };
+
+  const productImages = filterImagesByColor();
+
+  // Lấy giá tiền theo biến thể
+  const currentVariant = variants.find(v => 
+    v.variantAttributes.color === selectedColor && v.variantAttributes.size === selectedSize
+  );
+  const displayPrice = currentVariant ? currentVariant.variantPrice : (product?.price || 0);
+  
+  // Parse mô tả
+  const descriptionData = product ? parseDescription(product.description) : null;
+
+
+  // --- 4. EVENT HANDLERS ---
+  const handleAddToCart = () => {
+    if (!selectedSize) { alert('Vui lòng chọn size!'); return; }
+    const cartItem = {
+      id: product.productId,
+      name: product.name,
+      price: displayPrice,
+      image: productImages[0],
+      selectedSize,
+      selectedColor,
+      quantity
+    };
+    addToCart(cartItem);
+    navigate('/cart');
+  };
+
+  const increaseQuantity = () => setQuantity(q => q + 1);
+  const decreaseQuantity = () => setQuantity(q => (q > 1 ? q - 1 : 1));
+
+  if (isLoading || !product) return <div className="loading">Đang tải...</div>;
+
+  return (
+    <div className="product-detail-page">
+      <div className="product-detail-container">
+        
+        {/* CỘT TRÁI: ẢNH */}
+        <div className="product-images">
+          <div className="main-image">
+            <div className="product-image-placeholder">
+              <img src={productImages[selectedImage] || productImages[0]} alt={product.name} />
+            </div>
+          </div>
+          <div className="thumbnail-images">
+            {productImages.map((img, index) => (
+              <div 
+                key={index}
+                className={`thumbnail ${selectedImage === index ? 'active' : ''}`}
+                onClick={() => setSelectedImage(index)}
+              >
+                <img src={img} alt={`Thumbnail ${index}`} />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* CỘT PHẢI: THÔNG TIN */}
+        <div className="product-info">
+          <h1 className="product-title">{product.name}</h1>
+          <div className="product-pricing">
+            <span className="price">{displayPrice.toLocaleString('vi-VN')} VND</span>
+          </div>
+          <div className="shipping-info">
+            <span>{product.shippingInfo || "Miễn phí vận chuyển"}</span>
+          </div>
+
+          {/* Size */}
+          <div className="size-selection">
+            <label className="size-label">Size: {selectedSize}</label>
+            <div className="size-options">
+              {uniqueSizes.map((size) => (
+                <button
+                  key={size}
+                  className={`size-option ${selectedSize === size ? 'selected' : ''}`}
+                  onClick={() => setSelectedSize(size)}
+                >
+                  {size}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Màu */}
+          <div className="color-selection-section">
+            <label>Chọn màu khác</label>
+            <div className="color-options">
+              {uniqueColors.map((color) => (
+                <div
+                  key={color}
+                  className={`color-option ${selectedColor === color ? 'selected' : ''}`}
+                  style={{ 
+                    backgroundColor: getColorCode(color),
+                    border: getColorCode(color) === '#FFFFFF' ? '1px solid #ccc' : 'none'
+                  }}
+                  onClick={() => { setSelectedColor(color); setSelectedImage(0); }}
+                  title={color}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Nút Mua */}
+          <div className="quantity-selection">
+            <button className="quantity-btn" onClick={decreaseQuantity}>-</button>
+            <input type="number" value={quantity} readOnly className="quantity-input" />
+            <button className="quantity-btn" onClick={increaseQuantity}>+</button>
+          </div>
+          <button className="add-to-cart-btn" onClick={handleAddToCart}>Thêm vào giỏ hàng</button>
+
+          {/* --- PHẦN THÔNG TIN SẢN PHẨM (ĐÚNG THIẾT KẾ) --- */}
+          <div className="product-description">
+            <div 
+              className="description-header"
+              onClick={() => setShowProductInfo(!showProductInfo)}
+              style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #eee', paddingBottom: '10px', marginBottom: '15px' }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span className="description-icon">👁</span>
+                <h3 style={{ margin: 0, fontSize: '16px' }}>Thông tin sản phẩm</h3>
+              </div>
+              <span className={`arrow ${showProductInfo ? 'open' : ''}`}>›</span>
+            </div>
+            
+            {showProductInfo && descriptionData && (
+              <div className="description-content" style={{ fontSize: '14px', lineHeight: '1.6', color: '#333' }}>
+                <div className="description-item" style={{ marginBottom: '10px' }}>
+                  <strong>Mã số:</strong> #{product.productId}
+                </div>
+                <div className="description-item" style={{ marginBottom: '15px' }}>
+                  <p style={{ margin: 0 }}>{descriptionData.summary}</p>
+                </div>
+                <ul className="feature-list" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                  {descriptionData.details.map((detail, index) => (
+                    <li key={index} style={{ marginBottom: '5px' }}>
+                      <strong>{detail.label}:</strong> {detail.value}
+                    </li>
+                  ))}
+                </ul>
+                <div className="origin" style={{ marginTop: '15px', fontStyle: 'italic', color: '#666' }}>
+                  Xuất xứ: {descriptionData.origin}
+                </div>
+              </div>
+            )}
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default ProductDetailPage;
