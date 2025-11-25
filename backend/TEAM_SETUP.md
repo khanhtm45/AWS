@@ -62,7 +62,7 @@ $env:Path += ";$env:JAVA_HOME\bin"
 mvn -f .\backend\pom.xml -Dspring.profiles.active=prod spring-boot:run
 ```
 
-Lưu ý: trong lúc khởi động, nếu ứng dụng cần DynamoDB local và bạn chưa bật, sẽ có lỗi kết nối — không phải lỗi nghiêm trọng nếu môi trường production dùng DynamoDB AWS.
+Lưu ý: ứng dụng sử dụng AWS DynamoDB by default. Nếu bạn muốn chạy DynamoDB local cho development, start a local instance and set `AWS_DYNAMODB_ENDPOINT` to point to it (e.g. `http://localhost:8000`). Otherwise leave it empty to use AWS DynamoDB.
 
 **Chạy local với Docker Compose**
 

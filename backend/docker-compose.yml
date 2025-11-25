@@ -20,13 +20,33 @@ services:
     container_name: leaf-shop-backend
     depends_on:
       - opensearch
+      - mailhog
     environment:
       # Point backend to local OpenSearch container (no SigV4 signing required)
       - OPENSEARCH_ENDPOINT=http://opensearch:9200
       - OPENSEARCH_SIGNING_ENABLED=false
-      - AWS_REGION=ap-southeast-2
-      - AWS_ACCESS_KEY_ID=local
-      - AWS_SECRET_ACCESS_KEY=local
+      - AWS_REGION=${AWS_REGION:-ap-southeast-2}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_DYNAMODB_ENDPOINT=${AWS_DYNAMODB_ENDPOINT:-}
+      # Use MailHog for local email testing. DynamoDB local is removed — backend will use AWS DynamoDB by default.
+      - SPRING_MAIL_HOST=mailhog
+      - SPRING_MAIL_PORT=1025
+      - SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE=false
+      - SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_REQUIRED=false
+      - SPRING_MAIL_PROTOCOL=smtp
+      # Allow all origins for CORS in local dev/testing
+      - SPRING_WEB_CORS_ALLOWED_ORIGINS=*
+      - SPRING_WEB_CORS_ALLOW_CREDENTIALS=false
     ports:
       - "8080:8080"
     restart: on-failure
+
+  # DynamoDB local service removed — using AWS DynamoDB in this project.
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: mailhog
+    ports:
+      - "8025:8025"
+      - "1025:1025"
