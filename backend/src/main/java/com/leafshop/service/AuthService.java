@@ -5,6 +5,7 @@ import com.leafshop.dto.auth.AuthResponse;
 import com.leafshop.dto.auth.LoginRequest;
 import com.leafshop.dto.auth.RegisterRequest;
 import com.leafshop.model.dynamodb.UserTable;
+// role table removed; no RoleRepository
 import com.leafshop.repository.UserTableRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -19,6 +20,7 @@ public class AuthService {
     private final UserTableRepository userTableRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    // removed RoleRepository
         // refresh token validity (ms)
         private final long refreshTokenValidityMs = 7L * 24 * 60 * 60 * 1000; // 7 days
 
@@ -40,6 +42,10 @@ public class AuthService {
             .updatedAt(now)
             .build();
 
+        // determine role
+        String roleName = "Customer";
+        String resolvedRoleId = roleName.toUpperCase();
+
         // ACCOUNT item
         UserTable account = UserTable.builder()
             .pk(pk)
@@ -48,7 +54,8 @@ public class AuthService {
             .username(req.getUsername())
             .email(req.getEmail())
             .password(passwordEncoder.encode(req.getPassword()))
-            .role("USER")
+            .role(roleName.toUpperCase())
+            .roleId(resolvedRoleId)
             .isActive(true)
             .createdAt(now)
             .updatedAt(now)

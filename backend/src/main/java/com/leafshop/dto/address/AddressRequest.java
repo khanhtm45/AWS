@@ -7,8 +7,7 @@ import jakarta.validation.constraints.NotBlank;
 @Data
 public class AddressRequest {
     @NotBlank
-    private String addressLine1;
-    private String addressLine2;
+    private String address;
     @NotBlank
     private String city;
     private String province;
@@ -16,4 +15,8 @@ public class AddressRequest {
     @NotBlank
     private String country;
     private Boolean isDefault = false;
+    // Contact fields to align with UserTable
+    private String firstName;
+    private String lastName;
+    private String phone;
 }

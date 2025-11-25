@@ -49,13 +49,9 @@ Từ `backend`:
 mvn -f .\backend\pom.xml test
 ```
 
-5. Nếu backend cần DynamoDB local (project kiểm tra khi start):
+5. DynamoDB local
 
-- Start DynamoDB local container (nếu dùng):
-
-```powershell
-docker run -d --name dynamodb-local -p 8000:8000 amazon/dynamodb-local
-```
+- This project now uses AWS DynamoDB by default. If you still want to run a local DynamoDB for offline testing, start one manually and set `AWS_DYNAMODB_ENDPOINT` to its URL (e.g. `http://localhost:8000`). Otherwise leave `AWS_DYNAMODB_ENDPOINT` empty so the application uses AWS.
 
 6. Tắt/Reset containers
 

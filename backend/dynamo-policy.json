@@ -1,0 +1,33 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowCreateTable",
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:CreateTable"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "AllowTableManagement",
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:DescribeTable",
+        "dynamodb:ListTables",
+        "dynamodb:PutItem",
+        "dynamodb:GetItem",
+        "dynamodb:Query",
+        "dynamodb:Scan",
+        "dynamodb:DeleteItem",
+        "dynamodb:UpdateItem",
+        "dynamodb:BatchWriteItem",
+        "dynamodb:BatchGetItem"
+      ],
+      "Resource": [
+        "arn:aws:dynamodb:us-east-1:083011581293:table/*",
+        "arn:aws:dynamodb:us-east-1:083011581293:table/*/index/*"
+      ]
+    }
+  ]
+}

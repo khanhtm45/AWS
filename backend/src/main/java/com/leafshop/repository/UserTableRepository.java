@@ -32,6 +32,10 @@ public class UserTableRepository {
 		userTable().putItem(user);
 	}
 
+	public void delete(UserTable user) {
+		userTable().deleteItem(user);
+	}
+
 	// Find user by PK (USER#<user_id>)
 	public List<UserTable> findByPk(String pk) {
 		Key key = Key.builder().partitionValue(pk).build();
@@ -155,6 +159,24 @@ public class UserTableRepository {
 
 		Expression filterExpression = Expression.builder()
 			.expression("SK = :account AND username = :username")
+			.expressionValues(eav)
+			.build();
+
+		return userTable()
+			.scan(ScanEnhancedRequest.builder().filterExpression(filterExpression).limit(1).build())
+			.items()
+			.stream()
+			.findFirst();
+	}
+
+	// Find account by email (scan)
+	public Optional<UserTable> findAccountByEmail(String email) {
+		Map<String, AttributeValue> eav = new HashMap<>();
+		eav.put(":email", AttributeValue.builder().s(email).build());
+		eav.put(":account", AttributeValue.builder().s("ACCOUNT").build());
+
+		Expression filterExpression = Expression.builder()
+			.expression("SK = :account AND email = :email")
 			.expressionValues(eav)
 			.build();
 

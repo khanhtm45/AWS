@@ -48,7 +48,7 @@ public class StaffService {
                     return CustomerResponse.builder()
                             .userId(userId)
                             .email(user.getEmail())
-                            .phone(user.getPhoneNumber())
+                            .phone(null)
                             .firstName(user.getFirstName())
                             .lastName(user.getLastName())
                             .registrationDate(user.getCreatedAt())

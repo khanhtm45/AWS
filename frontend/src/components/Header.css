@@ -28,20 +28,9 @@
   align-items: center;
 }
 
-.logo-icon {
-  width: 45px;
-  height: 45px;
-  border: 2px solid #333;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: transparent;
-}
-
 .logo-image {
   width: 100px;
-  height:100px;
+  height: 100px;
   object-fit: contain;
   border-radius: 20px;
 }
@@ -86,10 +75,6 @@
   height: 2px;
   background-color: #4CAF50;
   transition: width 0.3s ease;
-}
-
-.nav-link:hover::after {
-  width: 100%;
 }
 
 /* Cart Link */
@@ -138,6 +123,57 @@
 
 .login-btn:hover {
   background-color: #555;
+}
+
+/* User info */
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-avatar {
+  width: 36px;
+  height: 36px;
+  background-color: #4CAF50;
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.user-actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.user-name {
+  background: none;
+  border: none;
+  color: #333;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  white-space: nowrap;
+}
+
+.logout-btn {
+  background: transparent;
+  border: none;
+  color: #888;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 4px;
+}
+
+.logout-btn:hover {
+  background: #f5f5f5;
 }
 
 /* Responsive Design */

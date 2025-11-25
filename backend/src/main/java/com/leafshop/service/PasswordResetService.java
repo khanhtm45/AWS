@@ -28,13 +28,19 @@ public class PasswordResetService {
         // find account by username or email
         Optional<UserTable> accountOpt = userTableRepository.findAccountByUsername(req.getUsernameOrEmail());
         if (accountOpt.isEmpty()) {
-            // try search by email (scan) - reuse same repository by scanning ACCOUNT items
-            accountOpt = userTableRepository.findAccountByUsername(req.getUsernameOrEmail());
+            // try search by email (scan)
+            accountOpt = userTableRepository.findAccountByEmail(req.getUsernameOrEmail());
         }
-        if (accountOpt.isEmpty()) return; // don't reveal existence
 
-        UserTable account = accountOpt.get();
-        String pk = account.getPk();
+        String pk;
+        if (accountOpt.isPresent()) {
+            UserTable account = accountOpt.get();
+            pk = account.getPk();
+        } else {
+            // don't reveal existence — still create a temporary token entry associated with the email
+            // Use PK prefix EMAIL# to indicate token for non-registered email
+            pk = "EMAIL#" + req.getUsernameOrEmail().toLowerCase();
+        }
 
         // generate 6-digit OTP
         int otpInt = 100000 + random.nextInt(900000);
@@ -55,11 +61,17 @@ public class PasswordResetService {
 
         userTableRepository.save(token);
 
-        // send email if email exists
-        if (account.getEmail() != null && !account.getEmail().isBlank()) {
+        // send email if we have an email address (either from found account or from request)
+        String emailToSend = req.getUsernameOrEmail();
+        if (accountOpt.isPresent()) {
+            var acc = accountOpt.get();
+            if (acc.getEmail() != null && !acc.getEmail().isBlank()) emailToSend = acc.getEmail();
+        }
+
+        if (emailToSend != null && !emailToSend.isBlank()) {
             String subject = "Your OTP code";
             String text = "Mã xác thực của bạn: " + otp + " (hết hạn trong 5 phút)";
-            mailService.sendSimpleEmail(account.getEmail(), subject, text);
+            mailService.sendSimpleEmail(emailToSend, subject, text);
         }
     }
 
