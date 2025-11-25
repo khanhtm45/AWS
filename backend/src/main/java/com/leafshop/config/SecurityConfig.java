@@ -64,13 +64,20 @@ public class SecurityConfig {
 					// Allow public read access to products (pages, detail, media, variants)
 					.requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
 
+					// Allow public read access to categories for storefront
+					.requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
+
 					// Allow public access to common static resources and error page
 					// Note: avoid complex double-wildcard patterns that can cause PathPattern parsing issues.
 					.requestMatchers(HttpMethod.GET,
 						"/",
 						"/index.html",
 						"/favicon.ico",
+						"/logo.png",
+						"/LEAF.png",
 						"/static/**",
+						"/public/**",
+						"/assets/**",
 						"/error"
 					).permitAll()
 
