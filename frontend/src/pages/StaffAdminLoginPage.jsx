@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './StaffAdminLoginPage.css';
+import { useAuth } from '../context/AuthContext';
 
 function StaffAdminLoginPage() {
   const navigate = useNavigate();
@@ -10,24 +11,11 @@ function StaffAdminLoginPage() {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const { setAuth } = useAuth();
 
-  // Mock data cho staff và admin accounts
-  const mockAccounts = [
-    {
-      username: 'staff01',
-      password: 'staff123',
-      role: 'staff',
-      name: 'Nguyễn Văn A',
-      id: 'ST001'
-    },
-    {
-      username: 'admin01',
-      password: 'admin123',
-      role: 'admin', 
-      name: 'Trần Thị B',
-      id: 'AD001'
-    }
-  ];
+  const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:8080';
+
+  // staff/admin login form
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -39,49 +27,56 @@ function StaffAdminLoginPage() {
     if (error) setError('');
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
-    // Simulate API call delay
-    setTimeout(() => {
-      const { username, password } = formData;
-      
-      // Get dynamically created staff accounts from localStorage
-      const createdStaff = JSON.parse(localStorage.getItem('staffAccounts') || '[]');
-      
-      // Combine mock accounts with created accounts
-      const allAccounts = [...mockAccounts, ...createdStaff];
-      
-      // Tìm account phù hợp
-      const account = allAccounts.find(
-        acc => acc.username === username && acc.password === password
-      );
-
-      if (account) {
-        // Đăng nhập thành công
-        console.log('Login successful:', account);
-        
-        // Lưu thông tin user vào localStorage (mock session)
-        localStorage.setItem('staffAdminUser', JSON.stringify({
-          id: account.id || `ST${Date.now()}`,
-          name: account.fullName || account.name,
-          role: account.role,
-          username: account.username,
-          email: account.email,
-          loginTime: new Date().toISOString()
-        }));
-
-        // Redirect đến dashboard
-        navigate('/dashboard');
-      } else {
-        // Đăng nhập thất bại
-        setError('Tên đăng nhập hoặc mật khẩu không chính xác!');
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/login-staff`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: formData.username, password: formData.password })
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        setError(text || 'Login failed');
+        setLoading(false);
+        return;
       }
-      
+      const body = await res.json();
+      // body: { accessToken, tokenType, refreshToken, expiresIn }
+      setAuth({ accessToken: body.accessToken, refreshToken: body.refreshToken }, { username: formData.username, role: 'staff' });
+
+      // Fetch profile info and store a value that DashboardPage expects (`staffAdminUser`)
+      let staffUser = { username: formData.username, role: 'staff' };
+      try {
+        const profileRes = await fetch(`${API_BASE}/api/user/profile`, {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${body.accessToken}` }
+        });
+        if (profileRes.ok) {
+          const profile = await profileRes.json();
+          staffUser = { ...profile, username: profile.username || formData.username, role: (profile.role || 'staff') };
+          setAuth({ accessToken: body.accessToken, refreshToken: body.refreshToken }, profile);
+        }
+      } catch (e) {
+        // ignore profile fetch errors
+      }
+
+      try {
+        localStorage.setItem('staffAdminUser', JSON.stringify(staffUser));
+      } catch (e) {
+        // ignore storage errors
+      }
+
+      navigate('/dashboard');
+    } catch (err) {
+      console.error('Login error', err);
+      setError('Lỗi khi đăng nhập');
+    } finally {
       setLoading(false);
-    }, 1000); // Simulate 1s API delay
+    }
   };
 
   const handleGoBack = () => {

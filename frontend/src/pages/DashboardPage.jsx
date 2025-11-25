@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ProductModal } from '../components/ProductModal';
+import { useAuth } from '../context/AuthContext';
 import './DashboardPage.css';
 
 const DashboardPage = () => {
   const navigate = useNavigate();
+  const { accessToken } = useAuth();
 
   const [user, setUser] = useState(null);
   const [selectedMenu, setSelectedMenu] = useState('Dashboard');
@@ -77,6 +79,36 @@ const DashboardPage = () => {
   const [editingCategoryId, setEditingCategoryId] = useState(null); // null = tạo mới, khác null = đang sửa
   const categoriesPerPage = 10;
 
+  // Helper: parse various possible orderDate representations into Date
+  const parseOrderDate = (val) => {
+    if (!val) return null;
+    if (val instanceof Date) return val;
+    if (typeof val === 'number') return new Date(val);
+    if (typeof val === 'string') {
+      // Try ISO first
+      const iso = Date.parse(val);
+      if (!isNaN(iso)) return new Date(iso);
+      // Try dd/mm/yyyy or d/m/yyyy
+      const parts = val.split('/');
+      if (parts.length === 3) {
+        // If first segment looks like year (yyyy), parse as yyyy/mm/dd
+        if (parts[0].length === 4) {
+          return new Date(parts.join('-'));
+        }
+        // otherwise assume dd/mm/yyyy
+        const [d, m, y] = parts;
+        return new Date(`${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`);
+      }
+    }
+    return null;
+  };
+
+  const formatDate = (val) => {
+    const d = parseOrderDate(val);
+    if (!d) return '';
+    try { return d.toLocaleDateString(); } catch (e) { return String(val); }
+  };
+
   // ======================= CHECK LOGIN & LOAD DATA =======================
   useEffect(() => {
     const userData = localStorage.getItem('staffAdminUser');
@@ -99,7 +131,7 @@ const DashboardPage = () => {
           totalAmount: 690.0,
           status: 'pending',
           date: '2024-01-15',
-          orderDate: new Date('2024-01-15')
+          orderDate: '2024-01-15'
         },
         // ... other mock orders
       ];
@@ -152,7 +184,10 @@ const DashboardPage = () => {
 
     const loadCategories = async () => {
       try {
-        const res = await fetch('http://localhost:8080/api/categories');
+        const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:8080';
+        const headers = accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
+
+        const res = await fetch(`${API_BASE}/api/categories`, { headers });
         if (!res.ok) {
           console.error('Lỗi gọi API categories, status:', res.status);
           return;
@@ -169,10 +204,16 @@ const DashboardPage = () => {
     if (parsedUser.role === 'admin') {
       loadUsers();
     }
-    loadProductsData();
-    loadCategoriesData(); // <-- GỌI API CATEGORY
+
+    // Only call protected API endpoints when we have an access token.
+    if (accessToken) {
+      loadProductsData();
+      loadCategoriesData(); // <-- GỌI API CATEGORY
+    }
+
+    // Re-run this effect when `navigate` or `accessToken` changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [navigate]);
+  }, [navigate, accessToken]);
 
   const handleLogout = () => {
     localStorage.removeItem('staffAdminUser');
@@ -370,9 +411,12 @@ const DashboardPage = () => {
       console.log('🔄 Loading products from API...');
       
       // Fetch products and categories in parallel
+      const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:8080';
+      const headers = accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
+
       const [productsRes, categoriesRes] = await Promise.all([
-        fetch('http://localhost:8080/api/products'),
-        fetch('http://localhost:8080/api/categories')
+        fetch(`${API_BASE}/api/products`, { headers }),
+        fetch(`${API_BASE}/api/categories`, { headers })
       ]);
       
       if (!productsRes.ok) {
@@ -587,8 +631,9 @@ const DashboardPage = () => {
 
       if (selectedDate) {
         filtered = filtered.filter(order => {
-          const orderDate = new Date(order.orderDate.split('/').reverse().join('-'));
-          const filterDate = new Date(selectedDate);
+          const orderDate = parseOrderDate(order.orderDate);
+          const filterDate = parseOrderDate(selectedDate) || new Date(selectedDate);
+          if (!orderDate || !filterDate) return false;
           return orderDate.toDateString() === filterDate.toDateString();
         });
       }
@@ -1150,7 +1195,7 @@ const DashboardPage = () => {
                         <td className="order-id">{order.id}</td>
                         <td className="product-name">{order.productName}</td>
                         <td className="customer-name">{order.customerName}</td>
-                        <td className="order-date">{order.orderDate}</td>
+                        <td className="order-date">{formatDate(order.orderDate)}</td>
                         <td className="order-price">{order.price}</td>
                         <td>
                           <span
@@ -1625,7 +1670,7 @@ const DashboardPage = () => {
                               <tr key={o.id}>
                                 <td>{o.id}</td>
                                 <td>{o.productName}</td>
-                                <td>{o.orderDate}</td>
+                                <td>{formatDate(o.orderDate)}</td>
                                 <td>{o.price}</td>
                               </tr>
                             ))}
