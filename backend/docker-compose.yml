@@ -1,0 +1,32 @@
+version: '3.8'
+services:
+  opensearch:
+    image: opensearchproject/opensearch:2.11.0
+    container_name: opensearch
+    environment:
+      - discovery.type=single-node
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+      - "9200:9200"
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: leaf-shop-backend
+    depends_on:
+      - opensearch
+    environment:
+      # Point backend to local OpenSearch container (no SigV4 signing required)
+      - OPENSEARCH_ENDPOINT=http://opensearch:9200
+      - OPENSEARCH_SIGNING_ENABLED=false
+      - AWS_REGION=ap-southeast-2
+      - AWS_ACCESS_KEY_ID=local
+      - AWS_SECRET_ACCESS_KEY=local
+    ports:
+      - "8080:8080"
+    restart: on-failure

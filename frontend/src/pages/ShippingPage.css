@@ -1,0 +1,115 @@
+.shipping-page {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+  padding: 2rem 0;
+}
+
+.shipping-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+  background: white;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+}
+
+.shipping-title {
+  font-size: 2rem;
+  color: #333;
+  margin-bottom: 2rem;
+  text-align: left;
+  font-weight: 600;
+  border-bottom: 2px solid #333;
+  padding-bottom: 0.5rem;
+}
+
+.shipping-content {
+  line-height: 1.6;
+  color: #333;
+}
+
+.shipping-section {
+  margin-bottom: 2rem;
+}
+
+.shipping-section h2 {
+  font-size: 1.2rem;
+  color: #333;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  margin-top: 0;
+}
+
+.shipping-section p {
+  margin-bottom: 1rem;
+  color: #555;
+  text-align: justify;
+}
+
+.fee-list {
+  margin: 1rem 0;
+  padding-left: 1.5rem;
+}
+
+.fee-list li {
+  margin-bottom: 0.5rem;
+  color: #555;
+}
+
+.promotion-section {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+}
+
+.promotion-section h3 {
+  font-size: 1rem;
+  color: #333;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.promotion-section p {
+  color: #555;
+  margin: 0;
+}
+
+.contact-section {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #ddd;
+}
+
+.contact-section p {
+  margin-bottom: 0.5rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .shipping-page {
+    padding: 1rem 0;
+  }
+  
+  .shipping-container {
+    margin: 0 1rem;
+    padding: 1.5rem;
+  }
+  
+  .shipping-title {
+    font-size: 1.5rem;
+  }
+  
+  .shipping-section h2 {
+    font-size: 1.1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .shipping-container {
+    margin: 0 0.5rem;
+    padding: 1rem;
+  }
+  
+  .shipping-title {
+    font-size: 1.3rem;
+  }
+}

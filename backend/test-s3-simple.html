@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>S3 Upload Test - Simple</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        input[type="file"] {
+            margin: 10px 0;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        .success {
+            color: green;
+        }
+        .error {
+            color: red;
+        }
+        .info {
+            color: blue;
+        }
+        .media-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .media-card {
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 10px;
+            background: #fff;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+        .media-card img {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 4px;
+            border: 1px solid #eee;
+            margin-bottom: 8px;
+        }
+        .media-card code {
+            display: block;
+            word-break: break-all;
+            font-size: 12px;
+            color: #555;
+        }
+        /* Utility classes to avoid inline styles (accessibility + maintainability) */
+        .input-wide { width: 300px; padding: 5px; }
+        .input-medium { width: 200px; padding: 5px; margin: 5px 0; }
+        .input-large { width: 400px; padding: 5px; }
+        .input-search { width: 320px; padding: 5px; }
+        .hint { display: block; color: #666; margin-top: 5px; }
+        .preview-img { max-width: 300px; margin: 10px 0; border: 1px solid #ddd; display: block; }
+    </style>
+</head>
+<body>
+    <h1>🧪 S3 Upload Test Tool</h1>
+    
+    <div class="section">
+        <h2>1. Cấu Hình</h2>
+        <label for="apiBase">API Base URL:</label>
+        <input type="text" id="apiBase" value="http://localhost:8080" class="input-wide" title="API base URL (e.g., http://localhost:8080)">
+    </div>
+
+    <div class="section">
+        <h2>2. Test Upload Ảnh</h2>
+        <label for="productIdInput">Product ID (để lưu vào DB):</label>
+        <input type="text" id="productIdInput" placeholder="001" class="input-medium" title="Product ID to store media for">
+        <small class="hint">💡 Chỉ nhập ID (ví dụ: 001), không cần prefix PRODUCT#</small>
+        <br>
+        <label for="fileInput">Chọn file ảnh:</label>
+        <input type="file" id="fileInput" accept="image/*" title="Chọn file ảnh để upload">
+        <br>
+        <button onclick="testUpload()">Test Upload (Bước 1-3)</button>
+        <button onclick="clearResult()">Clear</button>
+    </div>
+
+    <div class="section">
+        <h2>3. Test Delete File</h2>
+        <label for="s3KeyInput">S3 Key:</label>
+        <input type="text" id="s3KeyInput" placeholder="products/images/uuid.jpg" class="input-large" title="S3 object key (e.g., products/images/uuid.jpg)">
+        <br>
+        <button onclick="testDelete()">Test Delete</button>
+    </div>
+
+    <div class="section">
+        <h2>4. Xem Ảnh Đã Lưu (Verify DB + S3)</h2>
+        <label for="productIdViewInput">Product ID:</label>
+        <input type="text" id="productIdViewInput" placeholder="001 (để trống sẽ dùng Product ID ở bước 2)" class="input-search" title="Product ID to fetch media for">
+        <br>
+        <button onclick="testFetchMedia()">Fetch Media</button>
+        <button onclick="clearGallery()">Clear Media</button>
+        <div id="mediaGallery" class="media-gallery"></div>
+    </div>
+
+    <div id="result"></div>
+
+    <script>
+        const API_BASE = document.getElementById('apiBase').value;
+        
+        function log(message, type = 'info') {
+            const resultDiv = document.getElementById('result');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+            resultDiv.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            resultDiv.scrollTop = resultDiv.scrollHeight;
+        }
+
+        function clearResult() {
+            document.getElementById('result').innerHTML = '';
+        }
+
+        async function testUpload() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            const apiBase = document.getElementById('apiBase').value;
+            
+            if (!file) {
+                log('❌ Vui lòng chọn file', 'error');
+                return;
+            }
+
+            log('🚀 Bắt đầu test upload...', 'info');
+            log(`📍 API Base URL: ${apiBase}`, 'info');
+            log(`📁 File: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`, 'info');
+            
+            try {
+                // Step 1: Get presigned URL
+                log('📤 Step 1: Đang lấy presigned URL...', 'info');
+                log(`   URL: ${apiBase}/api/s3/presigned-url`, 'info');
+                
+                const presignedResponse = await fetch(`${apiBase}/api/s3/presigned-url`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        fileName: file.name,
+                        folderPath: 'products/images',
+                        contentType: file.type,
+                        expirationMinutes: 5
+                    })
+                });
+                
+                log(`   Response Status: ${presignedResponse.status} ${presignedResponse.statusText}`, 'info');
+                log(`   Response OK: ${presignedResponse.ok}`, 'info');
+                
+                if (!presignedResponse.ok) {
+                    const errorText = await presignedResponse.text();
+                    log(`   Error Response: ${errorText}`, 'error');
+                    throw new Error(`Failed to get presigned URL: ${presignedResponse.status} - ${errorText}`);
+                }
+                
+                const { presignedUrl, publicUrl, s3Key } = await presignedResponse.json();
+                log(`✅ Step 1: Đã lấy presigned URL thành công`, 'success');
+                log(`   S3 Key: ${s3Key}`, 'info');
+                log(`   Public URL: ${publicUrl}`, 'info');
+                
+                // Step 2: Upload to S3
+                log('📤 Step 2: Đang upload file lên S3...', 'info');
+                const uploadResponse = await fetch(presignedUrl, {
+                    method: 'PUT',
+                    body: file,
+                    headers: {
+                        'Content-Type': file.type
+                    }
+                });
+                
+                if (!uploadResponse.ok) {
+                    throw new Error(`Upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`);
+                }
+                
+                log('✅ Step 2: Upload file lên S3 thành công!', 'success');
+                
+                // Step 3: Verify file qua download URL
+                log('🔍 Step 3: Đang lấy download URL để verify file...', 'info');
+                let presignedDownloadUrl;
+                try {
+                    presignedDownloadUrl = await getDownloadUrl(apiBase, s3Key);
+                    log(`✅ Step 3: Đã lấy download URL (TTL ${presignedDownloadUrl.expirationMinutes} phút)`, 'success');
+                } catch (downloadErr) {
+                    log(`⚠️ Step 3: Không thể lấy download URL: ${downloadErr.message}`, 'error');
+                }
+
+                log('🔍 Step 3: Đang kiểm tra file via download URL...', 'info');
+                try {
+                    const verifyTarget = presignedDownloadUrl?.presignedUrl || publicUrl;
+                    const verifyResponse = await fetch(verifyTarget, { method: 'HEAD' });
+                    
+                    if (verifyResponse.ok) {
+                        log(`✅ Step 3: File đã được xác minh (Status: ${verifyResponse.status})`, 'success');
+                        log(`   Content-Type: ${verifyResponse.headers.get('Content-Type')}`, 'info');
+                        log(`   Content-Length: ${verifyResponse.headers.get('Content-Length')} bytes`, 'info');
+                    } else {
+                        log(`⚠️ Step 3: Không thể xác minh file (Status: ${verifyResponse.status})`, 'error');
+                    }
+                } catch (verifyError) {
+                    log(`⚠️ Step 3: Lỗi khi verify file: ${verifyError.message}`, 'error');
+                    log(`   💡 File có thể đã upload thành công nhưng chưa truy cập được`, 'info');
+                }
+                
+                // Show image preview (dùng download URL nếu bucket private)
+                const resultDiv = document.getElementById('result');
+                log('🖼️ Preview ảnh:', 'info');
+                const previewSource = presignedDownloadUrl?.presignedUrl || publicUrl;
+                try {
+                    const img = document.createElement('img');
+                    img.src = previewSource;
+                    img.alt = 'Preview';
+                    img.className = 'preview-img';
+                    img.onerror = function () { this.style.display = 'none'; console.error('Image load failed:', previewSource); };
+                    resultDiv.appendChild(img);
+                } catch (e) {
+                    console.error('Failed to render preview image', e);
+                }
+                
+                // Save S3 key for delete test
+                document.getElementById('s3KeyInput').value = s3Key;
+                
+                // Step 4: Save to Database
+                let productId = document.getElementById('productIdInput').value.trim();
+                if (productId) {
+                    // Remove prefix "PRODUCT#" if user entered it
+                    if (productId.startsWith('PRODUCT#')) {
+                        productId = productId.substring(8); // Remove "PRODUCT#"
+                        log(`   ⚠️ Đã tự động remove prefix "PRODUCT#", Product ID: ${productId}`, 'info');
+                    }
+                    
+                    log('💾 Step 4: Đang lưu vào database...', 'info');
+                    try {
+                        const mediaId = `MEDIA_${Date.now()}`;
+                        log(`   Product ID: ${productId}`, 'info');
+                        log(`   Media ID: ${mediaId}`, 'info');
+                        
+                        // Encode productId để tránh lỗi với ký tự đặc biệt
+                        const encodedProductId = encodeURIComponent(productId);
+                        log(`   URL: ${apiBase}/api/products/${encodedProductId}/media`, 'info');
+                        
+                        const payload = {
+                            mediaId: mediaId,
+                            mediaUrl: publicUrl,
+                            s3Key: s3Key,
+                            mediaType: 'IMAGE',
+                            mediaOrder: 1,
+                            isPrimary: true
+                        };
+                        log(`   Payload: ${JSON.stringify(payload, null, 2)}`, 'info');
+
+                        const saveResponse = await fetch(`${apiBase}/api/products/${encodedProductId}/media`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(payload)
+                        });
+                        
+                        log(`   Response Status: ${saveResponse.status} ${saveResponse.statusText}`, 'info');
+                        
+                        if (!saveResponse.ok) {
+                            const errorText = await saveResponse.text();
+                            log(`   Error Response: ${errorText}`, 'error');
+                            throw new Error(`Failed to save to database: ${saveResponse.status} - ${errorText}`);
+                        }
+                        
+                        const savedMedia = await saveResponse.json();
+                        log(`✅ Step 4: Đã lưu vào database thành công!`, 'success');
+                        log(`   Media ID: ${savedMedia.mediaId}`, 'info');
+                        log(`   Product ID: ${savedMedia.productId}`, 'info');
+                        log(`   Media URL: ${savedMedia.mediaUrl}`, 'info');
+                        log(`   Is Primary: ${savedMedia.isPrimary}`, 'info');
+                        
+                        log('🎉 Test upload hoàn tất (Bước 1-4)!', 'success');
+                        log(`💡 Bạn có thể test delete với S3 Key: ${s3Key}`, 'info');
+                        
+                    } catch (saveError) {
+                        log(`❌ Step 4: Lỗi khi lưu vào database: ${saveError.message}`, 'error');
+                        log(`   💡 File đã upload lên S3 thành công, chỉ lỗi khi lưu DB`, 'info');
+                        log(`   💡 Nguyên nhân có thể:`, 'info');
+                        log(`      1. Product ID "${productId}" không tồn tại trong database`, 'info');
+                        log(`      2. Product ID format không đúng (chỉ cần ID, không cần prefix)`, 'info');
+                        log(`      3. Kiểm tra: GET ${apiBase}/api/products/${encodedProductId}`, 'info');
+                        log(`💡 Bạn có thể test delete với S3 Key: ${s3Key}`, 'info');
+                    }
+                } else {
+                    log('⚠️ Step 4: Bỏ qua lưu vào database (chưa nhập Product ID)', 'info');
+                    log('💡 Để lưu vào DB, vui lòng nhập Product ID ở trên', 'info');
+                    log('🎉 Test upload hoàn tất (Bước 1-3)!', 'success');
+                    log(`💡 Bạn có thể test delete với S3 Key: ${s3Key}`, 'info');
+                }
+                
+            } catch (error) {
+                log(`❌ Lỗi: ${error.message}`, 'error');
+                log(`   Error Type: ${error.constructor.name}`, 'error');
+                
+                // Log stack trace nếu có
+                if (error.stack) {
+                    console.error('Error stack:', error.stack);
+                }
+                console.error('Error details:', error);
+                
+                // Gợi ý giải pháp dựa trên loại lỗi
+                if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+                    log('💡 Gợi ý khắc phục:', 'info');
+                    log('   1. Kiểm tra backend có đang chạy trên port 8080 không?', 'info');
+                    log('   2. Test: curl http://localhost:8080/api/warehouses', 'info');
+                    log('   3. Nếu mở HTML bằng file://, hãy chạy qua HTTP server:', 'info');
+                    log('      python -m http.server 8000', 'info');
+                    log('      Sau đó mở: http://localhost:8000/test-s3-simple.html', 'info');
+                    log('   4. Kiểm tra CORS config trong SecurityConfig.java', 'info');
+                } else if (error.message.includes('CORS')) {
+                    log('💡 Gợi ý: CORS issue - cần cấu hình CORS trong backend', 'info');
+                } else if (error.message.includes('404')) {
+                    log('💡 Gợi ý: Endpoint không tồn tại - kiểm tra URL API', 'info');
+                } else if (error.message.includes('500')) {
+                    log('💡 Gợi ý: Lỗi server - kiểm tra logs backend', 'info');
+                }
+            }
+        }
+
+        async function testDelete() {
+            const s3Key = document.getElementById('s3KeyInput').value;
+            const apiBase = document.getElementById('apiBase').value;
+            
+            if (!s3Key) {
+                log('❌ Vui lòng nhập S3 Key', 'error');
+                return;
+            }
+
+            log(`🗑️ Đang xóa file: ${s3Key}...`, 'info');
+            
+            try {
+                const response = await fetch(`${apiBase}/api/s3/delete?s3Key=${encodeURIComponent(s3Key)}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    const message = await response.text();
+                    log(`✅ Xóa file thành công: ${message}`, 'success');
+                } else {
+                    const errorText = await response.text();
+                    throw new Error(`Delete failed: ${response.status} - ${errorText}`);
+                }
+            } catch (error) {
+                log(`❌ Lỗi khi xóa: ${error.message}`, 'error');
+                console.error('Error details:', error);
+            }
+        }
+
+        // Update API base when input changes
+        document.getElementById('apiBase').addEventListener('change', function() {
+            log(`🔧 API Base URL đã được cập nhật: ${this.value}`, 'info');
+        });
+
+        function clearGallery() {
+            document.getElementById('mediaGallery').innerHTML = '';
+            log('🧹 Đã clear media gallery', 'info');
+        }
+
+        function normalizeProductId(rawId) {
+            if (!rawId) {
+                return '';
+            }
+            let productId = rawId.trim();
+            if (productId.startsWith('PRODUCT#')) {
+                productId = productId.substring(8);
+                log(`   ⚠️ Đã tự động remove prefix "PRODUCT#", Product ID: ${productId}`, 'info');
+            }
+            return productId;
+        }
+
+        async function testFetchMedia() {
+            const apiBase = document.getElementById('apiBase').value;
+            const viewInput = document.getElementById('productIdViewInput').value;
+            const fallbackInput = document.getElementById('productIdInput').value;
+
+            let productId = normalizeProductId(viewInput) || normalizeProductId(fallbackInput);
+
+            if (!productId) {
+                log('❌ Vui lòng nhập Product ID (ở bước 2 hoặc trong mục này)', 'error');
+                return;
+            }
+
+            const encodedProductId = encodeURIComponent(productId);
+            const url = `${apiBase}/api/products/${encodedProductId}/media`;
+
+            log(`🔎 Đang fetch media list cho Product ID "${productId}"...`, 'info');
+            log(`   URL: ${url}`, 'info');
+
+            try {
+                const response = await fetch(url);
+                log(`   Response Status: ${response.status} ${response.statusText}`, 'info');
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    log(`   Error Response: ${errorText}`, 'error');
+                    throw new Error(`Failed to fetch media: ${response.status} - ${errorText}`);
+                }
+
+                const mediaList = await response.json();
+                log(`✅ Fetch media thành công! Tổng số media: ${mediaList.length}`, mediaList.length ? 'success' : 'info');
+
+                const mediaWithPreview = await Promise.all(mediaList.map(media => attachDownloadUrl(apiBase, media)));
+                renderMediaGallery(mediaWithPreview);
+            } catch (error) {
+                log(`❌ Lỗi khi fetch media: ${error.message}`, 'error');
+                console.error('Fetch media error:', error);
+            }
+        }
+
+        function renderMediaGallery(mediaList) {
+            const gallery = document.getElementById('mediaGallery');
+            gallery.innerHTML = '';
+
+            if (!Array.isArray(mediaList) || mediaList.length === 0) {
+                gallery.innerHTML = '<div class="media-card info">📭 Không có media nào cho product này</div>';
+                return;
+            }
+
+            mediaList.forEach(media => {
+                const card = document.createElement('div');
+                card.className = 'media-card';
+
+                const img = document.createElement('img');
+                img.src = media.previewUrl || media.mediaUrl;
+                img.alt = media.mediaId || 'Media preview';
+                img.onerror = () => {
+                    img.style.display = 'none';
+                    const fallback = document.createElement('div');
+                    fallback.className = 'error';
+                    fallback.textContent = '🚫 Không thể hiển thị ảnh (có thể bucket private)';
+                    card.insertBefore(fallback, card.firstChild);
+                };
+
+                const info = document.createElement('div');
+                info.innerHTML = `
+                    <strong>${media.mediaId || 'N/A'}</strong>
+                    <code>${media.mediaUrl || 'No URL'}</code>
+                    <div>Type: ${media.mediaType || '--'}</div>
+                    <div>Order: ${media.mediaOrder ?? '--'}</div>
+                    <div>Primary: ${media.isPrimary ? 'Yes ✅' : 'No'}</div>
+                    <div>S3 Key: ${media.s3Key || '--'}</div>
+                `;
+
+                card.appendChild(img);
+                card.appendChild(info);
+                gallery.appendChild(card);
+            });
+        }
+
+        async function getDownloadUrl(apiBase, s3Key, expirationMinutes = 5) {
+            if (!s3Key) {
+                throw new Error('Missing s3Key');
+            }
+
+            const url = `${apiBase}/api/s3/download-url?s3Key=${encodeURIComponent(s3Key)}&expirationMinutes=${expirationMinutes}`;
+            log(`   ➤ Fetch download URL: ${url}`, 'info');
+
+            const response = await fetch(url);
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Download URL failed: ${response.status} - ${errorText}`);
+            }
+            return response.json();
+        }
+
+        async function attachDownloadUrl(apiBase, media) {
+            if (!media || !media.s3Key) {
+                return media;
+            }
+            try {
+                const download = await getDownloadUrl(apiBase, media.s3Key);
+                return { ...media, previewUrl: download.presignedUrl };
+            } catch (error) {
+                log(`⚠️ Không thể lấy download URL cho ${media.mediaId || media.s3Key}: ${error.message}`, 'error');
+                return media;
+            }
+        }
+    </script>
+</body>
+</html>
+
