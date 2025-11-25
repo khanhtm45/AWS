@@ -26,10 +26,13 @@ public class DynamoUserDetailsService implements UserDetailsService {
         Optional<UserTable> accountOpt = userTableRepository.findAccountByUsername(username);
         UserTable account = accountOpt.orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
 
+        String password = account.getPassword();
+        if (password == null) password = "";
+        boolean enabled = account.getIsActive() != null ? account.getIsActive() : true;
         return new org.springframework.security.core.userdetails.User(
             account.getUsername(),
-            account.getPassword(),
-            account.getIsActive() != null ? account.getIsActive() : true,
+            password,
+            enabled,
             true, true, true,
             toAuthorities(account.getRole())
         );

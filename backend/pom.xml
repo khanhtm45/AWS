@@ -223,6 +223,13 @@
             <artifactId>stripe-java</artifactId>
             <version>20.134.0</version>
         </dependency>
+
+        <!-- dotenv support for loading .env into JVM properties at startup -->
+        <dependency>
+            <groupId>io.github.cdimascio</groupId>
+            <artifactId>java-dotenv</artifactId>
+            <version>5.2.2</version>
+        </dependency>
     </dependencies>
 
     <build>

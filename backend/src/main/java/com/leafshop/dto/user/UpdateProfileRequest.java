@@ -8,4 +8,5 @@ public class UpdateProfileRequest {
     private String lastName;
     private String phoneNumber;
     private String nationalId;
+    private java.util.List<com.leafshop.dto.user.AddressUpdateRequest> addresses;
 }
