@@ -1,4 +1,4 @@
-package com.server.dto.s3;
+package com.leafshop.dto.s3;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
