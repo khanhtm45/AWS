@@ -1,5 +1,6 @@
 package com.leafshop.controller;
 
+import com.leafshop.dto.s3.PresignedDownloadUrlResponse;
 import com.leafshop.dto.s3.PresignedUrlRequest;
 import com.leafshop.dto.s3.PresignedUrlResponse;
 import com.leafshop.service.S3Service;
@@ -86,6 +87,20 @@ public class S3Controller {
 	@ExceptionHandler(IllegalArgumentException.class)
 	public ResponseEntity<String> handleIllegalArgumentException(IllegalArgumentException ex) {
 		return ResponseEntity.badRequest().body(ex.getMessage());
+	}
+	@GetMapping("/download-url")
+	public ResponseEntity<PresignedDownloadUrlResponse> generatePresignedDownloadUrl(
+		@RequestParam("s3Key") String s3Key,
+		@RequestParam(value = "expirationMinutes", required = false) Integer expirationMinutes
+	) {
+		if (s3Key == null || s3Key.isBlank()) {
+			throw new IllegalArgumentException("s3Key is required");
+		}
+
+		int ttlMinutes = expirationMinutes != null ? expirationMinutes : 5;
+		String presignedUrl = s3Service.generatePresignedDownloadUrl(s3Key, ttlMinutes);
+
+		return ResponseEntity.ok(new PresignedDownloadUrlResponse(presignedUrl, s3Key, ttlMinutes));
 	}
 }
 
