@@ -98,7 +98,7 @@ function ProductDetailPage() {
   // --- 3. XỬ LÝ DỮ LIỆU LOGIC ---
   
   // Lấy danh sách Size/Màu duy nhất
-  const uniqueSizes = [...new Set(variants.map(v => v.variantAttributes.size))];
+  const uniqueSizes = ['S', 'M', 'L', 'XL']; // Set cứng sizes
   const uniqueColors = [...new Set(variants.map(v => v.variantAttributes.color))];
   
   // Map tên màu sang mã Hex
