@@ -9,7 +9,5 @@ target/
 *.classpath
 *.project
 *.settings/
-src/main/resources/
-
 # Local env file
 .env

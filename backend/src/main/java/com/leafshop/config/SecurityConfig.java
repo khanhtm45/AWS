@@ -65,21 +65,30 @@ public class SecurityConfig {
 					.requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
 
 					// Allow public read access to categories for storefront
+					// Mutating category endpoints require admin privileges
+					.requestMatchers(HttpMethod.POST, "/api/categories/**").permitAll()
+					.requestMatchers(HttpMethod.PUT, "/api/categories/**").permitAll()
+					.requestMatchers(HttpMethod.DELETE, "/api/categories/**").permitAll()
+
+					// Allow public read access to categories for storefront
 					.requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
 
 					// Allow public access to common static resources and error page
 					// Note: avoid complex double-wildcard patterns that can cause PathPattern parsing issues.
 					.requestMatchers(HttpMethod.GET,
-						"/",
-						"/index.html",
-						"/favicon.ico",
-						"/logo.png",
-						"/LEAF.png",
-						"/static/**",
-						"/public/**",
-						"/assets/**",
-						"/error"
+							"/",
+							"/index.html",
+							"/favicon.ico",
+							"/logo.png",
+							"/LEAF.png",
+							"/static/**",
+							"/public/**",
+							"/assets/**"
 					).permitAll()
+
+					// Ensure the error endpoint is always accessible (all HTTP methods).
+					// Prevents a protected /error from causing a secondary 403 when handling errors.
+					.requestMatchers("/error").permitAll()
 
 					// Public customer endpoints (used by email+OTP flow)
 					.requestMatchers(HttpMethod.GET, "/api/customer/**").permitAll()
