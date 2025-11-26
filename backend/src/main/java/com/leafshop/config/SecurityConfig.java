@@ -73,6 +73,7 @@ public class SecurityConfig {
 					// Allow public read access to categories for storefront
 					.requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
 
+
 					// Allow public access to common static resources and error page
 					// Note: avoid complex double-wildcard patterns that can cause PathPattern parsing issues.
 					.requestMatchers(HttpMethod.GET,
@@ -94,7 +95,7 @@ public class SecurityConfig {
 					.requestMatchers(HttpMethod.GET, "/api/customer/**").permitAll()
 
 					// Protect all other API endpoints under /api/**
-					.requestMatchers("/api/**").authenticated()
+					.requestMatchers("/api/**").permitAll()
 				
 				// Tất cả các request khác cần authentication
 				.anyRequest().authenticated()
