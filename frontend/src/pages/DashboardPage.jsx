@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ProductModal } from '../components/ProductModal';
+import { EditProductModal } from '../components/EditProductModal';
 import './DashboardPage.css';
 
 const DashboardPage = () => {
@@ -47,8 +48,10 @@ const DashboardPage = () => {
   const [productSearchTerm, setProductSearchTerm] = useState('');
   const [currentProductPage, setCurrentProductPage] = useState(1);
   const [showProductModal, setShowProductModal] = useState(false);
+  const [showEditProductModal, setShowEditProductModal] = useState(false);
   // eslint-disable-next-line no-unused-vars
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [editingProductId, setEditingProductId] = useState(null);
   // eslint-disable-next-line no-unused-vars
   const [productForm, setProductForm] = useState({
     name: '',
@@ -124,30 +127,9 @@ const DashboardPage = () => {
     };
 
     const loadProducts = () => {
-      const mockProducts = [
-        {
-          id: 1,
-          name: 'Apple Watch Series 4',
-          category: 'Digital Product',
-          price: 690.0,
-          quantity: 63,
-          image: '/api/placeholder/60/60',
-          colors: ['black', 'silver', 'rose-gold'],
-          description: 'Apple Watch Series 4 với nhiều tính năng thông minh và thiết kế hiện đại.'
-        },
-        {
-          id: 2,
-          name: 'Microsoft Headsquare',
-          category: 'Digital Product',
-          price: 190.0,
-          quantity: 13,
-          image: '/api/placeholder/60/60',
-          colors: ['black', 'red', 'blue', 'yellow'],
-          description: 'Tai nghe Microsoft Headsquare chất lượng cao với âm thanh tuyệt vời.'
-        }
-      ];
-      setProducts(mockProducts);
-      setFilteredProducts(mockProducts);
+      // Products will be loaded via API call to loadProductsData()
+      setProducts([]);
+      setFilteredProducts([]);
     };
 
     const loadCategories = async () => {
@@ -341,30 +323,7 @@ const DashboardPage = () => {
     setFilteredUsers(mockUsers);
   };
 
-  // ======================= MOCK PRODUCTS =======================
-  const mockProducts = [
-    {
-      id: 1,
-      name: 'Apple Watch Series 4',
-      category: 'Digital Product',
-      price: 690.0,
-      quantity: 63,
-      image: '/api/placeholder/60/60',
-      colors: ['black', 'silver', 'rose-gold'],
-      description: 'Apple Watch Series 4 với nhiều tính năng thông minh và thiết kế hiện đại.'
-    },
-    {
-      id: 2,
-      name: 'Microsoft Headsquare',
-      category: 'Digital Product',
-      price: 190.0,
-      quantity: 13,
-      image: '/api/placeholder/60/60',
-      colors: ['black', 'red', 'blue', 'yellow'],
-      description: 'Tai nghe Microsoft Headsquare chất lượng cao với âm thanh tuyệt vời.'
-    }
-  ];
-
+  // ======================= PRODUCTS API =======================
   const loadProductsData = async () => {
     try {
       console.log('🔄 Loading products from API...');
@@ -377,10 +336,10 @@ const DashboardPage = () => {
       
       if (!productsRes.ok) {
         console.error('Lỗi gọi API products, status:', productsRes.status);
-        // Fallback to mock data if API fails
-        console.warn('⚠️ Using mock data as fallback');
-        setProducts(mockProducts);
-        setFilteredProducts(mockProducts);
+        // Set empty array if API fails
+        console.warn('⚠️ No products loaded - API error');
+        setProducts([]);
+        setFilteredProducts([]);
         return;
       }
       
@@ -416,10 +375,10 @@ const DashboardPage = () => {
       setFilteredProducts(formattedProducts);
     } catch (error) {
       console.error('Không thể load products:', error);
-      // Fallback to mock data on error
-      console.warn('⚠️ Using mock data due to error');
-      setProducts(mockProducts);
-      setFilteredProducts(mockProducts);
+      // Set empty array on error
+      console.warn('⚠️ No products loaded due to error');
+      setProducts([]);
+      setFilteredProducts([]);
     }
   };
 
@@ -441,6 +400,85 @@ const DashboardPage = () => {
     } catch (error) {
       console.error('Error after creating product:', error);
       alert('Sản phẩm đã tạo nhưng có lỗi khi tải lại danh sách. Vui lòng refresh trang.');
+    }
+  };
+
+  const handleEditProduct = (product) => {
+    console.log('🔄 Opening edit modal for product:', product.id);
+    setEditingProductId(product.id);
+    setSelectedProduct(product);
+    setShowEditProductModal(true);
+  };
+
+  const handleEditProductSubmit = async () => {
+    try {
+      console.log('✅ Product updated successfully');
+      
+      // Close modal
+      setShowEditProductModal(false);
+      setEditingProductId(null);
+      setSelectedProduct(null);
+      
+      // Reload products from API to get the latest data
+      console.log('🔄 Reloading products list after edit...');
+      await loadProductsData();
+      
+      // Show success message
+      alert('🎉 Cập nhật sản phẩm thành công!');
+      
+    } catch (error) {
+      console.error('Error after editing product:', error);
+      alert('Có lỗi khi cập nhật sản phẩm. Vui lòng thử lại.');
+    }
+  };
+
+  const handleDeleteProduct = async (productId, productName) => {
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa sản phẩm "${productName}"?\n\nHành động này không thể hoàn tác!`)) {
+      return;
+    }
+
+    try {
+      console.log(`🗑️ Deleting product: ${productId}`);
+      
+      const response = await fetch(`http://localhost:8080/api/products/${encodeURIComponent(productId)}`, {
+        method: 'DELETE',
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+
+      console.log(`📡 Delete Response Status: ${response.status} ${response.statusText}`);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Delete API Error Response:', errorText);
+        
+        if (response.status === 404) {
+          throw new Error(`Sản phẩm "${productName}" không tồn tại hoặc đã bị xóa`);
+        } else if (response.status === 400) {
+          throw new Error(`Không thể xóa sản phẩm "${productName}": ${errorText}`);
+        } else {
+          throw new Error(`Lỗi server khi xóa sản phẩm (${response.status}): ${errorText}`);
+        }
+      }
+
+      console.log(`✅ Product "${productName}" deleted successfully from API`);
+      
+      // Reload products list to reflect changes
+      await loadProductsData();
+      
+      // Show success message
+      alert(`✅ Đã xóa sản phẩm "${productName}" thành công!`);
+      
+    } catch (error) {
+      console.error('❌ Error deleting product:', error);
+      
+      // Show user-friendly error message
+      if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+        alert('❌ Không thể kết nối đến server.\n\nVui lòng kiểm tra:\n1. Backend có đang chạy trên port 8080?\n2. Kiểm tra kết nối mạng');
+      } else {
+        alert(`❌ Lỗi xóa sản phẩm:\n\n${error.message}`);
+      }
     }
   };
 
@@ -1282,31 +1320,14 @@ const DashboardPage = () => {
                               <div className="product-page-actions">
                                 <button
                                   className="product-page-edit-btn"
-                                  onClick={() => {
-                                    setSelectedProduct(product);
-                                    setProductForm({
-                                      name: product.name,
-                                      category: product.category,
-                                      price: product.price.toString(),
-                                      quantity: product.quantity.toString(),
-                                      description: product.description,
-                                      colors: product.colors
-                                    });
-                                    setShowProductModal(true);
-                                  }}
+                                  onClick={() => handleEditProduct(product)}
                                   title="Sửa"
                                 >
                                   ✏️
                                 </button>
                                 <button
                                   className="product-page-delete-btn"
-                                  onClick={() => {
-                                    if (window.confirm('Xóa sản phẩm này?')) {
-                                      const updatedProducts = products.filter(p => p.id !== product.id);
-                                      setProducts(updatedProducts);
-                                      setFilteredProducts(updatedProducts);
-                                    }
-                                  }}
+                                  onClick={() => handleDeleteProduct(product.id, product.name)}
                                   title="Xóa"
                                 >
                                   🗑️
@@ -1661,6 +1682,18 @@ const DashboardPage = () => {
           isOpen={showProductModal} 
           onClose={() => setShowProductModal(false)}
           onSubmit={handleCreateProduct}
+        />
+        
+        {/* Edit Product Modal */}
+        <EditProductModal 
+          isOpen={showEditProductModal} 
+          onClose={() => {
+            setShowEditProductModal(false);
+            setEditingProductId(null);
+            setSelectedProduct(null);
+          }}
+          onSubmit={handleEditProductSubmit}
+          productId={editingProductId}
         />
       </div>
     </div>

@@ -30,16 +30,16 @@ export function ProductModal({ isOpen, onClose, onSubmit }) {
 
   // Color presets
   const COLOR_PRESETS = [
-    { value: "red", label: "Đỏ", hex: "#EF4444" },
-    { value: "blue", label: "Xanh dương", hex: "#3B82F6" },
-    { value: "green", label: "Xanh lá", hex: "#10B981" },
-    { value: "yellow", label: "Vàng", hex: "#F59E0B" },
-    { value: "black", label: "Đen", hex: "#000000" },
-    { value: "white", label: "Trắng", hex: "#FFFFFF" },
-    { value: "pink", label: "Hồng", hex: "#EC4899" },
-    { value: "purple", label: "Tím", hex: "A855F7" },
-    { value: "orange", label: "Cam", hex: "#F97316" },
-    { value: "brown", label: "Nâu", hex: "#92400E" }
+    { value: "Đỏ", label: "Đỏ", hex: "#EF4444" },
+    { value: "Xanh dương", label: "Xanh dương", hex: "#3B82F6" },
+    { value: "Xanh lá", label: "Xanh lá", hex: "#10B981" },
+    { value: "Vàng", label: "Vàng", hex: "#F59E0B" },
+    { value: "Đen", label: "Đen", hex: "#000000" },
+    { value: "Trắng", label: "Trắng", hex: "#FFFFFF" },
+    { value: "Hồng", label: "Hồng", hex: "#EC4899" },
+    { value: "Tím", label: "Tím", hex: "A855F7" },
+    { value: "Cam", label: "Cam", hex: "#F97316" },
+    { value: "Nâu", label: "Nâu", hex: "#92400E" }
   ];
 
   useEffect(() => {
@@ -969,7 +969,9 @@ export function ProductModal({ isOpen, onClose, onSubmit }) {
                           )}
                         </div>
                         
-                      </div>                      {/* Variant price */}
+                      </div>
+
+                      {/* Variant price - HIDDEN
                       <div className="variant-price">
                         <label className="product-modal-label">
                           Giá riêng (tùy chọn)
@@ -982,6 +984,7 @@ export function ProductModal({ isOpen, onClose, onSubmit }) {
                           className="product-modal-input"
                         />
                       </div>
+                      */}
                     </div>
                   ))}
                 </div>
