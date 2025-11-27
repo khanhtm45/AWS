@@ -386,6 +386,8 @@ const DashboardPage = () => {
         productsData.map(async (product) => {
           // Xử lý ảnh: backend trả về array of S3 keys (strings)
           let imageUrl = '/api/placeholder/60/60';
+          let imagesUrls = [];
+          let mediaData = null;
           
           console.log(`📦 Loading image for product ${product.productId}:`, {
             hasImages: !!product.images,
@@ -399,6 +401,14 @@ const DashboardPage = () => {
             console.log(`✅ Found image in product.images:`, s3Key);
             imageUrl = await getPresignedUrl(s3Key);
             console.log(`✅ Got presigned URL:`, imageUrl);
+            // Build full imagesUrls array from product.images
+            try {
+              imagesUrls = await Promise.all(product.images.map(async (k) => {
+                try { return await getPresignedUrl(k); } catch (e) { return '/api/placeholder/60/60'; }
+              }));
+            } catch (err) {
+              console.warn('Cannot build imagesUrls from product.images:', err);
+            }
           } else {
             // Nếu không có trong product.images, thử gọi API /media
             console.log(`⚠️ No images in product.images, trying /media endpoint...`);
@@ -406,7 +416,7 @@ const DashboardPage = () => {
               const mediaRes = await fetch(`http://localhost:8080/api/products/${encodeURIComponent(product.productId)}/media`);
               console.log(`📡 Media API response status:`, mediaRes.status);
               if (mediaRes.ok) {
-                const mediaData = await mediaRes.json();
+                mediaData = await mediaRes.json();
                 console.log(`📷 Media data:`, mediaData);
                 if (mediaData && mediaData.length > 0) {
                   // Tìm ảnh primary hoặc lấy ảnh đầu tiên
@@ -416,11 +426,24 @@ const DashboardPage = () => {
                     imageUrl = await getPresignedUrl(primaryImage.s3Key);
                     console.log(`✅ Got presigned URL from media:`, imageUrl);
                   }
+                  // Build imagesUrls from mediaData
+                  try {
+                    imagesUrls = await Promise.all(mediaData.map(async (m) => {
+                      try { return await getPresignedUrl(m.s3Key); } catch (e) { return '/api/placeholder/60/60'; }
+                    }));
+                  } catch (err) {
+                    console.warn('Cannot build imagesUrls from mediaData:', err);
+                  }
                 }
               }
             } catch (error) {
               console.warn(`❌ Cannot load media for product ${product.productId}:`, error);
             }
+          }
+
+          // Fallback: nếu không có imagesUrls, dùng imageUrl làm 1 phần tử
+          if (!imagesUrls || imagesUrls.length === 0) {
+            imagesUrls = [imageUrl];
           }
 
           return {
@@ -430,6 +453,7 @@ const DashboardPage = () => {
             price: product.price || 0,
             quantity: product.quantity || 0,
             image: imageUrl,
+            images: imagesUrls,
             colors: product.variants 
               ? product.variants.map(v => v.variantAttributes?.color).filter(Boolean)
               : [],
@@ -1795,17 +1819,21 @@ const DashboardPage = () => {
               <div className="modal-body">
                 <div style={{ padding: '20px' }}>
                   <div style={{ marginBottom: '20px', textAlign: 'center' }}>
-                    <img
-                      src={selectedProduct.image}
-                      alt={selectedProduct.name}
-                      style={{
-                        maxWidth: '300px',
-                        maxHeight: '300px',
-                        objectFit: 'cover',
-                        borderRadius: '8px',
-                        border: '1px solid #e5e7eb'
-                      }}
-                    />
+                    { (selectedProduct.images || [selectedProduct.image]).map((imgSrc, idx) => (
+                      <img
+                        key={idx}
+                        src={imgSrc}
+                        alt={`${selectedProduct.name} ${idx + 1}`}
+                        style={{
+                          width: '180px',
+                          height: '180px',
+                          objectFit: 'cover',
+                          borderRadius: '8px',
+                          border: '1px solid #e5e7eb',
+                          margin: '0 8px'
+                        }}
+                      />
+                    )) }
                   </div>
                   <div style={{ display: 'grid', gap: '15px' }}>
                     <div>
