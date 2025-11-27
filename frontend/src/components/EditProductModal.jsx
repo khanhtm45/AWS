@@ -33,6 +33,30 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
     { value: "Nâu", label: "Nâu", hex: "#92400E" }
   ];
 
+  // Helper function để lấy presigned URL từ S3 key
+  const getPresignedUrl = async (s3KeyOrUrl) => {
+    if (s3KeyOrUrl.startsWith('http')) {
+      return s3KeyOrUrl;
+    }
+
+    try {
+      const response = await fetch(
+        `http://localhost:8080/api/s3/download-url?s3Key=${encodeURIComponent(s3KeyOrUrl)}`
+      );
+      
+      if (!response.ok) {
+        console.error('Failed to get presigned URL:', response.status);
+        return s3KeyOrUrl;
+      }
+      
+      const data = await response.json();
+      return data.presignedUrl;
+    } catch (error) {
+      console.error('Error getting presigned URL:', error);
+      return s3KeyOrUrl;
+    }
+  };
+
   useEffect(() => {
     if (!isOpen) {
       setStep(1);
@@ -79,14 +103,50 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
       if (productRes.ok) {
         const productData = await productRes.json();
         
-        // Xử lý ảnh từ S3
-        const existingImages = productData.images ? productData.images.map((imageUrl, index) => ({
-          id: `existing_${index}`,
-          url: imageUrl,
-          name: `Ảnh ${index + 1}`,
-          uploadedToS3: true,
-          isExisting: true
-        })) : [];
+        let existingImages = [];
+        
+        // Thử lấy ảnh từ product.images trước
+        if (productData.images && Array.isArray(productData.images) && productData.images.length > 0) {
+          existingImages = await Promise.all(
+            productData.images.map(async (s3KeyOrUrl, index) => {
+              const presignedUrl = await getPresignedUrl(s3KeyOrUrl);
+              return {
+                id: `existing_${index}`,
+                url: presignedUrl,
+                s3Key: s3KeyOrUrl,
+                name: `Ảnh ${index + 1}`,
+                uploadedToS3: true,
+                isExisting: true
+              };
+            })
+          );
+        } else {
+          // Nếu không có, thử lấy từ /media endpoint
+          try {
+            const mediaRes = await fetch(`http://localhost:8080/api/products/${encodeURIComponent(productId)}/media`);
+            if (mediaRes.ok) {
+              const mediaData = await mediaRes.json();
+              if (mediaData && mediaData.length > 0) {
+                existingImages = await Promise.all(
+                  mediaData.map(async (media, index) => {
+                    const presignedUrl = await getPresignedUrl(media.s3Key);
+                    return {
+                      id: media.mediaId || `media_${index}`,
+                      url: presignedUrl,
+                      s3Key: media.s3Key,
+                      name: `Ảnh ${index + 1}`,
+                      uploadedToS3: true,
+                      isExisting: true,
+                      isPrimary: media.isPrimary
+                    };
+                  })
+                );
+              }
+            }
+          } catch (error) {
+            console.warn('Cannot load media:', error);
+          }
+        }
         
         setFormData({
           productId: productData.productId || productData.id,
@@ -140,9 +200,13 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
     try {
       const uploadPromises = files.map(async (file) => {
         const uploadResult = await uploadSingleImageToS3(file);
+        const s3Key = uploadResult.s3Key || uploadResult.url;
+        const presignedUrl = await getPresignedUrl(s3Key);
+        
         return {
           id: Date.now() + Math.random(),
-          url: uploadResult.url,
+          url: presignedUrl,
+          s3Key: s3Key,
           name: file.name,
           uploadedToS3: true,
           isExisting: false
@@ -162,20 +226,42 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
 
   const uploadSingleImageToS3 = async (file) => {
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await fetch('http://localhost:8080/api/upload', {
+      // Bước 1: Lấy presigned URL từ backend
+      const presignedResponse = await fetch('http://localhost:8080/api/s3/presigned-url', {
         method: 'POST',
-        body: formData
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          fileName: file.name,
+          folderPath: 'products/images',
+          contentType: file.type,
+          expirationMinutes: 5
+        })
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      if (!presignedResponse.ok) {
+        const errorText = await presignedResponse.text();
+        throw new Error(`Không lấy được presigned URL: ${presignedResponse.status} - ${errorText}`);
       }
 
-      const result = await response.json();
-      return { url: result.url };
+      const { presignedUrl, publicUrl, s3Key } = await presignedResponse.json();
+
+      // Bước 2: Upload file trực tiếp lên S3
+      const uploadResponse = await fetch(presignedUrl, {
+        method: 'PUT',
+        body: file,
+        headers: {
+          'Content-Type': file.type
+        }
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error(`Upload lên S3 thất bại: ${uploadResponse.status}`);
+      }
+
+      return { url: publicUrl, s3Key: s3Key };
     } catch (error) {
       console.error('S3 Upload error:', error);
       throw error;
@@ -247,7 +333,8 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
         preorderDays: Number(formData.preorderDays),
         isActive: true,
         tags: [],
-        images: formData.images.map(img => img.url)
+        // Gửi S3 key (không phải presigned URL)
+        images: formData.images.map(img => img.s3Key || img.url)
       };
 
       const response = await fetch(`http://localhost:8080/api/products/${encodeURIComponent(productId)}`, {
@@ -261,6 +348,41 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
 
       if (!response.ok) {
         throw new Error(`Lỗi cập nhật sản phẩm: ${response.status}`);
+      }
+
+      // ✅ Cập nhật ảnh trong bảng media
+      // Xóa ảnh cũ và thêm ảnh mới (nếu có ảnh mới không phải isExisting)
+      const newImages = formData.images.filter(img => !img.isExisting);
+      if (newImages.length > 0) {
+        console.log(`💾 Saving ${newImages.length} new images to media table...`);
+        try {
+          for (let i = 0; i < newImages.length; i++) {
+            const image = newImages[i];
+            const mediaPayload = {
+              mediaId: `MEDIA_${Date.now()}_${i}`,
+              mediaUrl: image.url,
+              s3Key: image.s3Key,
+              mediaType: 'IMAGE',
+              mediaOrder: formData.images.indexOf(image) + 1,
+              isPrimary: formData.images.indexOf(image) === 0
+            };
+
+            const mediaResponse = await fetch(`http://localhost:8080/api/products/${encodeURIComponent(productId)}/media`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+              },
+              body: JSON.stringify(mediaPayload)
+            });
+
+            if (mediaResponse.ok) {
+              console.log(`✅ Image ${i + 1} saved to media table`);
+            }
+          }
+        } catch (mediaError) {
+          console.warn('⚠️ Error saving images to media:', mediaError);
+        }
       }
 
       setErrors({ general: '' });

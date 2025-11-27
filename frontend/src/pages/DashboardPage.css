@@ -2573,6 +2573,7 @@
   align-items: center;
 }
 
+.product-page-view-btn,
 .product-page-edit-btn,
 .product-page-delete-btn {
   width: 36px;
@@ -2586,6 +2587,18 @@
   justify-content: center;
   transition: all 0.2s ease;
   font-size: 16px;
+}
+
+.product-page-view-btn {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.product-page-view-btn:hover {
+  background: #2e7d32;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
 }
 
 .product-page-edit-btn {
@@ -2655,6 +2668,7 @@
     justify-content: center;
   }
 
+  .product-page-view-btn,
   .product-page-edit-btn,
   .product-page-delete-btn {
     width: 32px;
