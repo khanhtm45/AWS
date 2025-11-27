@@ -190,7 +190,8 @@ export function ProductModal({ isOpen, onClose, onSubmit }) {
       const presignedResponse = await fetch('http://localhost:8080/api/s3/presigned-url', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
         body: JSON.stringify({
           fileName: file.name,
@@ -321,7 +322,9 @@ export function ProductModal({ isOpen, onClose, onSubmit }) {
         isPreorder: Boolean(formData.isPreorder),
         preorderDays: Number(formData.preorderDays) || 0,
         isActive: true,
-        tags: []
+        tags: [],
+        // Thêm images (S3 keys) từ formData
+        images: formData.images.map(img => img.s3Key)
       };
 
       // Validate required fields before sending
@@ -332,6 +335,7 @@ export function ProductModal({ isOpen, onClose, onSubmit }) {
       console.log('🚀 Step 1: Creating product with API...');
       console.log('API URL:', 'http://localhost:8080/api/products');
       console.log('Payload:', JSON.stringify(productPayload, null, 2));
+      console.log('📷 Images (S3 keys):', productPayload.images);
       
       // Log hardcoded values
       console.log('🔒 Hardcoded values:');
@@ -372,6 +376,45 @@ export function ProductModal({ isOpen, onClose, onSubmit }) {
       // Set the created product ID
       const productId = createdProduct.productId || productPayload.productId;
       setCreatedProductId(productId);
+
+      // ✅ Bước bổ sung: Lưu ảnh vào bảng media (nếu có)
+      if (formData.images.length > 0) {
+        console.log(`💾 Saving ${formData.images.length} images to media table...`);
+        try {
+          for (let i = 0; i < formData.images.length; i++) {
+            const image = formData.images[i];
+            const mediaPayload = {
+              mediaId: `MEDIA_${Date.now()}_${i}`,
+              mediaUrl: image.url, // Public URL (không dùng trong display)
+              s3Key: image.s3Key,
+              mediaType: 'IMAGE',
+              mediaOrder: i + 1,
+              isPrimary: i === 0 // Ảnh đầu tiên là primary
+            };
+
+            console.log(`📤 Uploading image ${i + 1}/${formData.images.length}:`, mediaPayload);
+
+            const mediaResponse = await fetch(`http://localhost:8080/api/products/${encodeURIComponent(productId)}/media`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+              },
+              body: JSON.stringify(mediaPayload)
+            });
+
+            if (!mediaResponse.ok) {
+              console.warn(`⚠️ Failed to save image ${i + 1} to media table:`, mediaResponse.status);
+            } else {
+              console.log(`✅ Image ${i + 1} saved to media table`);
+            }
+          }
+          console.log('✅ All images saved to media table');
+        } catch (mediaError) {
+          console.error('❌ Error saving images to media:', mediaError);
+          // Không throw error vì product đã tạo thành công
+        }
+      }
 
       // Initialize variants with base price
       setVariants([{

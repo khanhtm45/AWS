@@ -49,6 +49,7 @@ const DashboardPage = () => {
   const [currentProductPage, setCurrentProductPage] = useState(1);
   const [showProductModal, setShowProductModal] = useState(false);
   const [showEditProductModal, setShowEditProductModal] = useState(false);
+  const [showViewProductModal, setShowViewProductModal] = useState(false);
   // eslint-disable-next-line no-unused-vars
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [editingProductId, setEditingProductId] = useState(null);
@@ -323,6 +324,31 @@ const DashboardPage = () => {
     setFilteredUsers(mockUsers);
   };
 
+  // Helper function để lấy presigned URL từ S3 key
+  const getPresignedUrl = async (s3KeyOrUrl) => {
+    // Nếu đã là URL đầy đủ, return luôn
+    if (s3KeyOrUrl.startsWith('http')) {
+      return s3KeyOrUrl;
+    }
+
+    try {
+      const response = await fetch(
+        `http://localhost:8080/api/s3/download-url?s3Key=${encodeURIComponent(s3KeyOrUrl)}`
+      );
+      
+      if (!response.ok) {
+        console.error('Failed to get presigned URL:', response.status);
+        return '/api/placeholder/60/60';
+      }
+      
+      const data = await response.json();
+      return data.presignedUrl;
+    } catch (error) {
+      console.error('Error getting presigned URL:', error);
+      return '/api/placeholder/60/60';
+    }
+  };
+
   // ======================= PRODUCTS API =======================
   const loadProductsData = async () => {
     try {
@@ -355,21 +381,62 @@ const DashboardPage = () => {
         categoryMap[cat.categoryId] = cat.categoryName;
       });
       
-      // Map API data to display format
-      const formattedProducts = productsData.map(product => ({
-        id: product.productId,
-        name: product.name || product.productName,
-        category: categoryMap[product.categoryId] || product.categoryId || 'Không xác định',
-        price: product.price || 0,
-        quantity: product.quantity || 0,
-        image: product.images && product.images.length > 0 
-          ? product.images[0].url 
-          : '/api/placeholder/60/60',
-        colors: product.variants 
-          ? product.variants.map(v => v.variantAttributes?.color).filter(Boolean)
-          : [],
-        description: product.description || ''
-      }));
+      // Map API data to display format với presigned URLs
+      const formattedProducts = await Promise.all(
+        productsData.map(async (product) => {
+          // Xử lý ảnh: backend trả về array of S3 keys (strings)
+          let imageUrl = '/api/placeholder/60/60';
+          
+          console.log(`📦 Loading image for product ${product.productId}:`, {
+            hasImages: !!product.images,
+            imagesLength: product.images?.length,
+            firstImage: product.images?.[0]
+          });
+          
+          // Thử lấy ảnh từ product.images (nếu có)
+          if (product.images && Array.isArray(product.images) && product.images.length > 0) {
+            const s3Key = product.images[0]; // Lấy S3 key đầu tiên (string)
+            console.log(`✅ Found image in product.images:`, s3Key);
+            imageUrl = await getPresignedUrl(s3Key);
+            console.log(`✅ Got presigned URL:`, imageUrl);
+          } else {
+            // Nếu không có trong product.images, thử gọi API /media
+            console.log(`⚠️ No images in product.images, trying /media endpoint...`);
+            try {
+              const mediaRes = await fetch(`http://localhost:8080/api/products/${encodeURIComponent(product.productId)}/media`);
+              console.log(`📡 Media API response status:`, mediaRes.status);
+              if (mediaRes.ok) {
+                const mediaData = await mediaRes.json();
+                console.log(`📷 Media data:`, mediaData);
+                if (mediaData && mediaData.length > 0) {
+                  // Tìm ảnh primary hoặc lấy ảnh đầu tiên
+                  const primaryImage = mediaData.find(m => m.isPrimary) || mediaData[0];
+                  if (primaryImage && primaryImage.s3Key) {
+                    console.log(`✅ Found image in media:`, primaryImage.s3Key);
+                    imageUrl = await getPresignedUrl(primaryImage.s3Key);
+                    console.log(`✅ Got presigned URL from media:`, imageUrl);
+                  }
+                }
+              }
+            } catch (error) {
+              console.warn(`❌ Cannot load media for product ${product.productId}:`, error);
+            }
+          }
+
+          return {
+            id: product.productId,
+            name: product.name || product.productName,
+            category: categoryMap[product.categoryId] || product.categoryId || 'Không xác định',
+            price: product.price || 0,
+            quantity: product.quantity || 0,
+            image: imageUrl,
+            colors: product.variants 
+              ? product.variants.map(v => v.variantAttributes?.color).filter(Boolean)
+              : [],
+            description: product.description || ''
+          };
+        })
+      );
       
       setProducts(formattedProducts);
       setFilteredProducts(formattedProducts);
@@ -401,6 +468,12 @@ const DashboardPage = () => {
       console.error('Error after creating product:', error);
       alert('Sản phẩm đã tạo nhưng có lỗi khi tải lại danh sách. Vui lòng refresh trang.');
     }
+  };
+
+  const handleViewProduct = (product) => {
+    console.log('👁️ Viewing product:', product.id);
+    setSelectedProduct(product);
+    setShowViewProductModal(true);
   };
 
   const handleEditProduct = (product) => {
@@ -1319,6 +1392,13 @@ const DashboardPage = () => {
                             <td>
                               <div className="product-page-actions">
                                 <button
+                                  className="product-page-view-btn"
+                                  onClick={() => handleViewProduct(product)}
+                                  title="Xem chi tiết"
+                                >
+                                  👁️
+                                </button>
+                                <button
                                   className="product-page-edit-btn"
                                   onClick={() => handleEditProduct(product)}
                                   title="Sửa"
@@ -1695,6 +1775,97 @@ const DashboardPage = () => {
           onSubmit={handleEditProductSubmit}
           productId={editingProductId}
         />
+        
+        {/* View Product Modal */}
+        {showViewProductModal && selectedProduct && (
+          <div className="modal-overlay">
+            <div className="modal-content" style={{ maxWidth: '800px' }}>
+              <div className="modal-header">
+                <h2>Chi tiết sản phẩm</h2>
+                <button
+                  className="modal-close-btn"
+                  onClick={() => {
+                    setShowViewProductModal(false);
+                    setSelectedProduct(null);
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+              <div className="modal-body">
+                <div style={{ padding: '20px' }}>
+                  <div style={{ marginBottom: '20px', textAlign: 'center' }}>
+                    <img
+                      src={selectedProduct.image}
+                      alt={selectedProduct.name}
+                      style={{
+                        maxWidth: '300px',
+                        maxHeight: '300px',
+                        objectFit: 'cover',
+                        borderRadius: '8px',
+                        border: '1px solid #e5e7eb'
+                      }}
+                    />
+                  </div>
+                  <div style={{ display: 'grid', gap: '15px' }}>
+                    <div>
+                      <strong style={{ color: '#6b7280' }}>Mã sản phẩm:</strong>
+                      <p style={{ margin: '5px 0', fontSize: '16px' }}>{selectedProduct.id}</p>
+                    </div>
+                    <div>
+                      <strong style={{ color: '#6b7280' }}>Tên sản phẩm:</strong>
+                      <p style={{ margin: '5px 0', fontSize: '16px' }}>{selectedProduct.name}</p>
+                    </div>
+                    <div>
+                      <strong style={{ color: '#6b7280' }}>Danh mục:</strong>
+                      <p style={{ margin: '5px 0', fontSize: '16px' }}>{selectedProduct.category}</p>
+                    </div>
+                    <div>
+                      <strong style={{ color: '#6b7280' }}>Giá:</strong>
+                      <p style={{ margin: '5px 0', fontSize: '16px', color: '#10b981', fontWeight: 'bold' }}>
+                        {typeof selectedProduct.price === 'number' 
+                          ? selectedProduct.price.toLocaleString('vi-VN') + ' VND'
+                          : selectedProduct.price}
+                      </p>
+                    </div>
+                    <div>
+                      <strong style={{ color: '#6b7280' }}>Số lượng:</strong>
+                      <p style={{ margin: '5px 0', fontSize: '16px' }}>{selectedProduct.quantity}</p>
+                    </div>
+                    {selectedProduct.colors && selectedProduct.colors.length > 0 && (
+                      <div>
+                        <strong style={{ color: '#6b7280' }}>Màu sắc:</strong>
+                        <div style={{ display: 'flex', gap: '10px', marginTop: '5px' }}>
+                          {selectedProduct.colors.map((color, index) => (
+                            <span
+                              key={index}
+                              style={{
+                                padding: '5px 15px',
+                                background: '#f3f4f6',
+                                borderRadius: '20px',
+                                fontSize: '14px'
+                              }}
+                            >
+                              {color}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {selectedProduct.description && (
+                      <div>
+                        <strong style={{ color: '#6b7280' }}>Mô tả:</strong>
+                        <p style={{ margin: '5px 0', fontSize: '16px', lineHeight: '1.6' }}>
+                          {selectedProduct.description}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
