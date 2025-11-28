@@ -3,6 +3,35 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import './ProductDetailPage.css';
 
+// Helper function để lấy presigned URL từ S3 key
+const getPresignedUrl = async (s3KeyOrUrl) => {
+  if (!s3KeyOrUrl || s3KeyOrUrl.startsWith('http')) {
+    return s3KeyOrUrl || '/LEAF.png';
+  }
+
+  try {
+    const apiUrl = `http://localhost:8080/api/s3/download-url?s3Key=${encodeURIComponent(s3KeyOrUrl)}&expirationMinutes=60`;
+    const response = await fetch(apiUrl);
+    
+    if (!response.ok) {
+      console.error(`Failed to get presigned URL: ${response.status}`);
+      return '/LEAF.png';
+    }
+    
+    const data = await response.json();
+    const presignedUrl = data.presignedUrl || data.url || data.downloadUrl;
+    
+    if (presignedUrl && presignedUrl.startsWith('http')) {
+      return presignedUrl;
+    } else {
+      return '/LEAF.png';
+    }
+  } catch (error) {
+    console.error(`Error getting presigned URL:`, error);
+    return '/LEAF.png';
+  }
+};
+
 // --- 1. HÀM HỖ TRỢ: XỬ LÝ MÔ TẢ TỪ API (Để hiển thị đẹp như thiết kế) ---
 const parseDescription = (fullDesc) => {
   if (!fullDesc) return { summary: '', details: [], origin: 'Việt Nam' };
@@ -46,7 +75,7 @@ function ProductDetailPage() {
   // --- STATE ---
   const [product, setProduct] = useState(null);
   const [variants, setVariants] = useState([]);
-  const [media, setMedia] = useState([]);
+  const [processedImages, setProcessedImages] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const [selectedSize, setSelectedSize] = useState('');
@@ -69,7 +98,7 @@ function ProductDetailPage() {
           fetch(`http://localhost:8080/api/products/${formattedId}/media`)
         ]);
 
-        if (productRes.ok) setProduct(await productRes.json());
+        // Product sẽ được set trong phần xử lý media bên dưới
         
         if (variantsRes.ok) {
           const variantsData = await variantsRes.json();
@@ -83,7 +112,43 @@ function ProductDetailPage() {
 
         if (mediaRes.ok) {
           const mediaData = await mediaRes.json();
-          setMedia(mediaData.sort((a, b) => a.mediaOrder - b.mediaOrder));
+          const sortedMedia = mediaData.sort((a, b) => a.mediaOrder - b.mediaOrder);
+          
+          // Xử lý ảnh với presigned URL
+          const imagePromises = sortedMedia.map(async (mediaItem) => {
+            const imageSource = mediaItem.s3Key || mediaItem.mediaUrl;
+            const resolvedUrl = await getPresignedUrl(imageSource);
+            return {
+              ...mediaItem,
+              displayUrl: resolvedUrl
+            };
+          });
+          
+          const processedMediaImages = await Promise.all(imagePromises);
+          setProcessedImages(processedMediaImages);
+        }
+        
+        // Fallback: Nếu không có media, thử lấy từ product.images
+        if (productRes.ok) {
+          const productData = await productRes.json();
+          setProduct(productData);
+          
+          // Nếu không có media nhưng có product.images
+          if (!mediaRes.ok && productData.images && productData.images.length > 0) {
+            const imagePromises = productData.images.map(async (imageSource, index) => {
+              const resolvedUrl = await getPresignedUrl(imageSource);
+              return {
+                mediaId: `product-img-${index}`,
+                mediaUrl: imageSource,
+                displayUrl: resolvedUrl,
+                mediaOrder: index,
+                mediaType: 'IMAGE'
+              };
+            });
+            
+            const processedProductImages = await Promise.all(imagePromises);
+            setProcessedImages(processedProductImages);
+          }
         }
 
       } catch (error) {
@@ -114,25 +179,26 @@ function ProductDetailPage() {
     }
   };
 
-  // Lọc hình ảnh theo màu sắc (Cơ bản: Tìm tên màu trong URL ảnh)
-  // Nếu không tìm thấy ảnh theo màu, hiển thị tất cả
+  // Lọc hình ảnh theo màu sắc sử dụng processedImages
   const filterImagesByColor = () => {
-    if (!selectedColor || media.length === 0) return media.map(m => m.mediaUrl);
+    if (!selectedColor || processedImages.length === 0) {
+      return processedImages.map(m => m.displayUrl).filter(url => url && url !== '/LEAF.png');
+    }
     
-    // Chuyển tên màu thành từ khóa (Ví dụ: "Trắng" -> "trang", "Đỏ" -> "do")
-    // Lưu ý: Cách này phụ thuộc vào việc bạn đặt tên file ảnh có chứa từ khóa màu hay không
-    // Nếu JSON media của bạn chưa có trường 'color', đây là cách tạm thời tốt nhất.
+    // Chuyển tên màu thành từ khóa để lọc ảnh
     const colorKey = selectedColor === 'Trắng' ? 'trang' 
                    : selectedColor === 'Đen' ? 'den'
                    : selectedColor === 'Đỏ' ? 'do'
                    : selectedColor === 'Tím' ? 'tim'
                    : '';
                    
-    const filtered = media.filter(m => m.mediaUrl.toLowerCase().includes(colorKey));
+    const filtered = processedImages.filter(m => 
+      m.mediaUrl && m.mediaUrl.toLowerCase().includes(colorKey)
+    );
     
     // Nếu lọc được ảnh thì trả về ảnh lọc, không thì trả về toàn bộ
-    const finalMedia = filtered.length > 0 ? filtered : media;
-    return finalMedia.map(m => m.mediaUrl);
+    const finalImages = filtered.length > 0 ? filtered : processedImages;
+    return finalImages.map(m => m.displayUrl).filter(url => url && url !== '/LEAF.png');
   };
 
   const productImages = filterImagesByColor();
@@ -154,7 +220,7 @@ function ProductDetailPage() {
       id: product.productId,
       name: product.name,
       price: displayPrice,
-      image: productImages[0],
+      image: productImages[0] || '/LEAF.png',
       selectedSize,
       selectedColor,
       quantity
@@ -176,19 +242,35 @@ function ProductDetailPage() {
         <div className="product-images">
           <div className="main-image">
             <div className="product-image-placeholder">
-              <img src={productImages[selectedImage] || productImages[0]} alt={product.name} />
+              <img 
+                src={productImages[selectedImage] || productImages[0] || '/LEAF.png'} 
+                alt={product.name}
+                onError={(e) => {
+                  e.target.src = '/LEAF.png';
+                }}
+              />
             </div>
           </div>
           <div className="thumbnail-images">
-            {productImages.map((img, index) => (
+            {productImages.length > 0 ? productImages.map((img, index) => (
               <div 
                 key={index}
                 className={`thumbnail ${selectedImage === index ? 'active' : ''}`}
                 onClick={() => setSelectedImage(index)}
               >
-                <img src={img} alt={`Thumbnail ${index}`} />
+                <img 
+                  src={img} 
+                  alt={`Thumbnail ${index}`}
+                  onError={(e) => {
+                    e.target.src = '/LEAF.png';
+                  }}
+                />
               </div>
-            ))}
+            )) : (
+              <div className="thumbnail">
+                <img src="/LEAF.png" alt="Default" />
+              </div>
+            )}
           </div>
         </div>
 

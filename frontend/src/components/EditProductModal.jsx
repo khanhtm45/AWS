@@ -321,6 +321,14 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
   const handleUpdateProduct = async () => {
     try {
       setErrors({ general: 'Đang cập nhật sản phẩm...' });
+      
+      // Log debug info
+      console.log('🔄 Updating product:', {
+        productId: formData.productId,
+        imagesCount: formData.images.length,
+        newImages: formData.images.filter(img => !img.isExisting).length,
+        existingImages: formData.images.filter(img => img.isExisting).length
+      });
 
       const productPayload = {
         productId: formData.productId,
@@ -333,10 +341,11 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
         preorderDays: Number(formData.preorderDays),
         isActive: true,
         tags: [],
-        // Gửi S3 key (không phải presigned URL)
+        // Gửi tất cả S3 keys (cả ảnh cũ và mới)
         images: formData.images.map(img => img.s3Key || img.url)
       };
 
+      console.log('📤 Sending product update request...');
       const response = await fetch(`http://localhost:8080/api/products/${encodeURIComponent(productId)}`, {
         method: 'PUT',
         headers: {
@@ -347,26 +356,66 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
       });
 
       if (!response.ok) {
-        throw new Error(`Lỗi cập nhật sản phẩm: ${response.status}`);
+        const errorText = await response.text();
+        throw new Error(`Lỗi cập nhật sản phẩm: ${response.status} - ${errorText}`);
+      }
+      
+      console.log('✅ Product updated successfully');
+
+      // ✅ Đồng bộ hóa media table
+      await syncMediaTable();
+
+      setErrors({ general: '' });
+      setStep(2);
+      
+      console.log('🎉 Product update completed!');
+      
+    } catch (error) {
+      console.error('❌ Product update error:', error);
+      setErrors({ general: error.message });
+    }
+  };
+  
+  // Hàm đồng bộ media table
+  const syncMediaTable = async () => {
+    try {
+      console.log('🔄 Syncing media table...');
+      
+      // Phương pháp: Xóa tất cả media cũ và tạo lại từ formData.images
+      
+      // Bước 1: Xóa tất cả media cũ
+      try {
+        console.log('🗑️ Deleting old media records...');
+        const deleteResponse = await fetch(`http://localhost:8080/api/products/${encodeURIComponent(productId)}/media`, {
+          method: 'DELETE',
+          headers: { 'Accept': 'application/json' }
+        });
+        
+        if (deleteResponse.ok) {
+          console.log('✅ Old media deleted successfully');
+        } else {
+          console.warn('⚠️ Could not delete old media, continuing...');
+        }
+      } catch (deleteError) {
+        console.warn('⚠️ Error deleting old media:', deleteError);
       }
 
-      // ✅ Cập nhật ảnh trong bảng media
-      // Xóa ảnh cũ và thêm ảnh mới (nếu có ảnh mới không phải isExisting)
-      const newImages = formData.images.filter(img => !img.isExisting);
-      if (newImages.length > 0) {
-        console.log(`💾 Saving ${newImages.length} new images to media table...`);
-        try {
-          for (let i = 0; i < newImages.length; i++) {
-            const image = newImages[i];
-            const mediaPayload = {
-              mediaId: `MEDIA_${Date.now()}_${i}`,
-              mediaUrl: image.url,
-              s3Key: image.s3Key,
-              mediaType: 'IMAGE',
-              mediaOrder: formData.images.indexOf(image) + 1,
-              isPrimary: formData.images.indexOf(image) === 0
-            };
+      // Bước 2: Tạo lại tất cả media từ formData.images
+      if (formData.images.length > 0) {
+        console.log(`💾 Creating ${formData.images.length} media records...`);
+        
+        for (let i = 0; i < formData.images.length; i++) {
+          const image = formData.images[i];
+          const mediaPayload = {
+            mediaId: `MEDIA_${Date.now()}_${i}_${Math.random().toString(36).substr(2, 9)}`,
+            mediaUrl: image.url,
+            s3Key: image.s3Key || image.url,
+            mediaType: 'IMAGE',
+            mediaOrder: i + 1,
+            isPrimary: i === 0
+          };
 
+          try {
             const mediaResponse = await fetch(`http://localhost:8080/api/products/${encodeURIComponent(productId)}/media`, {
               method: 'POST',
               headers: {
@@ -377,18 +426,22 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
             });
 
             if (mediaResponse.ok) {
-              console.log(`✅ Image ${i + 1} saved to media table`);
+              console.log(`✅ Media record ${i + 1} created: ${image.name}`);
+            } else {
+              console.warn(`⚠️ Failed to create media record ${i + 1}: ${image.name}`);
             }
+          } catch (mediaError) {
+            console.warn(`⚠️ Error creating media record ${i + 1}:`, mediaError);
           }
-        } catch (mediaError) {
-          console.warn('⚠️ Error saving images to media:', mediaError);
         }
+        
+        console.log('✅ Media sync completed');
+      } else {
+        console.log('ℹ️ No images to sync');
       }
-
-      setErrors({ general: '' });
-      setStep(2);
+      
     } catch (error) {
-      setErrors({ general: error.message });
+      console.warn('⚠️ Media sync error:', error);
     }
   };
 
