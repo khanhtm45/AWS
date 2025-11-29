@@ -37,8 +37,15 @@ function CartPage() {
   };
 
   const calculateItemTotal = (item) => {
-    const price = parseFloat(item.price.replace(/[^\d]/g, ''));
-    return (price * item.quantity).toLocaleString('vi-VN');
+    let priceNum = 0;
+    if (typeof item.price === 'number') {
+      priceNum = item.price;
+    } else if (typeof item.price === 'string') {
+      // remove any non-digit, non-dot, non-minus characters (currency symbols, commas, spaces)
+      const cleaned = item.price.replace(/[^\d.-]/g, '');
+      priceNum = parseFloat(cleaned) || 0;
+    }
+    return (priceNum * item.quantity).toLocaleString('vi-VN');
   };
 
   return (
