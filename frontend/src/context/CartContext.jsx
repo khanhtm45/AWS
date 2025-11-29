@@ -60,8 +60,14 @@ export const CartProvider = ({ children }) => {
 
   const getCartTotal = () => {
     return cartItems.reduce((total, item) => {
-      const price = parseFloat(item.price.replace(/[^\d]/g, ''));
-      return total + (price * item.quantity);
+      let priceNum = 0;
+      if (typeof item.price === 'number') {
+        priceNum = item.price;
+      } else if (typeof item.price === 'string') {
+        const cleaned = item.price.replace(/[^\d.-]/g, '');
+        priceNum = parseFloat(cleaned) || 0;
+      }
+      return total + (priceNum * item.quantity);
     }, 0);
   };
 
