@@ -1,4 +1,15 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useAuth } from './AuthContext';
+// Minimal UUID generator for sessionId
+const generateUuid = () => {
+  // RFC4122 version 4 compliant simple implementation
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+};
+
+const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:8080';
 
 const CartContext = createContext();
 
@@ -16,46 +27,176 @@ export const CartProvider = ({ children }) => {
     const savedCart = localStorage.getItem('cart');
     return savedCart ? JSON.parse(savedCart) : [];
   });
+  // sessionId: persistent guest identifier stored in localStorage
+  const [sessionId, setSessionId] = useState(() => {
+    try {
+      const s = localStorage.getItem('cartSessionId');
+      if (s) return s;
+      const newId = 'sess-' + Date.now() + '-' + Math.random().toString(36).slice(2,9);
+      localStorage.setItem('cartSessionId', newId);
+      return newId;
+    } catch (e) {
+      return null;
+    }
+  });
+
+  const { user, accessToken } = useAuth();
 
   // Save cart to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem('cart', JSON.stringify(cartItems));
   }, [cartItems]);
 
-  const addToCart = (product) => {
-    setCartItems(prevItems => {
-      // Check if product already exists in cart with same size and color
-      const existingItemIndex = prevItems.findIndex(
-        item => item.id === product.id && 
-                item.selectedSize === product.selectedSize && 
-                item.selectedColor === product.selectedColor
-      );
+  // Helper: map server CartResponse -> frontend cart item shape
+  const mapServerCartToFrontend = (serverCart) => {
+    if (!serverCart || !Array.isArray(serverCart.items)) return [];
+    return serverCart.items.map(it => ({
+      cartItemId: it.getItemId ? it.getItemId() : it.itemId || it.itemId,
+      id: it.getProductId ? it.getProductId() : it.productId,
+      quantity: it.getQuantity ? it.getQuantity() : it.quantity || 1,
+      price: it.getUnitPrice ? it.getUnitPrice() : it.unitPrice || 0,
+      // UI fields that may be absent from server; keep placeholders
+      name: it.getProductName ? it.getProductName() : it.productName || '',
+      image: '/LEAF.png',
+      selectedSize: '',
+      selectedColor: ''
+    }));
+  };
 
-      if (existingItemIndex > -1) {
-        // Update quantity if item exists
-        const newItems = [...prevItems];
-        newItems[existingItemIndex].quantity += product.quantity;
-        return newItems;
-      } else {
-        // Add new item
-        return [...prevItems, { ...product, cartItemId: Date.now() }];
+  // On mount and when `user` or `sessionId` changes: fetch server-side cart and replace local cartItems
+  useEffect(() => {
+    const syncFromServer = async () => {
+      try {
+        const userId = user && (user.id || user.userId || user.userID) ? String(user.id || user.userId || user.userID) : null;
+        const params = new URLSearchParams();
+        if (userId) params.append('userId', userId);
+        if (sessionId) params.append('sessionId', sessionId);
+
+        const res = await fetch(`${API_BASE}/api/cart?${params.toString()}`);
+        if (res.ok) {
+          const serverCart = await res.json();
+          const mapped = mapServerCartToFrontend(serverCart);
+          if (mapped.length > 0) setCartItems(mapped);
+        }
+      } catch (e) {
+        // ignore network errors; keep local cart
+        console.debug('Failed to sync cart from server', e);
       }
-    });
+    };
+    if (sessionId) syncFromServer();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId, user]);
+
+  const addToCart = (product) => {
+    // Try to persist to backend and update local state from server response
+    (async () => {
+      try {
+        const userId = user && (user.id || user.userId || user.userID) ? (user.id || user.userId || user.userID) : null;
+        const body = {
+          userId: userId,
+          sessionId: sessionId,
+          productId: product.id,
+          variantId: product.variantId || null,
+          quantity: product.quantity || 1
+        };
+        const headers = { 'Content-Type': 'application/json' };
+        if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
+        const res = await fetch(`${API_BASE}/api/cart/items`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(body)
+        });
+        if (res.ok) {
+          const serverCart = await res.json();
+          const mapped = mapServerCartToFrontend(serverCart);
+          setCartItems(mapped);
+          return;
+        }
+      } catch (e) {
+        console.debug('Failed to call addItem API', e);
+      }
+
+      // Fallback to local update if API fails
+      setCartItems(prevItems => {
+        const existingItemIndex = prevItems.findIndex(
+          item => item.id === product.id && 
+                  item.selectedSize === product.selectedSize && 
+                  item.selectedColor === product.selectedColor
+        );
+
+        if (existingItemIndex > -1) {
+          const newItems = [...prevItems];
+          newItems[existingItemIndex].quantity += product.quantity;
+          return newItems;
+        } else {
+          return [...prevItems, { ...product, cartItemId: Date.now() }];
+        }
+      });
+    })();
   };
 
   const removeFromCart = (cartItemId) => {
-    setCartItems(prevItems => prevItems.filter(item => item.cartItemId !== cartItemId));
+    (async () => {
+      try {
+        const userId = user && (user.id || user.userId || user.userID) ? (user.id || user.userId || user.userID) : null;
+        const params = new URLSearchParams();
+        if (userId) params.append('userId', String(userId));
+        if (sessionId) params.append('sessionId', sessionId);
+        const headers = {};
+        if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
+        const res = await fetch(`${API_BASE}/api/cart/items/${encodeURIComponent(cartItemId)}?${params.toString()}`, {
+          method: 'DELETE',
+          headers
+        });
+        if (res.ok) {
+          const serverCart = await res.json();
+          const mapped = mapServerCartToFrontend(serverCart);
+          setCartItems(mapped);
+          return;
+        }
+      } catch (e) {
+        console.debug('Failed to call deleteItem API', e);
+      }
+
+      // Fallback
+      setCartItems(prevItems => prevItems.filter(item => item.cartItemId !== cartItemId));
+    })();
   };
 
   const updateQuantity = (cartItemId, newQuantity) => {
     if (newQuantity < 1) return;
-    setCartItems(prevItems =>
-      prevItems.map(item =>
-        item.cartItemId === cartItemId
-          ? { ...item, quantity: newQuantity }
-          : item
-      )
-    );
+    (async () => {
+      try {
+        const userId = user && (user.id || user.userId || user.userID) ? (user.id || user.userId || user.userID) : null;
+        const params = new URLSearchParams();
+        if (userId) params.append('userId', String(userId));
+        if (sessionId) params.append('sessionId', sessionId);
+        params.append('quantity', String(newQuantity));
+        const headers = {};
+        if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
+        const res = await fetch(`${API_BASE}/api/cart/items/${encodeURIComponent(cartItemId)}?${params.toString()}`, {
+          method: 'PUT',
+          headers
+        });
+        if (res.ok) {
+          const serverCart = await res.json();
+          const mapped = mapServerCartToFrontend(serverCart);
+          setCartItems(mapped);
+          return;
+        }
+      } catch (e) {
+        console.debug('Failed to call updateItem API', e);
+      }
+
+      // Fallback
+      setCartItems(prevItems =>
+        prevItems.map(item =>
+          item.cartItemId === cartItemId
+            ? { ...item, quantity: newQuantity }
+            : item
+        )
+      );
+    })();
   };
 
   const getCartTotal = () => {
