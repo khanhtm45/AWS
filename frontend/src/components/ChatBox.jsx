@@ -1,17 +1,37 @@
-﻿import React, { useState, useRef, useEffect } from 'react';
+﻿import React, { useState, useRef, useEffect, useContext } from 'react';
 import { MessageCircle, X, Send } from 'lucide-react';
 import './ChatBox.css';
 
 function ChatBox() {
-  const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      text: 'Xin chào! Tôi là trợ lý AI của shop. Tôi có thể giúp bạn tìm kiếm sản phẩm, tư vấn về size, màu sắc và chất liệu. Bạn cần tôi giúp gì?',
-      sender: 'bot',
-      timestamp: new Date()
+  // Open chat by default so chat is always visible on the frontend
+  const [isOpen, setIsOpen] = useState(true);
+
+  // Persist chat messages to localStorage so users keep history across reloads.
+  const STORAGE_KEY = 'leafshop_chat_messages_v1';
+
+  const loadStoredMessages = () => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        // Convert timestamp strings back to Date objects where possible
+        return parsed.map((m) => ({ ...m, timestamp: m.timestamp ? new Date(m.timestamp) : new Date() }));
+      }
+    } catch (e) {
+      console.warn('Failed to load chat messages from localStorage', e);
     }
-  ]);
+
+    return [
+      {
+        id: 1,
+        text: 'Xin chào! Tôi là trợ lý AI của shop. Tôi có thể giúp bạn tìm kiếm sản phẩm, tư vấn về size, màu sắc và chất liệu. Bạn cần tôi giúp gì?',
+        sender: 'bot',
+        timestamp: new Date()
+      }
+    ];
+  };
+
+  const [messages, setMessages] = useState(loadStoredMessages);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef(null);
@@ -24,12 +44,33 @@ function ChatBox() {
     scrollToBottom();
   }, [messages]);
 
-  // Hàm gọi AWS Bedrock API
-  const callAWSBedrockAPI = async (userMessage) => {
+  // Save messages to localStorage whenever they change
+  useEffect(() => {
     try {
-      // TODO: Thay thế bằng endpoint API Gateway của bạn
-      const API_ENDPOINT = process.env.REACT_APP_AWS_API_ENDPOINT || 'YOUR_API_GATEWAY_URL';
-      
+      const toStore = messages.map(m => ({ ...m, timestamp: m.timestamp ? m.timestamp.toISOString() : new Date().toISOString() }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(toStore));
+    } catch (e) {
+      console.warn('Failed to persist chat messages', e);
+    }
+  }, [messages]);
+
+  // Hàm gọi AWS Bedrock API
+  const callAWSBedrockAPI = async (userMessage, intent = '') => {
+    try {
+      // Resolve API endpoint:
+      // - If REACT_APP_AWS_API_ENDPOINT is set and not the placeholder, use it.
+      // - If running on localhost, default to backend at http://localhost:8080/api/chat
+      // - Otherwise use relative `/api/chat` (for same-origin deployments).
+      const envEndpoint = process.env.REACT_APP_AWS_API_ENDPOINT;
+      let API_ENDPOINT = null;
+      if (envEndpoint && envEndpoint !== 'YOUR_API_GATEWAY_URL') {
+        API_ENDPOINT = envEndpoint;
+      } else if (window && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+        API_ENDPOINT = 'http://localhost:8080/api/chat';
+      } else {
+        API_ENDPOINT = '/api/chat';
+      }
+
       const response = await fetch(API_ENDPOINT, {
         method: 'POST',
         headers: {
@@ -37,18 +78,50 @@ function ChatBox() {
         },
         body: JSON.stringify({
           message: userMessage,
+          intent: intent,
           // Thêm context về shop
           context: 'Shop quần áo thời trang nam nữ, các dòng sản phẩm: áo thun, áo sơ mi, quần short, quần kaki. Giá từ 167.000 - 347.000 VND.'
         }),
       });
 
+      // If the API returned non-OK (403/401/500), handle gracefully and fallback for suggestion intent.
+      if (!response.ok) {
+        let errBody = null;
+        try { errBody = await response.json(); } catch (e) { errBody = await response.text().catch(() => null); }
+        console.warn('Chat API returned non-OK:', response.status, errBody);
+        if (intent === 'suggest_outfit') {
+          return generateLocalSuggestions(userMessage);
+        }
+        // For other intents, throw to trigger the catch -> fallback to local text
+        throw new Error(`API ${response.status} ${JSON.stringify(errBody)}`);
+      }
+
       const data = await response.json();
-      return data.response || data.message;
+      return data;
     } catch (error) {
       console.error('Error calling AWS API:', error);
-      // Fallback to local response if API fails
-      return getLocalResponse(userMessage);
+      // If user asked for outfit suggestions, return local structured suggestions
+      if (intent === 'suggest_outfit') {
+        return generateLocalSuggestions(userMessage);
+      }
+      // Fallback to plain text response if API fails
+      return { type: 'text', text: getLocalResponse(userMessage) };
     }
+  };
+
+  // Generate local suggestion payload (used when backend/API is unavailable)
+  const generateLocalSuggestions = (message) => {
+    const suggestions = [];
+    for (let i = 1; i <= 6; i++) {
+      suggestions.push({
+        id: `local-${i}`,
+        name: `Gợi ý ${i} — Set cho buổi hẹn tối`,
+        price: `${199 + i * 50}.000₫`,
+        image: `https://via.placeholder.com/320x320.png?text=Set+${i}`,
+        url: `#/product/${i}`,
+      });
+    }
+    return { type: 'suggestions', text: 'Mình gợi ý một vài set đồ cho buổi hẹn tối:', suggestions };
   };
 
   // Hàm phản hồi local (cho demo khi chưa có AWS)
@@ -142,17 +215,45 @@ function ChatBox() {
     // Simulate API call delay
     setTimeout(async () => {
       try {
-        // Call AWS API or use local response
-        const botResponse = await callAWSBedrockAPI(inputMessage);
-        
-        const botMessage = {
-          id: messages.length + 2,
-          text: botResponse,
-          sender: 'bot',
-          timestamp: new Date()
-        };
+        // Detect intent (simple keyword detection). For a robust solution,
+        // perform intent recognition on backend or via a dedicated intent model.
+        const textLower = inputMessage.toLowerCase();
+        const intent = (textLower.includes('gợi ý') || textLower.includes('goi y') || textLower.includes('gợi ý đồ')) ? 'suggest_outfit' : '';
 
-        setMessages(prev => [...prev, botMessage]);
+        // Call AWS API or use local response
+        const botResponse = await callAWSBedrockAPI(inputMessage, intent);
+
+        if (botResponse && botResponse.type === 'suggestions') {
+          const botMessage = {
+            id: messages.length + 2,
+            type: 'suggestions',
+            text: botResponse.text || '',
+            suggestions: botResponse.suggestions || [],
+            sender: 'bot',
+            timestamp: new Date()
+          };
+          setMessages(prev => [...prev, botMessage]);
+        } else {
+          // fallback to plain text — ensure we don't insert raw objects (which show as "[object Object]")
+          let text;
+          if (!botResponse) {
+            text = '';
+          } else if (typeof botResponse === 'string') {
+            text = botResponse;
+          } else if (typeof botResponse === 'object') {
+            text = botResponse.text || botResponse.response || botResponse.message || JSON.stringify(botResponse, null, 2);
+          } else {
+            text = String(botResponse);
+          }
+
+          const botMessage = {
+            id: messages.length + 2,
+            text: text,
+            sender: 'bot',
+            timestamp: new Date()
+          };
+          setMessages(prev => [...prev, botMessage]);
+        }
       } catch (error) {
         const errorMessage = {
           id: messages.length + 2,
@@ -212,28 +313,67 @@ function ChatBox() {
                 </span>
               </div>
             </div>
-            <button 
-              className="chat-close-button"
-              onClick={() => setIsOpen(false)}
-              aria-label="Close chat"
-            >
-              <X size={20} />
-            </button>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <button 
+                  className="chat-clear-button"
+                  onClick={() => {
+                    if (typeof window !== 'undefined' && window.confirm('Xóa lịch sử trò chuyện?')) {
+                      setMessages([{ id: Date.now(), text: 'Lịch sử đã được xóa.', sender: 'bot', timestamp: new Date() }]);
+                      try { localStorage.removeItem(STORAGE_KEY); } catch (e) { }
+                    }
+                  }}
+                  title="Xóa lịch sử trò chuyện"
+                >
+                  Clear
+                </button>
+                <button 
+                  className="chat-close-button"
+                  onClick={() => setIsOpen(false)}
+                  aria-label="Close chat"
+                >
+                  <X size={20} />
+                </button>
+              </div>
           </div>
 
           {/* Messages */}
           <div className="chat-messages">
-            {messages.map((message) => (
-              <div 
-                key={message.id} 
-                className={`message ${message.sender === 'user' ? 'message-user' : 'message-bot'}`}
-              >
-                <div className="message-content">
-                  <p style={{ whiteSpace: 'pre-line' }}>{message.text}</p>
-                  <span className="message-time">{formatTime(message.timestamp)}</span>
+            {messages.map((message) => {
+              if (message.type === 'suggestions') {
+                return (
+                  <div key={message.id} className={`message message-bot`}>
+                    <div className="message-content">
+                      <p style={{ whiteSpace: 'pre-line' }}>{message.text}</p>
+                      <div className="suggestions-grid">
+                        {message.suggestions && message.suggestions.map((p, idx) => (
+                          <div className="suggestion-card" key={p.id || idx}>
+                            <img src={p.image} alt={p.name} className="suggestion-image" />
+                            <div className="suggestion-body">
+                              <div className="suggestion-name">{p.name}</div>
+                              <div className="suggestion-price">{p.price}</div>
+                              <a href={p.url} className="suggestion-link">Xem</a>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <span className="message-time">{formatTime(message.timestamp)}</span>
+                    </div>
+                  </div>
+                );
+              }
+
+              return (
+                <div 
+                  key={message.id} 
+                  className={`message ${message.sender === 'user' ? 'message-user' : 'message-bot'}`}
+                >
+                  <div className="message-content">
+                    <p style={{ whiteSpace: 'pre-line' }}>{message.text}</p>
+                    <span className="message-time">{formatTime(message.timestamp)}</span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
             
             {isTyping && (
               <div className="message message-bot">

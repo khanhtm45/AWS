@@ -20,6 +20,7 @@ import ProfilePage from './pages/ProfilePage';
 import DashboardPage from './pages/DashboardPage';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
+import ChatBox from './components/ChatBox';
 
 function AppContent() {
   const location = useLocation();
@@ -51,6 +52,8 @@ function AppContent() {
         </Routes>
       </main>
       {!shouldHideHeaderFooter && <Footer />}
+      {/* Global ChatBox: floating chat icon available on all pages */}
+      <ChatBox />
     </div>
   );
 }

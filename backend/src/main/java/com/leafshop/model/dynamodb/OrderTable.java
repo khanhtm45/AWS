@@ -64,7 +64,7 @@ public class OrderTable {
 
     // CART fields
     private String sessionId; // For guest cart
-    private List<Map<String, Object>> cartItems;
+    private List<Map<String, String>> cartItems;
     private String cartId;
 
     // ASSIGNMENT
