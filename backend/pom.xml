@@ -140,6 +140,10 @@
             <version>2.20.26</version>
         </dependency>
 
+        <!-- AWS SDK v2 - Bedrock -->
+        <!-- AWS Bedrock SDK removed: not available on Maven Central; using HTTP+SigV4 or SDK when
+        available -->
+
         <!-- AWS SDK v2 - Core -->
         <dependency>
             <groupId>software.amazon.awssdk</groupId>

@@ -43,8 +43,9 @@ function HomePage() {
     const fetchAllProducts = async () => {
       try {
         setLoading(true);
-        
-        const response = await fetch('http://localhost:8080/api/products');
+        // Use env-configurable API base; fallback to localhost backend
+        const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:8080';
+        const response = await fetch(`${API_BASE}/api/public/products`);
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -77,7 +78,7 @@ function HomePage() {
               // Strategy 2: Fallback to media API
               if (productImage === '/LEAF.png') {
                 try {
-                  const mediaResponse = await fetch(`http://localhost:8080/api/products/${product.productId}/media`);
+                  const mediaResponse = await fetch(`${API_BASE}/api/products/${product.productId}/media`);
                   
                   if (mediaResponse.ok) {
                     const mediaData = await mediaResponse.json();

@@ -150,6 +150,20 @@
   transition: background 0.2s;
 }
 
+.chat-clear-button {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: white;
+  padding: 6px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.chat-clear-button:hover {
+  background: rgba(255,255,255,0.12);
+}
+
 .chat-close-button:hover {
   background: rgba(255, 255, 255, 0.2);
 }
@@ -371,4 +385,54 @@
     height: calc(100vh - 100px);
   }
 }
+
+/* Suggestions cards */
+.suggestions-grid {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.suggestion-card {
+  width: calc(50% - 4px);
+  background: white;
+  border: 1px solid #eaeaea;
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.suggestion-image {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  background: #f0f0f0;
+}
+
+.suggestion-body {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.suggestion-name {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.suggestion-price {
+  font-size: 12px;
+  color: #111;
+}
+
+.suggestion-link {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #0070f3;
+  text-decoration: none;
+}
+
 
