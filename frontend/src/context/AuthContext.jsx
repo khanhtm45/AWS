@@ -62,9 +62,14 @@ export const AuthProvider = ({ children }) => {
     setAccessToken(at);
     setRefreshToken(rt);
     if (userInfo) {
-      setUser(userInfo);
+      // Normalize user object to include a stable `userId` property
+      const normalized = {
+        ...userInfo,
+        userId: userInfo.userId || userInfo.id || userInfo.email || userInfo.username || null
+      };
+      setUser(normalized);
       try {
-        localStorage.setItem('user', JSON.stringify(userInfo));
+        localStorage.setItem('user', JSON.stringify(normalized));
       } catch (e) {}
     }
     try {
