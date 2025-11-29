@@ -41,7 +41,7 @@ const ProductsPage = () => {
                 const firstMedia = mediaData.sort((a, b) => a.mediaOrder - b.mediaOrder)[0];
                 
                 return {
-                  id: parseInt(product.productId),
+                  id: product.productId,
                   name: product.productName || product.name,
                   price: product.price || 0,
                   category: product.categoryId || 'áo-thun',
@@ -53,7 +53,7 @@ const ProductsPage = () => {
             }
             
             return {
-              id: parseInt(product.productId),
+              id: product.productId,
               name: product.productName || product.name,
               price: product.price || 0,
               category: product.categoryId || 'áo-thun',
