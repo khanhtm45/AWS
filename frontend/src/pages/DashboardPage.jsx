@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ProductModal } from '../components/ProductModal';
 import { EditProductModal } from '../components/EditProductModal';
+import { ProductDetailModal } from '../components/ProductDetailModal';
 import './DashboardPage.css';
 
 const DashboardPage = () => {
@@ -53,6 +54,7 @@ const DashboardPage = () => {
   // eslint-disable-next-line no-unused-vars
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [editingProductId, setEditingProductId] = useState(null);
+  const [viewingProductId, setViewingProductId] = useState(null);
   // eslint-disable-next-line no-unused-vars
   const [productForm, setProductForm] = useState({
     name: '',
@@ -386,8 +388,6 @@ const DashboardPage = () => {
         productsData.map(async (product) => {
           // Xử lý ảnh: backend trả về array of S3 keys (strings)
           let imageUrl = '/api/placeholder/60/60';
-          let imagesUrls = [];
-          let mediaData = null;
           
           console.log(`📦 Loading image for product ${product.productId}:`, {
             hasImages: !!product.images,
@@ -401,14 +401,6 @@ const DashboardPage = () => {
             console.log(`✅ Found image in product.images:`, s3Key);
             imageUrl = await getPresignedUrl(s3Key);
             console.log(`✅ Got presigned URL:`, imageUrl);
-            // Build full imagesUrls array from product.images
-            try {
-              imagesUrls = await Promise.all(product.images.map(async (k) => {
-                try { return await getPresignedUrl(k); } catch (e) { return '/api/placeholder/60/60'; }
-              }));
-            } catch (err) {
-              console.warn('Cannot build imagesUrls from product.images:', err);
-            }
           } else {
             // Nếu không có trong product.images, thử gọi API /media
             console.log(`⚠️ No images in product.images, trying /media endpoint...`);
@@ -416,7 +408,7 @@ const DashboardPage = () => {
               const mediaRes = await fetch(`http://localhost:8080/api/products/${encodeURIComponent(product.productId)}/media`);
               console.log(`📡 Media API response status:`, mediaRes.status);
               if (mediaRes.ok) {
-                mediaData = await mediaRes.json();
+                const mediaData = await mediaRes.json();
                 console.log(`📷 Media data:`, mediaData);
                 if (mediaData && mediaData.length > 0) {
                   // Tìm ảnh primary hoặc lấy ảnh đầu tiên
@@ -426,24 +418,11 @@ const DashboardPage = () => {
                     imageUrl = await getPresignedUrl(primaryImage.s3Key);
                     console.log(`✅ Got presigned URL from media:`, imageUrl);
                   }
-                  // Build imagesUrls from mediaData
-                  try {
-                    imagesUrls = await Promise.all(mediaData.map(async (m) => {
-                      try { return await getPresignedUrl(m.s3Key); } catch (e) { return '/api/placeholder/60/60'; }
-                    }));
-                  } catch (err) {
-                    console.warn('Cannot build imagesUrls from mediaData:', err);
-                  }
                 }
               }
             } catch (error) {
               console.warn(`❌ Cannot load media for product ${product.productId}:`, error);
             }
-          }
-
-          // Fallback: nếu không có imagesUrls, dùng imageUrl làm 1 phần tử
-          if (!imagesUrls || imagesUrls.length === 0) {
-            imagesUrls = [imageUrl];
           }
 
           return {
@@ -453,7 +432,6 @@ const DashboardPage = () => {
             price: product.price || 0,
             quantity: product.quantity || 0,
             image: imageUrl,
-            images: imagesUrls,
             colors: product.variants 
               ? product.variants.map(v => v.variantAttributes?.color).filter(Boolean)
               : [],
@@ -496,6 +474,7 @@ const DashboardPage = () => {
 
   const handleViewProduct = (product) => {
     console.log('👁️ Viewing product:', product.id);
+    setViewingProductId(product.id);
     setSelectedProduct(product);
     setShowViewProductModal(true);
   };
@@ -1800,100 +1779,16 @@ const DashboardPage = () => {
           productId={editingProductId}
         />
         
-        {/* View Product Modal */}
-        {showViewProductModal && selectedProduct && (
-          <div className="modal-overlay">
-            <div className="modal-content" style={{ maxWidth: '800px' }}>
-              <div className="modal-header">
-                <h2>Chi tiết sản phẩm</h2>
-                <button
-                  className="modal-close-btn"
-                  onClick={() => {
-                    setShowViewProductModal(false);
-                    setSelectedProduct(null);
-                  }}
-                >
-                  ×
-                </button>
-              </div>
-              <div className="modal-body">
-                <div style={{ padding: '20px' }}>
-                  <div style={{ marginBottom: '20px', textAlign: 'center' }}>
-                    { (selectedProduct.images || [selectedProduct.image]).map((imgSrc, idx) => (
-                      <img
-                        key={idx}
-                        src={imgSrc}
-                        alt={`${selectedProduct.name} ${idx + 1}`}
-                        style={{
-                          width: '180px',
-                          height: '180px',
-                          objectFit: 'cover',
-                          borderRadius: '8px',
-                          border: '1px solid #e5e7eb',
-                          margin: '0 8px'
-                        }}
-                      />
-                    )) }
-                  </div>
-                  <div style={{ display: 'grid', gap: '15px' }}>
-                    <div>
-                      <strong style={{ color: '#6b7280' }}>Mã sản phẩm:</strong>
-                      <p style={{ margin: '5px 0', fontSize: '16px' }}>{selectedProduct.id}</p>
-                    </div>
-                    <div>
-                      <strong style={{ color: '#6b7280' }}>Tên sản phẩm:</strong>
-                      <p style={{ margin: '5px 0', fontSize: '16px' }}>{selectedProduct.name}</p>
-                    </div>
-                    <div>
-                      <strong style={{ color: '#6b7280' }}>Danh mục:</strong>
-                      <p style={{ margin: '5px 0', fontSize: '16px' }}>{selectedProduct.category}</p>
-                    </div>
-                    <div>
-                      <strong style={{ color: '#6b7280' }}>Giá:</strong>
-                      <p style={{ margin: '5px 0', fontSize: '16px', color: '#10b981', fontWeight: 'bold' }}>
-                        {typeof selectedProduct.price === 'number' 
-                          ? selectedProduct.price.toLocaleString('vi-VN') + ' VND'
-                          : selectedProduct.price}
-                      </p>
-                    </div>
-                    <div>
-                      <strong style={{ color: '#6b7280' }}>Số lượng:</strong>
-                      <p style={{ margin: '5px 0', fontSize: '16px' }}>{selectedProduct.quantity}</p>
-                    </div>
-                    {selectedProduct.colors && selectedProduct.colors.length > 0 && (
-                      <div>
-                        <strong style={{ color: '#6b7280' }}>Màu sắc:</strong>
-                        <div style={{ display: 'flex', gap: '10px', marginTop: '5px' }}>
-                          {selectedProduct.colors.map((color, index) => (
-                            <span
-                              key={index}
-                              style={{
-                                padding: '5px 15px',
-                                background: '#f3f4f6',
-                                borderRadius: '20px',
-                                fontSize: '14px'
-                              }}
-                            >
-                              {color}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {selectedProduct.description && (
-                      <div>
-                        <strong style={{ color: '#6b7280' }}>Mô tả:</strong>
-                        <p style={{ margin: '5px 0', fontSize: '16px', lineHeight: '1.6' }}>
-                          {selectedProduct.description}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* View Product Detail Modal */}
+        <ProductDetailModal
+          isOpen={showViewProductModal}
+          onClose={() => {
+            setShowViewProductModal(false);
+            setViewingProductId(null);
+            setSelectedProduct(null);
+          }}
+          productId={viewingProductId}
+        />
       </div>
     </div>
   );

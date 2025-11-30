@@ -123,28 +123,55 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
         } else {
           // Nếu không có, thử lấy từ /media endpoint
           try {
+            const timestamp = new Date().toLocaleTimeString();
+            console.log(`🔎 [${timestamp}] Đang fetch media list cho Product ID "${productId}"...`);
+            console.log(`   URL: http://localhost:8080/api/products/${encodeURIComponent(productId)}/media`);
+            
             const mediaRes = await fetch(`http://localhost:8080/api/products/${encodeURIComponent(productId)}/media`);
+            console.log(`   Response Status: ${mediaRes.status}`);
+            
             if (mediaRes.ok) {
               const mediaData = await mediaRes.json();
+              console.log(`✅ [${timestamp}] Fetch media thành công! Tổng số media: ${mediaData.length}`);
+              
               if (mediaData && mediaData.length > 0) {
+                // Sort theo mediaOrder để đảm bảo thứ tự đúng
+                const sortedMedia = mediaData.sort((a, b) => (a.mediaOrder || 0) - (b.mediaOrder || 0));
+                
                 existingImages = await Promise.all(
-                  mediaData.map(async (media, index) => {
+                  sortedMedia.map(async (media, index) => {
+                    console.log(`\n${media.mediaId}`);
+                    console.log(`   URL: ${media.mediaUrl}`);
+                    console.log(`   Type: ${media.mediaType}`);
+                    console.log(`   Order: ${media.mediaOrder}`);
+                    console.log(`   Primary: ${media.isPrimary ? 'Yes ✅' : 'No'}`);
+                    console.log(`   S3 Key: ${media.s3Key}`);
+                    
+                    console.log(`   ➤ Fetch download URL: http://localhost:8080/api/s3/download-url?s3Key=${encodeURIComponent(media.s3Key)}&expirationMinutes=5`);
                     const presignedUrl = await getPresignedUrl(media.s3Key);
+                    
                     return {
                       id: media.mediaId || `media_${index}`,
+                      mediaId: media.mediaId,
                       url: presignedUrl,
                       s3Key: media.s3Key,
-                      name: `Ảnh ${index + 1}`,
+                      name: `Ảnh ${media.mediaOrder || index + 1}`,
                       uploadedToS3: true,
                       isExisting: true,
-                      isPrimary: media.isPrimary
+                      isPrimary: media.isPrimary,
+                      mediaType: media.mediaType,
+                      mediaOrder: media.mediaOrder
                     };
                   })
                 );
+                
+                console.log(`\n✅ [${timestamp}] Đã load ${existingImages.length} ảnh từ database`);
               }
+            } else {
+              console.warn(`⚠️ [${timestamp}] Không thể fetch media: ${mediaRes.status}`);
             }
           } catch (error) {
-            console.warn('Cannot load media:', error);
+            console.error('❌ Cannot load media:', error);
           }
         }
         
@@ -195,13 +222,25 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
       return;
     }
 
+    console.log(`🚀 [${new Date().toLocaleTimeString()}] Bắt đầu upload ${files.length} ảnh...`);
     setErrors({ images: 'Đang upload ảnh...' });
 
     try {
-      const uploadPromises = files.map(async (file) => {
+      const uploadPromises = files.map(async (file, index) => {
+        console.log(`📁 [${new Date().toLocaleTimeString()}] File ${index + 1}: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`);
+        
+        // Bước 1-2: Upload lên S3
+        console.log(`📤 [${new Date().toLocaleTimeString()}] Step 1-2: Upload file "${file.name}" lên S3...`);
         const uploadResult = await uploadSingleImageToS3(file);
+        console.log(`✅ [${new Date().toLocaleTimeString()}] Step 1-2: Upload thành công!`);
+        console.log(`   S3 Key: ${uploadResult.s3Key}`);
+        console.log(`   Public URL: ${uploadResult.url}`);
+        
+        // Bước 3: Lấy presigned URL để hiển thị
+        console.log(`🔍 [${new Date().toLocaleTimeString()}] Step 3: Lấy presigned URL để preview...`);
         const s3Key = uploadResult.s3Key || uploadResult.url;
         const presignedUrl = await getPresignedUrl(s3Key);
+        console.log(`✅ [${new Date().toLocaleTimeString()}] Step 3: Đã lấy presigned URL`);
         
         return {
           id: Date.now() + Math.random(),
@@ -218,15 +257,24 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
         ...prev,
         images: [...prev.images, ...newImages]
       }));
+      
+      console.log(`🎉 [${new Date().toLocaleTimeString()}] Upload hoàn tất! Đã thêm ${newImages.length} ảnh mới`);
+      console.log(`💡 [${new Date().toLocaleTimeString()}] Ảnh sẽ được lưu vào database khi bạn nhấn "Tiếp tục"`);
       setErrors({ images: '' });
     } catch (error) {
+      console.error(`❌ [${new Date().toLocaleTimeString()}] Lỗi upload ảnh:`, error);
       setErrors({ images: 'Lỗi upload ảnh: ' + error.message });
     }
   };
 
   const uploadSingleImageToS3 = async (file) => {
     try {
+      const timestamp = new Date().toLocaleTimeString();
+      
       // Bước 1: Lấy presigned URL từ backend
+      console.log(`📤 [${timestamp}] Step 1: Đang lấy presigned URL...`);
+      console.log(`   URL: http://localhost:8080/api/s3/presigned-url`);
+      
       const presignedResponse = await fetch('http://localhost:8080/api/s3/presigned-url', {
         method: 'POST',
         headers: {
@@ -241,14 +289,21 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
         })
       });
 
+      console.log(`   Response Status: ${presignedResponse.status}`);
+      console.log(`   Response OK: ${presignedResponse.ok}`);
+
       if (!presignedResponse.ok) {
         const errorText = await presignedResponse.text();
         throw new Error(`Không lấy được presigned URL: ${presignedResponse.status} - ${errorText}`);
       }
 
       const { presignedUrl, publicUrl, s3Key } = await presignedResponse.json();
+      console.log(`✅ [${timestamp}] Step 1: Đã lấy presigned URL thành công`);
+      console.log(`   S3 Key: ${s3Key}`);
+      console.log(`   Public URL: ${publicUrl}`);
 
       // Bước 2: Upload file trực tiếp lên S3
+      console.log(`📤 [${timestamp}] Step 2: Đang upload file lên S3...`);
       const uploadResponse = await fetch(presignedUrl, {
         method: 'PUT',
         body: file,
@@ -261,18 +316,73 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
         throw new Error(`Upload lên S3 thất bại: ${uploadResponse.status}`);
       }
 
+      console.log(`✅ [${timestamp}] Step 2: Upload file lên S3 thành công!`);
+
       return { url: publicUrl, s3Key: s3Key };
     } catch (error) {
-      console.error('S3 Upload error:', error);
+      console.error('❌ S3 Upload error:', error);
       throw error;
     }
   };
 
-  const removeImage = (imageId) => {
+  const removeImage = async (imageId, mediaId, s3Key, isExisting) => {
+    const timestamp = new Date().toLocaleTimeString();
+    
+    // Nếu là ảnh đã có trong database, cần xóa qua API
+    if (isExisting && mediaId) {
+      const confirmDelete = window.confirm(
+        `Bạn có chắc chắn muốn xóa ảnh này?\n\nHành động này không thể hoàn tác!`
+      );
+      
+      if (!confirmDelete) {
+        return;
+      }
+
+      try {
+        console.log(`\n🗑️ [${timestamp}] Đang xóa ảnh từ database...`);
+        console.log(`   Product ID: ${productId}`);
+        console.log(`   Media ID: ${mediaId}`);
+        console.log(`   S3 Key: ${s3Key}`);
+        
+        const deleteUrl = `http://localhost:8080/api/products/${encodeURIComponent(productId)}/media/${encodeURIComponent(mediaId)}`;
+        console.log(`   DELETE URL: ${deleteUrl}`);
+        
+        const response = await fetch(deleteUrl, {
+          method: 'DELETE',
+          headers: {
+            'Accept': 'application/json'
+          }
+        });
+
+        console.log(`   Response Status: ${response.status} ${response.statusText}`);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`❌ [${timestamp}] Lỗi xóa ảnh từ API:`, errorText);
+          throw new Error(`Không thể xóa ảnh: ${response.status} - ${errorText}`);
+        }
+
+        console.log(`✅ [${timestamp}] Đã xóa ảnh khỏi database thành công!`);
+        alert('✅ Đã xóa ảnh thành công!');
+        
+      } catch (error) {
+        console.error(`❌ [${timestamp}] Lỗi khi xóa ảnh:`, error);
+        alert(`❌ Lỗi xóa ảnh:\n\n${error.message}`);
+        return; // Không xóa khỏi UI nếu API fail
+      }
+    } else {
+      // Ảnh mới chưa lưu vào database
+      console.log(`🗑️ [${timestamp}] Xóa ảnh mới (chưa lưu vào database)`);
+      console.log(`   Image ID: ${imageId}`);
+    }
+
+    // Xóa khỏi state UI
     setFormData(prev => ({
       ...prev,
       images: prev.images.filter(img => img.id !== imageId)
     }));
+    
+    console.log(`✅ [${timestamp}] Đã xóa ảnh khỏi danh sách hiển thị`);
   };
 
   const moveImage = (fromIndex, toIndex) => {
@@ -320,15 +430,9 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
 
   const handleUpdateProduct = async () => {
     try {
+      const timestamp = new Date().toLocaleTimeString();
+      console.log(`\n💾 [${timestamp}] Bắt đầu cập nhật sản phẩm...`);
       setErrors({ general: 'Đang cập nhật sản phẩm...' });
-      
-      // Log debug info
-      console.log('🔄 Updating product:', {
-        productId: formData.productId,
-        imagesCount: formData.images.length,
-        newImages: formData.images.filter(img => !img.isExisting).length,
-        existingImages: formData.images.filter(img => img.isExisting).length
-      });
 
       const productPayload = {
         productId: formData.productId,
@@ -341,11 +445,11 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
         preorderDays: Number(formData.preorderDays),
         isActive: true,
         tags: [],
-        // Gửi tất cả S3 keys (cả ảnh cũ và mới)
+        // Gửi S3 key (không phải presigned URL)
         images: formData.images.map(img => img.s3Key || img.url)
       };
 
-      console.log('📤 Sending product update request...');
+      console.log(`📤 [${timestamp}] Đang gửi request cập nhật sản phẩm...`);
       const response = await fetch(`http://localhost:8080/api/products/${encodeURIComponent(productId)}`, {
         method: 'PUT',
         headers: {
@@ -356,92 +460,72 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Lỗi cập nhật sản phẩm: ${response.status} - ${errorText}`);
-      }
-      
-      console.log('✅ Product updated successfully');
-
-      // ✅ Đồng bộ hóa media table
-      await syncMediaTable();
-
-      setErrors({ general: '' });
-      setStep(2);
-      
-      console.log('🎉 Product update completed!');
-      
-    } catch (error) {
-      console.error('❌ Product update error:', error);
-      setErrors({ general: error.message });
-    }
-  };
-  
-  // Hàm đồng bộ media table
-  const syncMediaTable = async () => {
-    try {
-      console.log('🔄 Syncing media table...');
-      
-      // Phương pháp: Xóa tất cả media cũ và tạo lại từ formData.images
-      
-      // Bước 1: Xóa tất cả media cũ
-      try {
-        console.log('🗑️ Deleting old media records...');
-        const deleteResponse = await fetch(`http://localhost:8080/api/products/${encodeURIComponent(productId)}/media`, {
-          method: 'DELETE',
-          headers: { 'Accept': 'application/json' }
-        });
-        
-        if (deleteResponse.ok) {
-          console.log('✅ Old media deleted successfully');
-        } else {
-          console.warn('⚠️ Could not delete old media, continuing...');
-        }
-      } catch (deleteError) {
-        console.warn('⚠️ Error deleting old media:', deleteError);
+        throw new Error(`Lỗi cập nhật sản phẩm: ${response.status}`);
       }
 
-      // Bước 2: Tạo lại tất cả media từ formData.images
-      if (formData.images.length > 0) {
-        console.log(`💾 Creating ${formData.images.length} media records...`);
+      console.log(`✅ [${timestamp}] Cập nhật sản phẩm thành công!`);
+
+      // ✅ Step 4: Lưu ảnh mới vào bảng media
+      const newImages = formData.images.filter(img => !img.isExisting);
+      if (newImages.length > 0) {
+        console.log(`\n💾 [${timestamp}] Step 4: Đang lưu ${newImages.length} ảnh mới vào database...`);
         
-        for (let i = 0; i < formData.images.length; i++) {
-          const image = formData.images[i];
+        for (let i = 0; i < newImages.length; i++) {
+          const image = newImages[i];
+          const imageOrder = formData.images.indexOf(image) + 1;
+          const mediaId = `MEDIA_${Date.now()}_${i}`;
+          
           const mediaPayload = {
-            mediaId: `MEDIA_${Date.now()}_${i}_${Math.random().toString(36).substr(2, 9)}`,
+            mediaId: mediaId,
             mediaUrl: image.url,
-            s3Key: image.s3Key || image.url,
+            s3Key: image.s3Key,
             mediaType: 'IMAGE',
-            mediaOrder: i + 1,
-            isPrimary: i === 0
+            mediaOrder: imageOrder,
+            isPrimary: imageOrder === 1
           };
 
+          console.log(`   📤 Ảnh ${i + 1}/${newImages.length}:`);
+          console.log(`      Media ID: ${mediaId}`);
+          console.log(`      S3 Key: ${image.s3Key}`);
+          console.log(`      Order: ${imageOrder}`);
+          console.log(`      Is Primary: ${mediaPayload.isPrimary}`);
+
           try {
-            const mediaResponse = await fetch(`http://localhost:8080/api/products/${encodeURIComponent(productId)}/media`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-              },
-              body: JSON.stringify(mediaPayload)
-            });
+            const mediaResponse = await fetch(
+              `http://localhost:8080/api/products/${encodeURIComponent(productId)}/media`, 
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Accept': 'application/json'
+                },
+                body: JSON.stringify(mediaPayload)
+              }
+            );
 
             if (mediaResponse.ok) {
-              console.log(`✅ Media record ${i + 1} created: ${image.name}`);
+              const savedMedia = await mediaResponse.json();
+              console.log(`   ✅ Đã lưu ảnh ${i + 1} vào database`);
+              console.log(`      Media ID: ${savedMedia.mediaId}`);
             } else {
-              console.warn(`⚠️ Failed to create media record ${i + 1}: ${image.name}`);
+              console.warn(`   ⚠️ Không lưu được ảnh ${i + 1}: ${mediaResponse.status}`);
             }
           } catch (mediaError) {
-            console.warn(`⚠️ Error creating media record ${i + 1}:`, mediaError);
+            console.error(`   ❌ Lỗi khi lưu ảnh ${i + 1}:`, mediaError);
           }
         }
         
-        console.log('✅ Media sync completed');
+        console.log(`✅ [${timestamp}] Step 4: Đã lưu tất cả ảnh mới vào database!`);
       } else {
-        console.log('ℹ️ No images to sync');
+        console.log(`💡 [${timestamp}] Không có ảnh mới để lưu vào database`);
       }
-      
+
+      console.log(`🎉 [${timestamp}] Hoàn tất cập nhật sản phẩm và ảnh!`);
+      setErrors({ general: '' });
+      setStep(2);
     } catch (error) {
-      console.warn('⚠️ Media sync error:', error);
+      console.error(`❌ [${new Date().toLocaleTimeString()}] Lỗi:`, error);
+      setErrors({ general: error.message });
     }
   };
 
@@ -672,11 +756,23 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
                     
                     {/* Debug info */}
                     <div style={{ 
-                      fontSize: '0.8rem', 
+                      fontSize: '0.85rem', 
                       color: '#666', 
-                      marginBottom: '0.5rem' 
+                      marginBottom: '0.75rem',
+                      padding: '0.5rem',
+                      backgroundColor: '#f0f9ff',
+                      borderRadius: '6px',
+                      border: '1px solid #bae6fd'
                     }}>
-                      Số ảnh hiện tại: {formData.images.length}
+                      📊 Tổng số ảnh: <strong>{formData.images.length}</strong> / 10
+                      {formData.images.length > 0 && (
+                        <>
+                          {' | '}
+                          Ảnh có sẵn: <strong style={{color: '#10B981'}}>{formData.images.filter(img => img.isExisting).length}</strong>
+                          {' | '}
+                          Ảnh mới: <strong style={{color: '#3B82F6'}}>{formData.images.filter(img => !img.isExisting).length}</strong>
+                        </>
+                      )}
                     </div>
                     
                     <div className="image-upload-area">
@@ -738,146 +834,270 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
 
                     {formData.images.length > 0 && (
                       <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
-                        gap: '1rem',
-                        marginTop: '1rem',
-                        padding: '1rem',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '8px',
-                        backgroundColor: '#f9fafb'
+                        marginTop: '1.25rem',
+                        padding: '1.25rem',
+                        border: '2px solid #e5e7eb',
+                        borderRadius: '12px',
+                        backgroundColor: '#fafafa'
                       }}>
-                        {formData.images.map((image, index) => (
-                          <div key={image.id} style={{
-                            border: '1px solid #ddd',
-                            borderRadius: '8px',
-                            overflow: 'hidden',
-                            backgroundColor: 'white'
-                          }}>
-                            <div style={{ position: 'relative' }}>
-                              <img
-                                src={image.url}
-                                alt={`Product ${index + 1}`}
-                                style={{
-                                  width: '100%',
-                                  height: '120px',
-                                  objectFit: 'cover',
-                                  display: 'block'
-                                }}
-                                onError={(e) => {
-                                  e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMCAyNkM5LjIgMjYgOS4yIDI2IDkuMiAyNkMyLjQgMjYgMi40IDE2IDkuMiAxNkM5LjIgMTYgMTcgOCAyNSA4UzQwLjggMTYgNDAuOCAxNkM0NyAyNiA0NyAyNiAzNCAyNiIgc3Ryb2tlPSIjOUNBM0FGIiBzdHJva2Utd2lkdGg9IjEuNSIvPgo8Y2lyY2xlIGN4PSIyMCIgY3k9IjIwIiByPSI0IiBzdHJva2U9IiM5Q0EzQUYiIHN0cm9rZS13aWR0aD0iMS41Ii8+Cjwvc3ZnPgo=';
-                                }}
-                              />
-                              
-                              <div style={{
-                                position: 'absolute',
-                                top: '4px',
-                                left: '4px',
-                                backgroundColor: image.isExisting ? '#10B981' : '#3B82F6',
-                                color: 'white',
-                                padding: '2px 6px',
-                                borderRadius: '4px',
-                                fontSize: '0.7rem'
-                              }}>
-                                {image.isExisting ? '💾 Có sẵn' : '☁️ Mới'}
-                              </div>
-                              
-                              <div style={{
-                                position: 'absolute',
-                                top: '4px',
-                                right: '4px',
-                                display: 'flex',
-                                gap: '2px'
-                              }}>
-                                {index > 0 && (
-                                  <button
-                                    type="button"
-                                    onClick={() => moveImage(index, index - 1)}
-                                    title="Di chuyển trái"
-                                    style={{
-                                      padding: '4px 6px',
-                                      background: 'rgba(0,0,0,0.7)',
-                                      color: 'white',
-                                      border: 'none',
-                                      borderRadius: '3px',
-                                      cursor: 'pointer',
-                                      fontSize: '0.8rem'
-                                    }}
-                                  >
-                                    ←
-                                  </button>
-                                )}
-                                
-                                {index < formData.images.length - 1 && (
-                                  <button
-                                    type="button"
-                                    onClick={() => moveImage(index, index + 1)}
-                                    title="Di chuyển phải"
-                                    style={{
-                                      padding: '4px 6px',
-                                      background: 'rgba(0,0,0,0.7)',
-                                      color: 'white',
-                                      border: 'none',
-                                      borderRadius: '3px',
-                                      cursor: 'pointer',
-                                      fontSize: '0.8rem'
-                                    }}
-                                  >
-                                    →
-                                  </button>
-                                )}
-                                
-                                <button
-                                  type="button"
-                                  onClick={() => removeImage(image.id)}
-                                  title="Xóa ảnh"
+                        <div style={{
+                          fontSize: '0.95rem',
+                          fontWeight: '600',
+                          marginBottom: '1rem',
+                          color: '#374151',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem'
+                        }}>
+                          <span>🖼️</span>
+                          <span>Danh sách hình ảnh ({formData.images.length})</span>
+                        </div>
+                        
+                        <div style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+                          gap: '1rem'
+                        }}>
+                          {formData.images.map((image, index) => (
+                            <div key={image.id} style={{
+                              border: '2px solid #e5e7eb',
+                              borderRadius: '10px',
+                              overflow: 'hidden',
+                              backgroundColor: 'white',
+                              transition: 'all 0.2s',
+                              boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.transform = 'translateY(-4px)';
+                              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+                              e.currentTarget.style.borderColor = '#3B82F6';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.transform = 'translateY(0)';
+                              e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+                              e.currentTarget.style.borderColor = '#e5e7eb';
+                            }}>
+                              {/* Image Container */}
+                              <div style={{ position: 'relative', backgroundColor: '#f3f4f6' }}>
+                                <img
+                                  src={image.url}
+                                  alt={`Product ${index + 1}`}
                                   style={{
-                                    padding: '4px 6px',
-                                    background: 'rgba(220,38,38,0.9)',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '3px',
-                                    cursor: 'pointer',
-                                    fontSize: '0.8rem'
+                                    width: '100%',
+                                    height: '150px',
+                                    objectFit: 'cover',
+                                    display: 'block'
                                   }}
-                                >
-                                  🗑️
-                                </button>
-                              </div>
-
-                              {index === 0 && (
+                                  onError={(e) => {
+                                    console.error('Failed to load image:', image.url);
+                                    e.target.style.display = 'none';
+                                    e.target.parentElement.innerHTML = `
+                                      <div style="
+                                        width: 100%;
+                                        height: 150px;
+                                        display: flex;
+                                        flex-direction: column;
+                                        align-items: center;
+                                        justify-content: center;
+                                        background: #fee2e2;
+                                        color: #991b1b;
+                                      ">
+                                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">⚠️</div>
+                                        <div style="font-size: 0.8rem; font-weight: 500;">Không tải được ảnh</div>
+                                      </div>
+                                    `;
+                                  }}
+                                />
+                                
+                                {/* Status Badge */}
                                 <div style={{
                                   position: 'absolute',
-                                  bottom: '4px',
-                                  left: '4px',
-                                  backgroundColor: '#F59E0B',
+                                  top: '6px',
+                                  left: '6px',
+                                  backgroundColor: image.isExisting ? '#10B981' : '#3B82F6',
                                   color: 'white',
-                                  padding: '2px 6px',
-                                  borderRadius: '4px',
-                                  fontSize: '0.7rem'
+                                  padding: '4px 8px',
+                                  borderRadius: '6px',
+                                  fontSize: '0.7rem',
+                                  fontWeight: '600',
+                                  boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '4px'
                                 }}>
-                                  Ảnh chính
+                                  <span>{image.isExisting ? '💾' : '☁️'}</span>
+                                  <span>{image.isExisting ? 'Database' : 'New'}</span>
                                 </div>
-                              )}
-                            </div>
-                            
-                            <div style={{ padding: '8px' }}>
-                              <div style={{ 
-                                fontSize: '0.8rem', 
-                                fontWeight: '500', 
-                                marginBottom: '2px',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap'
-                              }}>
-                                {image.name}
+                                
+                                {/* Control Buttons */}
+                                <div style={{
+                                  position: 'absolute',
+                                  top: '6px',
+                                  right: '6px',
+                                  display: 'flex',
+                                  gap: '4px'
+                                }}>
+                                  {index > 0 && (
+                                    <button
+                                      type="button"
+                                      onClick={() => moveImage(index, index - 1)}
+                                      title="Di chuyển trái"
+                                      style={{
+                                        padding: '6px 8px',
+                                        background: 'rgba(0,0,0,0.75)',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '6px',
+                                        cursor: 'pointer',
+                                        fontSize: '0.85rem',
+                                        fontWeight: '600',
+                                        transition: 'all 0.2s',
+                                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                                      }}
+                                      onMouseEnter={(e) => e.target.style.background = 'rgba(0,0,0,0.9)'}
+                                      onMouseLeave={(e) => e.target.style.background = 'rgba(0,0,0,0.75)'}
+                                    >
+                                      ←
+                                    </button>
+                                  )}
+                                  
+                                  {index < formData.images.length - 1 && (
+                                    <button
+                                      type="button"
+                                      onClick={() => moveImage(index, index + 1)}
+                                      title="Di chuyển phải"
+                                      style={{
+                                        padding: '6px 8px',
+                                        background: 'rgba(0,0,0,0.75)',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '6px',
+                                        cursor: 'pointer',
+                                        fontSize: '0.85rem',
+                                        fontWeight: '600',
+                                        transition: 'all 0.2s',
+                                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                                      }}
+                                      onMouseEnter={(e) => e.target.style.background = 'rgba(0,0,0,0.9)'}
+                                      onMouseLeave={(e) => e.target.style.background = 'rgba(0,0,0,0.75)'}
+                                    >
+                                      →
+                                    </button>
+                                  )}
+                                  
+                                  <button
+                                    type="button"
+                                    onClick={() => removeImage(image.id, image.mediaId, image.s3Key, image.isExisting)}
+                                    title="Xóa ảnh"
+                                    style={{
+                                      padding: '6px 8px',
+                                      background: 'rgba(220,38,38,0.9)',
+                                      color: 'white',
+                                      border: 'none',
+                                      borderRadius: '6px',
+                                      cursor: 'pointer',
+                                      fontSize: '0.85rem',
+                                      transition: 'all 0.2s',
+                                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                                    }}
+                                    onMouseEnter={(e) => e.target.style.background = 'rgba(185,28,28,0.9)'}
+                                    onMouseLeave={(e) => e.target.style.background = 'rgba(220,38,38,0.9)'}
+                                  >
+                                    🗑️
+                                  </button>
+                                </div>
+
+                                {/* Primary Badge */}
+                                {(index === 0 || image.isPrimary) && (
+                                  <div style={{
+                                    position: 'absolute',
+                                    bottom: '6px',
+                                    left: '6px',
+                                    backgroundColor: '#F59E0B',
+                                    color: 'white',
+                                    padding: '4px 8px',
+                                    borderRadius: '6px',
+                                    fontSize: '0.7rem',
+                                    fontWeight: '600',
+                                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px'
+                                  }}>
+                                    <span>⭐</span>
+                                    <span>Ảnh chính</span>
+                                  </div>
+                                )}
+                                
+                                {/* Order Badge */}
+                                <div style={{
+                                  position: 'absolute',
+                                  bottom: '6px',
+                                  right: '6px',
+                                  backgroundColor: 'rgba(0,0,0,0.75)',
+                                  color: 'white',
+                                  padding: '4px 8px',
+                                  borderRadius: '6px',
+                                  fontSize: '0.7rem',
+                                  fontWeight: '600',
+                                  boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                                }}>
+                                  #{index + 1}
+                                </div>
                               </div>
-                              <div style={{ fontSize: '0.7rem', color: '#666' }}>
-                                {image.isExisting ? '📍 Từ database' : '📍 Mới upload'}
+                              
+                              {/* Image Info */}
+                              <div style={{ padding: '10px' }}>
+                                <div style={{ 
+                                  fontSize: '0.8rem', 
+                                  fontWeight: '600', 
+                                  marginBottom: '4px',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                  color: '#1f2937'
+                                }} title={image.name || 'Không có tên'}>
+                                  {image.name || `Ảnh ${index + 1}`}
+                                </div>
+                                
+                                <div style={{ 
+                                  fontSize: '0.7rem', 
+                                  color: '#6b7280',
+                                  marginBottom: '4px'
+                                }}>
+                                  {image.isExisting ? '📍 Từ database' : '📍 Mới upload'}
+                                </div>
+                                
+                                {image.s3Key && (
+                                  <div style={{ 
+                                    fontSize: '0.65rem', 
+                                    color: '#9ca3af',
+                                    backgroundColor: '#f3f4f6',
+                                    padding: '3px 6px',
+                                    borderRadius: '4px',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                    fontFamily: 'monospace'
+                                  }} title={image.s3Key}>
+                                    🔑 {image.s3Key.split('/').pop()}
+                                  </div>
+                                )}
+                                
+                                {image.mediaId && (
+                                  <div style={{ 
+                                    fontSize: '0.65rem', 
+                                    color: '#10b981',
+                                    marginTop: '4px',
+                                    fontWeight: '500'
+                                  }}>
+                                    ID: {image.mediaId}
+                                  </div>
+                                )}
                               </div>
                             </div>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
