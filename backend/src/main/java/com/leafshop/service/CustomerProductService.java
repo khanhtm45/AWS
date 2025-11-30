@@ -13,7 +13,6 @@ import org.springframework.util.StringUtils;
 
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -75,12 +74,10 @@ public class CustomerProductService {
 					return false; // Nếu không có variant thì không match
 				}
 				return variants.stream().anyMatch(v -> {
-					Map<String, String> attrs = v.getVariantAttributes();
-					if (attrs == null) return false;
 					boolean sizeMatch = !StringUtils.hasText(size) || 
-						(attrs.containsKey("size") && size.equalsIgnoreCase(attrs.get("size")));
+						(StringUtils.hasText(v.getSize()) && size.equalsIgnoreCase(v.getSize()));
 					boolean colorMatch = !StringUtils.hasText(color) || 
-						(attrs.containsKey("color") && color.equalsIgnoreCase(attrs.get("color")));
+						(StringUtils.hasText(v.getColor()) && color.equalsIgnoreCase(v.getColor()));
 					return sizeMatch && colorMatch;
 				});
 			});
@@ -214,7 +211,8 @@ public class CustomerProductService {
 		return ProductVariantResponse.builder()
 			.productId(productId)
 			.variantId(variantId)
-			.variantAttributes(item.getVariantAttributes())
+			.color(item.getColor())
+			.size(item.getSize())
 			.variantPrice(item.getVariantPrice())
 			.sku(item.getSku())
 			.barcode(item.getBarcode())

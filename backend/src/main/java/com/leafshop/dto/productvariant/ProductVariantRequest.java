@@ -3,15 +3,15 @@ package com.leafshop.dto.productvariant;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
-import java.util.Map;
-
 @Data
 public class ProductVariantRequest {
 
 	@NotBlank
 	private String variantId;
 
-	private Map<String, String> variantAttributes; // e.g., {"color": "red", "size": "L"}
+	private String color; // Màu sắc của biến thể
+
+	private String size; // Kích thước của biến thể
 
 	private Double variantPrice; // Giá phụ (nếu khác với giá sản phẩm)
 
