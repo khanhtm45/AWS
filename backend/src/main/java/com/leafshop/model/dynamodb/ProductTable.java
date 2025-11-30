@@ -10,7 +10,6 @@ import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbParti
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSortKey;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * ProductTable - Quản lý sản phẩm, danh mục, loại sản phẩm, biến thể và media
@@ -50,7 +49,9 @@ public class ProductTable {
     private List<String> tags;
 
     // VARIANT fields
-    private Map<String, String> variantAttributes; // e.g., {"color": "red", "size": "L"}
+    private String color; // Màu sắc của biến thể
+
+    private String size; // Kích thước của biến thể
 
     private Double variantPrice; // Giá phụ (nếu khác với giá sản phẩm)
 
