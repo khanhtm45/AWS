@@ -32,6 +32,17 @@ const getPresignedUrl = async (s3KeyOrUrl) => {
   }
 };
 
+// Helper function để parse màu từ SKU
+const parseColorFromSKU = (sku) => {
+  if (!sku) return null;
+  // SKU format: "SKU_SP500_Xanh dương"
+  const parts = sku.split('_');
+  if (parts.length >= 3) {
+    return parts.slice(2).join('_'); // Lấy phần sau SKU_SP500_
+  }
+  return null;
+};
+
 // --- 1. HÀM HỖ TRỢ: XỬ LÝ MÔ TẢ TỪ API (Để hiển thị đẹp như thiết kế) ---
 const parseDescription = (fullDesc) => {
   if (!fullDesc) return { summary: '', details: [], origin: 'Việt Nam' };
@@ -80,6 +91,7 @@ function ProductDetailPage() {
 
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
+  const [selectedVariantId, setSelectedVariantId] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
   const [showProductInfo, setShowProductInfo] = useState(true); 
@@ -102,11 +114,23 @@ function ProductDetailPage() {
         
         if (variantsRes.ok) {
           const variantsData = await variantsRes.json();
-          setVariants(variantsData);
-          // Tự động chọn màu/size đầu tiên
-          if (variantsData.length > 0) {
-            setSelectedColor(variantsData[0].variantAttributes.color);
-            setSelectedSize(variantsData[0].variantAttributes.size);
+          
+          // Parse và normalize variants data
+          const normalizedVariants = variantsData.map(v => ({
+            ...v,
+            // Nếu color null, parse từ SKU
+            color: v.color || parseColorFromSKU(v.sku),
+            // Size không cần parse vì set cứng
+            size: v.size
+          }));
+          
+          setVariants(normalizedVariants);
+          // Tự động chọn variant đầu tiên
+          if (normalizedVariants.length > 0) {
+            const firstVariant = normalizedVariants[0];
+            setSelectedColor(firstVariant.color);
+            setSelectedSize('M'); // Default size
+            setSelectedVariantId(firstVariant.variantId);
           }
         }
 
@@ -160,22 +184,65 @@ function ProductDetailPage() {
     fetchAllData();
   }, [id]);
 
+  // --- Fetch media khi chọn variant khác ---
+  useEffect(() => {
+    const fetchVariantMedia = async () => {
+      if (!selectedVariantId) return;
+      
+      try {
+        const formattedId = id.padStart(2, '0');
+        const mediaRes = await fetch(`http://localhost:8080/api/products/${formattedId}/variants/${selectedVariantId}/media`);
+        
+        if (mediaRes.ok) {
+          const mediaData = await mediaRes.json();
+          if (mediaData && mediaData.length > 0) {
+            const sortedMedia = mediaData.sort((a, b) => a.mediaOrder - b.mediaOrder);
+            
+            // Xử lý ảnh với presigned URL
+            const imagePromises = sortedMedia.map(async (mediaItem) => {
+              const imageSource = mediaItem.s3Key || mediaItem.mediaUrl;
+              const resolvedUrl = await getPresignedUrl(imageSource);
+              return {
+                ...mediaItem,
+                displayUrl: resolvedUrl
+              };
+            });
+            
+            const processedMediaImages = await Promise.all(imagePromises);
+            setProcessedImages(processedMediaImages);
+            setSelectedImage(0); // Reset về ảnh đầu tiên
+          }
+        }
+      } catch (error) {
+        console.error("Lỗi tải media của variant:", error);
+      }
+    };
+    
+    fetchVariantMedia();
+  }, [selectedVariantId, id]);
+
   // --- 3. XỬ LÝ DỮ LIỆU LOGIC ---
   
   // Lấy danh sách Size/Màu duy nhất
   const uniqueSizes = ['S', 'M', 'L', 'XL']; // Set cứng sizes
-  const uniqueColors = [...new Set(variants.map(v => v.variantAttributes.color))];
+  const displaySizes = uniqueSizes;
+  const uniqueColors = [...new Set(variants.map(v => v.color).filter(Boolean))];
   
   // Map tên màu sang mã Hex
   const getColorCode = (name) => {
     switch(name?.toLowerCase()) {
       case 'trắng': return '#FFFFFF';
       case 'đen': return '#000000';
-      case 'đỏ': return '#DC143C'; // Mã màu đỏ đẹp
+      case 'đỏ': return '#DC143C';
       case 'tím': return '#800080';
       case 'nâu': return '#8B4513';
+      case 'xanh nhạt': return '#ADD8E6';
+      case 'xanh dương': return '#4169E1';
+      case 'xanh lá': return '#228B22';
+      case 'vàng': return '#FFD700';
+      case 'cam': return '#FFA500';
+      case 'hồng': return '#FFC0CB';
       default: return '#CCCCCC';
-      case 'xanh nhạt': return '#ADD8E6'; // màu xanh nhạt
     }
   };
 
@@ -203,10 +270,8 @@ function ProductDetailPage() {
 
   const productImages = filterImagesByColor();
 
-  // Lấy giá tiền theo biến thể
-  const currentVariant = variants.find(v => 
-    v.variantAttributes.color === selectedColor && v.variantAttributes.size === selectedSize
-  );
+  // Lấy giá tiền theo biến thể (chỉ dựa vào màu, không quan tâm size)
+  const currentVariant = variants.find(v => v.color === selectedColor);
   const displayPrice = currentVariant ? currentVariant.variantPrice : (product?.price || 0);
   
   // Parse mô tả
@@ -214,15 +279,33 @@ function ProductDetailPage() {
 
 
   // --- 4. EVENT HANDLERS ---
+  const handleColorChange = (color) => {
+    setSelectedColor(color);
+    // Tìm variant tương ứng với màu (size không quan trọng vì set cứng)
+    const variant = variants.find(v => v.color === color);
+    if (variant) {
+      setSelectedVariantId(variant.variantId);
+    }
+  };
+
+  const handleSizeChange = (size) => {
+    setSelectedSize(size);
+    // Size chỉ để hiển thị, không ảnh hưởng đến variant
+  };
+
   const handleAddToCart = () => {
-    if (!selectedSize) { alert('Vui lòng chọn size!'); return; }
+    if (!currentVariant) { 
+      alert('Vui lòng chọn màu sắc và kích thước!'); 
+      return; 
+    }
     const cartItem = {
       id: product.productId,
+      variantId: selectedVariantId,
       name: product.name,
       price: displayPrice,
       image: productImages[0] || '/LEAF.png',
-      selectedSize,
-      selectedColor,
+      selectedSize: selectedSize || 'N/A',
+      selectedColor: selectedColor || 'N/A',
       quantity
     };
     addToCart(cartItem);
@@ -286,13 +369,13 @@ function ProductDetailPage() {
 
           {/* Size */}
           <div className="size-selection">
-            <label className="size-label">Size: {selectedSize}</label>
+            <label className="size-label">Size: {selectedSize || 'Chọn size'}</label>
             <div className="size-options">
-              {uniqueSizes.map((size) => (
+              {displaySizes.map((size) => (
                 <button
                   key={size}
                   className={`size-option ${selectedSize === size ? 'selected' : ''}`}
-                  onClick={() => setSelectedSize(size)}
+                  onClick={() => handleSizeChange(size)}
                 >
                   {size}
                 </button>
@@ -312,7 +395,7 @@ function ProductDetailPage() {
                     backgroundColor: getColorCode(color),
                     border: getColorCode(color) === '#FFFFFF' ? '1px solid #ccc' : 'none'
                   }}
-                  onClick={() => { setSelectedColor(color); setSelectedImage(0); }}
+                  onClick={() => handleColorChange(color)}
                   title={color}
                 />
               ))}
