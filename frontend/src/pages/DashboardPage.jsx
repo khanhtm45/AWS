@@ -1734,7 +1734,7 @@ const DashboardPage = () => {
                     <table className="warehouse-table">
                       <thead>
                         <tr>
-                          <th>SKU</th>
+                          <th>MÃ SẢN PHẨM</th>
                           <th>SẢN PHẨM</th>
                           <th>GIÁ VỐN</th>
                           <th>TỒN KHO</th>
