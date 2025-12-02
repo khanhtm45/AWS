@@ -137,6 +137,9 @@ function CheckoutPage() {
   const discount = 10000; // Miễn phí ship
   const total = subtotal;
 
+  // Debug: log cart items to check data
+  console.log('CheckoutPage cartItems:', cartItems);
+
   if (cartItems.length === 0) {
     return (
       <div className="checkout-page">
@@ -181,6 +184,7 @@ function CheckoutPage() {
               <h2>Địa chỉ vận chuyển</h2>
 
               <div className="form-group">
+                <label className="form-label">Quốc gia/Khu vực</label>
                 <select
                   name="country"
                   value={formData.country}
@@ -193,6 +197,7 @@ function CheckoutPage() {
 
               <div className="form-row">
                 <div className="form-group">
+                  <label className="form-label">Tên</label>
                   <input
                     type="text"
                     name="firstName"
@@ -204,6 +209,7 @@ function CheckoutPage() {
                   />
                 </div>
                 <div className="form-group">
+                  <label className="form-label">Họ</label>
                   <input
                     type="text"
                     name="lastName"
@@ -217,6 +223,7 @@ function CheckoutPage() {
               </div>
 
               <div className="form-group">
+                <label className="form-label">Địa chỉ</label>
                 <input
                   type="text"
                   name="address"
@@ -230,6 +237,7 @@ function CheckoutPage() {
 
               <div className="form-row">
                 <div className="form-group">
+                  <label className="form-label">Tỉnh thành</label>
                   <input
                     type="text"
                     name="province"
@@ -241,6 +249,7 @@ function CheckoutPage() {
                   />
                 </div>
                 <div className="form-group">
+                  <label className="form-label">Mã bưu chính</label>
                   <input
                     type="text"
                     name="postalCode"
@@ -253,6 +262,7 @@ function CheckoutPage() {
               </div>
 
               <div className="form-group">
+                <label className="form-label">Điện thoại</label>
                 <input
                   type="tel"
                   name="phone"
@@ -372,7 +382,12 @@ function CheckoutPage() {
                 </div>
                 <div className="item-details">
                   <h3>{item.name}</h3>
-                  <p className="item-variant">Hạng / {item.selectedSize}</p>
+                  <p className="item-variant">
+                    {item.selectedColor && item.selectedColor !== 'N/A' && `Color: ${item.selectedColor}`}
+                    {item.selectedColor && item.selectedColor !== 'N/A' && item.selectedSize && item.selectedSize !== 'N/A' && ' / '}
+                    {item.selectedSize && item.selectedSize !== 'N/A' && `Size: ${item.selectedSize}`}
+                    {(!item.selectedColor || item.selectedColor === 'N/A') && (!item.selectedSize || item.selectedSize === 'N/A') && 'Sản phẩm mặc định'}
+                  </p>
                 </div>
                 <div className="item-price">
                   {(item.price * item.quantity).toLocaleString('vi-VN')} ₫
