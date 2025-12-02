@@ -107,14 +107,18 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
         
         // Thử lấy ảnh từ product.images trước
         if (productData.images && Array.isArray(productData.images) && productData.images.length > 0) {
+          // Bỏ qua ảnh đầu tiên (index 0) - chỉ lấy từ ảnh thứ 2 trở đi
+          const imagesToLoad = productData.images.slice(1);
+          console.log(`💡 Bỏ qua ảnh đầu tiên trong product.images, chỉ load ${imagesToLoad.length} ảnh còn lại`);
+          
           existingImages = await Promise.all(
-            productData.images.map(async (s3KeyOrUrl, index) => {
+            imagesToLoad.map(async (s3KeyOrUrl, index) => {
               const presignedUrl = await getPresignedUrl(s3KeyOrUrl);
               return {
                 id: `existing_${index}`,
                 url: presignedUrl,
                 s3Key: s3KeyOrUrl,
-                name: `Ảnh ${index + 1}`,
+                name: `Ảnh ${index + 2}`, // +2 vì đã bỏ ảnh đầu tiên
                 uploadedToS3: true,
                 isExisting: true
               };
@@ -138,8 +142,12 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
                 // Sort theo mediaOrder để đảm bảo thứ tự đúng
                 const sortedMedia = mediaData.sort((a, b) => (a.mediaOrder || 0) - (b.mediaOrder || 0));
                 
+                // Bỏ qua ảnh đầu tiên (index 0) - chỉ lấy từ ảnh thứ 2 trở đi
+                const mediaToLoad = sortedMedia.slice(1);
+                console.log(`💡 [${timestamp}] Bỏ qua ảnh đầu tiên, chỉ load ${mediaToLoad.length} ảnh còn lại`);
+                
                 existingImages = await Promise.all(
-                  sortedMedia.map(async (media, index) => {
+                  mediaToLoad.map(async (media, index) => {
                     console.log(`\n${media.mediaId}`);
                     console.log(`   URL: ${media.mediaUrl}`);
                     console.log(`   Type: ${media.mediaType}`);
