@@ -14,6 +14,34 @@ const ProductsPage = () => {
   const [appliedPriceRange, setAppliedPriceRange] = useState([0, 500]);
   const [tempPriceRange, setTempPriceRange] = useState([0, 500]);
 
+  // Helper function để lấy presigned URL từ S3 key
+  const getPresignedUrl = async (s3KeyOrUrl) => {
+    if (!s3KeyOrUrl) return '/LEAF.png';
+    if (s3KeyOrUrl.startsWith('http')) return s3KeyOrUrl;
+
+    try {
+      const apiUrl = `http://localhost:8080/api/s3/download-url?s3Key=${encodeURIComponent(s3KeyOrUrl)}&expirationMinutes=60`;
+      const response = await fetch(apiUrl);
+      
+      if (!response.ok) {
+        console.error(`Failed to get presigned URL: ${response.status}`);
+        return '/LEAF.png';
+      }
+      
+      const data = await response.json();
+      const presignedUrl = data.presignedUrl || data.url || data.downloadUrl;
+      
+      if (presignedUrl && presignedUrl.startsWith('http')) {
+        return presignedUrl;
+      } else {
+        return '/LEAF.png';
+      }
+    } catch (error) {
+      console.error(`Error getting presigned URL:`, error);
+      return '/LEAF.png';
+    }
+  };
+
   // Fetch products từ API
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -38,14 +66,28 @@ const ProductsPage = () => {
               
               if (mediaResponse.ok) {
                 const mediaData = await mediaResponse.json();
-                const firstMedia = mediaData.sort((a, b) => a.mediaOrder - b.mediaOrder)[0];
+                
+                // Tìm ảnh primary (ảnh chính)
+                let primaryImage = mediaData.find(m => m.isPrimary === true);
+                
+                // Nếu không có ảnh primary, lấy ảnh đầu tiên theo mediaOrder
+                if (!primaryImage && mediaData.length > 0) {
+                  const sortedMedia = mediaData.sort((a, b) => (a.mediaOrder || 0) - (b.mediaOrder || 0));
+                  primaryImage = sortedMedia[0];
+                }
+                
+                // Convert S3 key sang presigned URL
+                let imageUrl = '/LEAF.png';
+                if (primaryImage && primaryImage.s3Key) {
+                  imageUrl = await getPresignedUrl(primaryImage.s3Key);
+                }
                 
                 return {
                   id: product.productId,
                   name: product.productName || product.name,
                   price: product.price || 0,
                   category: product.categoryId || 'áo-thun',
-                  image: firstMedia?.mediaUrl || '/LEAF.png'
+                  image: imageUrl
                 };
               }
             } catch (error) {

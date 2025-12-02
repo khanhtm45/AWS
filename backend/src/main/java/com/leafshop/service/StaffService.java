@@ -1,6 +1,8 @@
 package com.leafshop.service;
 
 import com.leafshop.dto.staff.CustomerResponse;
+import com.leafshop.dto.order.OrderItemResponse;
+import com.leafshop.dto.order.OrderResponse;
 import com.leafshop.dto.staff.CustomerPurchaseHistoryResponse;
 import com.leafshop.model.dynamodb.OrderTable;
 import com.leafshop.model.dynamodb.UserTable;
@@ -102,5 +104,38 @@ public class StaffService {
                 .totalOrderCount(orderSummaries.size())
                 .build();
     }
+     public List<OrderResponse> getAllOrders() {
+    List<OrderTable> orders = orderRepository.scanAllOrdersMeta();
+
+    return orders.stream()
+            // Lọc bỏ CART
+            .filter(order -> order.getPk() != null && !order.getPk().startsWith("CART#"))
+            .map(order -> OrderResponse.builder()
+                    .orderId(order.getOrderId())
+                    .orderPk(order.getPk())
+                    .userId(order.getUserId())
+                    .orderStatus(order.getOrderStatus())
+                    .subtotal(order.getSubtotal() != null ? order.getSubtotal() : 0)
+                    .shippingAmount(order.getShippingAmount() != null ? order.getShippingAmount() : 0)
+                    .discountAmount(order.getDiscountAmount() != null ? order.getDiscountAmount() : 0)
+                    .totalAmount(order.getTotalAmount() != null ? order.getTotalAmount() : 0)
+                    .shippingAddress(order.getShippingAddress())
+                    .paymentMethod(order.getPaymentMethod())
+                    .paymentStatus(order.getPaymentStatus())
+                    .assignedTo(order.getAssignedTo())
+                    .items(orderRepository.findOrderItemsByPk(order.getPk()).stream()
+                            .map(item -> OrderItemResponse.builder()
+                                    .itemId(item.getSk())
+                                    .productId(item.getProductId())
+                                    .variantId(item.getVariantId())
+                                    .productName(item.getProductName())
+                                    .quantity(item.getQuantity())
+                                    .unitPrice(item.getUnitPrice())
+                                    .itemTotal(item.getItemTotal())
+                                    .build())
+                            .collect(Collectors.toList()))
+                    .build())
+            .collect(Collectors.toList());
+}
 }
 

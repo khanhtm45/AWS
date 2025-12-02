@@ -21,7 +21,8 @@ export function ProductModal({ isOpen, onClose, onSubmit }) {
   const [variants, setVariants] = useState([
     {
       variantId: `variant-${Date.now()}`,
-      variantAttributes: { color: '' },
+      color: '',
+      size: 'M', // Default size
       variantPrice: 0
     }
   ]);
@@ -60,7 +61,8 @@ export function ProductModal({ isOpen, onClose, onSubmit }) {
       setVariants([
         {
           variantId: `variant-${Date.now()}`,
-          variantAttributes: { color: '' },
+          color: '',
+          size: 'M',
           variantPrice: 0
         }
       ]);
@@ -107,12 +109,15 @@ export function ProductModal({ isOpen, onClose, onSubmit }) {
   };
 
   // Variant management functions
+  const SIZE_OPTIONS = ['S', 'M', 'L', 'XL', 'XXL'];
+  
   const addVariant = () => {
     setVariants([
       ...variants,
       {
         variantId: `variant-${Date.now()}`,
-        variantAttributes: { color: '' },
+        color: '',
+        size: 'M',
         variantPrice: formData.price
       }
     ]);
@@ -126,11 +131,7 @@ export function ProductModal({ isOpen, onClose, onSubmit }) {
 
   const updateVariant = (index, field, value) => {
     const newVariants = [...variants];
-    if (field === 'color') {
-      newVariants[index].variantAttributes.color = value;
-    } else {
-      newVariants[index][field] = value;
-    }
+    newVariants[index][field] = value;
     setVariants(newVariants);
   };
 
@@ -419,7 +420,8 @@ export function ProductModal({ isOpen, onClose, onSubmit }) {
       // Initialize variants with base price
       setVariants([{
         variantId: `variant-${Date.now()}`,
-        variantAttributes: { color: '' },
+        color: '',
+        size: 'M',
         variantPrice: productPayload.price
       }]);
 
@@ -455,7 +457,7 @@ export function ProductModal({ isOpen, onClose, onSubmit }) {
 
   // Handle variant creation (step 2)
   const handleCreateVariants = async () => {
-    const validVariants = variants.filter(v => v.variantAttributes.color.trim() !== '');
+    const validVariants = variants.filter(v => v.color.trim() !== '');
     
     if (validVariants.length === 0) {
       alert('Vui lòng thêm ít nhất một màu sắc');
@@ -477,15 +479,10 @@ export function ProductModal({ isOpen, onClose, onSubmit }) {
         
         const variantPayload = {
           variantId: `variant_${createdProductId}_${Date.now()}_${i}`,
-          variantAttributes: {
-            color: variant.variantAttributes.color,
-            // Map other color variants if needed
-            ...(validVariants.length > 1 && {
-              [`colorOption${i + 1}`]: variant.variantAttributes.color
-            })
-          },
+          color: variant.color,
+          size: variant.size,
           variantPrice: variant.variantPrice || formData.price,
-          sku: `SKU_${createdProductId}_${variant.variantAttributes.color.toUpperCase().replace(/\s+/g, '')}_${Date.now()}`,
+          sku: `SKU_${createdProductId}_${variant.color}`,
           barcode: `BC_${createdProductId}_${Date.now()}_${i}`
         };
 
@@ -525,7 +522,8 @@ export function ProductModal({ isOpen, onClose, onSubmit }) {
       // Create final product data with S3 images and API-created variants
       const finalProductData = {
         ...formData,
-        colors: validVariants.map(v => v.variantAttributes.color),
+        colors: validVariants.map(v => v.color),
+        sizes: validVariants.map(v => v.size),
         variants: createdVariants, // Include API response variants
         id: Date.now(),
         // Use first S3 image as main image, fallback to placeholder
@@ -569,7 +567,7 @@ export function ProductModal({ isOpen, onClose, onSubmit }) {
   };
 
   const isVariantsValid = () => {
-    return variants.some(v => v.variantAttributes.color.trim() !== '');
+    return variants.some(v => v.color.trim() !== '');
   };
 
   const validateForm = () => {
@@ -963,6 +961,27 @@ export function ProductModal({ isOpen, onClose, onSubmit }) {
                         )}
                       </div>
 
+                      {/* Size selection */}
+                      <div className="size-selection">
+                        <label className="product-modal-label">
+                          Kích thước <span className="required">*</span>
+                        </label>
+                        <div className="size-options-grid">
+                          {SIZE_OPTIONS.map((size) => (
+                            <button
+                              key={size}
+                              type="button"
+                              onClick={() => updateVariant(index, 'size', size)}
+                              className={`size-option-btn ${
+                                variant.size === size ? 'selected' : ''
+                              }`}
+                            >
+                              {size}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
                       {/* Color selection */}
                       <div className="color-selection">
                         <label className="product-modal-label">
@@ -975,7 +994,7 @@ export function ProductModal({ isOpen, onClose, onSubmit }) {
                               type="button"
                               onClick={() => updateVariant(index, 'color', color.value)}
                               className={`color-preset-btn ${
-                                variant.variantAttributes.color === color.value ? 'selected' : ''
+                                variant.color === color.value ? 'selected' : ''
                               }`}
                             >
                               <div
@@ -998,16 +1017,16 @@ export function ProductModal({ isOpen, onClose, onSubmit }) {
                             type="text"
                             placeholder="Hoặc nhập màu tùy chỉnh (VD: Navy Blue, Xanh Navy...)"
                             value={
-                              COLOR_PRESETS.find(c => c.value === variant.variantAttributes.color)
+                              COLOR_PRESETS.find(c => c.value === variant.color)
                                 ? ''
-                                : variant.variantAttributes.color
+                                : variant.color
                             }
                             onChange={(e) => updateVariant(index, 'color', e.target.value)}
                             className="custom-color-input-field"
                           />
-                          {variant.variantAttributes.color && !COLOR_PRESETS.find(c => c.value === variant.variantAttributes.color) && (
+                          {variant.color && !COLOR_PRESETS.find(c => c.value === variant.color) && (
                             <div className="custom-color-display">
-                              <span className="custom-color-text">{variant.variantAttributes.color}</span>
+                              <span className="custom-color-text">{variant.color}</span>
                             </div>
                           )}
                         </div>
