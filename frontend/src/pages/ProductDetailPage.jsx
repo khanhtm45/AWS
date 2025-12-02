@@ -86,6 +86,7 @@ function ProductDetailPage() {
   // --- STATE ---
   const [product, setProduct] = useState(null);
   const [variants, setVariants] = useState([]);
+  const [sizeOptions, setSizeOptions] = useState([]);
   const [processedImages, setProcessedImages] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -129,7 +130,9 @@ function ProductDetailPage() {
           if (normalizedVariants.length > 0) {
             const firstVariant = normalizedVariants[0];
             setSelectedColor(firstVariant.color);
-            setSelectedSize('M'); // Default size
+            // Prefer variant.size, else prefer first sizeOptions entry, else fallback to 'M'
+            const defaultSize = firstVariant.size || (sizeOptions && sizeOptions.length > 0 ? sizeOptions[0] : 'M');
+            setSelectedSize(defaultSize);
             setSelectedVariantId(firstVariant.variantId);
           }
         }
@@ -150,6 +153,18 @@ function ProductDetailPage() {
           
           const processedMediaImages = await Promise.all(imagePromises);
           setProcessedImages(processedMediaImages);
+        }
+
+        // Load global sizes from API
+        try {
+          const sizesRes = await fetch(`http://localhost:8080/api/sizes`);
+          if (sizesRes.ok) {
+            const sizesData = await sizesRes.json();
+            const names = (sizesData || []).map(s => s.sizeName).filter(Boolean);
+            setSizeOptions(names);
+          }
+        } catch (err) {
+          console.debug('Failed to load sizes', err);
         }
         
         // Fallback: Nếu không có media, thử lấy từ product.images
@@ -223,9 +238,9 @@ function ProductDetailPage() {
 
   // --- 3. XỬ LÝ DỮ LIỆU LOGIC ---
   
-  // Lấy danh sách Size/Màu duy nhất
-  const uniqueSizes = ['S', 'M', 'L', 'XL']; // Set cứng sizes
-  const displaySizes = uniqueSizes;
+  // Lấy danh sách Size/Màu duy nhất (từ backend nếu có, else fallback cứng)
+  const fallbackSizes = ['S', 'M', 'L', 'XL'];
+  const displaySizes = (sizeOptions && sizeOptions.length > 0) ? sizeOptions : fallbackSizes;
   const uniqueColors = [...new Set(variants.map(v => v.color).filter(Boolean))];
   
   // Map tên màu sang mã Hex

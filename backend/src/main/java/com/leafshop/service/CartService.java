@@ -89,7 +89,9 @@ public class CartService {
         // Check if same product+variant exists in cart; if so, increase quantity
         List<OrderTable> items = orderTableRepository.findOrderItemsByPk(pk);
         Optional<OrderTable> existing = items.stream()
-            .filter(i -> req.getProductId().equals(i.getProductId()) && Objects.equals(req.getVariantId(), i.getVariantId()))
+            .filter(i -> req.getProductId().equals(i.getProductId())
+                && Objects.equals(req.getVariantId(), i.getVariantId())
+                && Objects.equals(req.getSize(), i.getSize()))
             .findFirst();
 
         String itemSk;
@@ -109,6 +111,7 @@ public class CartService {
                 .itemType("CartItem")
                 .productId(req.getProductId())
                 .variantId(req.getVariantId())
+                .size(req.getSize())
                 .quantity(quantity)
                 .unitPrice(unitPrice)
                 .itemTotal(unitPrice * quantity)
@@ -374,6 +377,7 @@ private CartResponse buildCartResponse(String pk, String userId, String sessionI
         .itemId(i.getSk().replaceFirst("ITEM#", ""))
         .productId(i.getProductId())
         .variantId(i.getVariantId())
+        .size(i.getSize())
         .quantity(i.getQuantity())
         .unitPrice(i.getUnitPrice())
         .itemTotal(i.getItemTotal())

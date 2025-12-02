@@ -4,11 +4,14 @@ import { ProductModal } from '../components/ProductModal';
 import { EditProductModal } from '../components/EditProductModal';
 import { ProductDetailModal } from '../components/ProductDetailModal';
 import './DashboardPage.css';
+import { useAuth } from '../context/AuthContext';
 
 const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:8080';
 
 const DashboardPage = () => {
   const navigate = useNavigate();
+
+  const { accessToken } = useAuth();
 
   const [user, setUser] = useState(null);
   const [selectedMenu, setSelectedMenu] = useState('Dashboard');
@@ -20,7 +23,8 @@ const DashboardPage = () => {
     password: '',
     confirmPassword: '',
     email: '',
-    phone: ''
+    phone: '',
+    role: 'staff'
   });
   const [staffCreationMessage, setStaffCreationMessage] = useState('');
 
@@ -210,7 +214,9 @@ const DashboardPage = () => {
 
     const loadUsers = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/users`);
+        const headers = { 'Content-Type': 'application/json' };
+        if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+        const res = await fetch(`${API_BASE}/api/users`, { headers });
         if (!res.ok) {
           console.warn('Users API returned non-ok status', res.status);
           throw new Error('Users API error');
@@ -306,7 +312,7 @@ const DashboardPage = () => {
     }));
   };
 
-  const handleCreateStaff = (e) => {
+  const handleCreateStaff = async (e) => {
     e.preventDefault();
 
     if (!staffForm.fullName || !staffForm.username || !staffForm.password || !staffForm.email) {
@@ -324,6 +330,79 @@ const DashboardPage = () => {
       return;
     }
 
+    // Prepare payload for /api/auth/register (backend expects firstName/lastName/phoneNumber/email/username/password)
+    const nameParts = (staffForm.fullName || '').trim().split(/\s+/);
+    const firstName = nameParts.shift() || '';
+    const lastName = nameParts.join(' ') || '';
+    const regPayload = {
+      firstName,
+      lastName,
+      phoneNumber: staffForm.phone || '',
+      email: staffForm.email || '',
+      username: staffForm.username,
+      password: staffForm.password,
+      role: (staffForm.role || 'staff')
+    };
+
+    // Try calling backend register endpoint. If it fails, fallback to the localStorage mock.
+    try {
+      const token = accessToken || (() => {
+        try { return localStorage.getItem('accessToken'); } catch (e) { return null; }
+      })();
+
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers.Authorization = `Bearer ${token}`;
+
+      const res = await fetch(`${API_BASE}/api/auth/register`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(regPayload)
+      });
+
+      if (res.ok) {
+        const created = await res.json();
+        setStaffCreationMessage('Tạo tài khoản thành công!');
+        setStaffForm({
+          fullName: '', username: '', password: '', confirmPassword: '', email: '', phone: '', role: 'staff'
+        });
+
+        // Refresh users list if current user is admin
+        try {
+          if (user && user.role === 'admin') {
+            const ures = await fetch(`${API_BASE}/api/users`);
+            if (ures.ok) {
+              const udata = await ures.json();
+              const mapped = (udata || []).map(u => ({
+                id: u.id || u.userId || u.email,
+                name: u.name || u.fullName || u.username || u.email,
+                email: u.email || '',
+                phone: u.phone || u.mobile || '',
+                joinDate: u.joinDate || u.createdAt || '',
+                status: u.status || 'active',
+                totalOrders: u.totalOrders || u.ordersCount || 0,
+                totalSpent: u.totalSpent || u.spent || '0đ',
+                avatar: u.avatarUrl || u.avatar || '/api/placeholder/40/40'
+              }));
+              setUsers(mapped);
+              setFilteredUsers(mapped);
+            }
+          }
+        } catch (e) {
+          // ignore refresh errors
+        }
+
+        setTimeout(() => setStaffCreationMessage(''), 3000);
+        return;
+      }
+
+      // If API returned non-ok, fall through to fallback
+      const text = await res.text();
+      console.warn('Create user API returned non-ok', res.status, text);
+    } catch (err) {
+      console.warn('Create user API error, falling back to localStorage:', err);
+    }
+
+    // Fallback localStorage mock behavior (keeps previous behavior if backend unavailable)
     try {
       const existingStaff = JSON.parse(localStorage.getItem('staffAccounts') || '[]');
 
@@ -339,9 +418,9 @@ const DashboardPage = () => {
         password: staffForm.password,
         email: staffForm.email,
         phone: staffForm.phone,
-        role: 'staff',
+        role: staffForm.role || 'staff',
         createdAt: new Date().toISOString(),
-        createdBy: user.username
+        createdBy: user?.username
       };
 
       const updatedStaff = [...existingStaff, newStaff];
@@ -353,7 +432,8 @@ const DashboardPage = () => {
         password: '',
         confirmPassword: '',
         email: '',
-        phone: ''
+        phone: '',
+        role: 'staff'
       });
       setStaffCreationMessage('Tạo tài khoản nhân viên thành công!');
 
@@ -1439,6 +1519,7 @@ const DashboardPage = () => {
                         />
                       </div>
                     </div>
+
                   </div>
 
                   {staffCreationMessage && (
