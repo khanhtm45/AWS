@@ -9,6 +9,7 @@ public class CartItemResponse {
     private String itemId;
     private String productId;
     private String variantId;
+    private String size;
     private Integer quantity;
     private Double unitPrice;
     private Double itemTotal;
