@@ -23,4 +23,7 @@ public class RegisterRequest {
 
     @NotBlank
     private String password;
+    
+    // Optional role (e.g., STAFF, MANAGER, ADMIN). If not provided, service will default to Customer.
+    private String role;
 }
