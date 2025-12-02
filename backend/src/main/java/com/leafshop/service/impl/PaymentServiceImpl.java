@@ -25,6 +25,12 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.TreeMap;
 
 @Service
 @RequiredArgsConstructor
@@ -37,6 +43,18 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Value("${stripe.webhook.secret:}")
     private String stripeWebhookSecret;
+
+    @Value("${vnpay.secret:}")
+    private String vnpaySecret;
+
+    @Value("${vnpay.baseUrl:https://pay.vnpay.vn/vpcpay.html}")
+    private String vnpayBaseUrl;
+
+    @Value("${momo.secret:}")
+    private String momoSecret;
+
+    @Value("${momo.baseUrl:https://test-payment.momo.vn/gw_payment/transactionProcessor}")
+    private String momoBaseUrl;
 
     @PostConstruct
     public void init() {
@@ -64,9 +82,10 @@ public class PaymentServiceImpl implements PaymentService {
             .updatedAt(now)
             .build();
 
-        // Create Stripe PaymentIntent if provider == STRIPE
+        // Create provider-specific payment flows
         String clientSecret = null;
         String providerTxId = null;
+        String paymentUrl = null;
         if ("STRIPE".equalsIgnoreCase(req.getProvider())) {
             try {
                 long amountInCents = Math.round(req.getAmount() * 100);
@@ -97,8 +116,74 @@ public class PaymentServiceImpl implements PaymentService {
                     .status("FAILED")
                     .build();
             }
+        } else if ("VNPAY".equalsIgnoreCase(req.getProvider())) {
+            // Build VNPAY payment URL (basic implementation)
+            try {
+                Map<String, String> params = new TreeMap<>();
+                params.put("vnp_Version", "2.1.0");
+                params.put("vnp_Command", "pay");
+                params.put("vnp_TmnCode", ""); // optional: merchant code
+                params.put("vnp_Amount", String.valueOf(Math.round(req.getAmount()))); // VND in smallest unit
+                params.put("vnp_CurrCode", req.getCurrency() != null ? req.getCurrency() : "VND");
+                params.put("vnp_TxnRef", paymentId);
+                params.put("vnp_OrderInfo", "Order " + req.getOrderId());
+                params.put("vnp_ReturnUrl", req.getReturnUrl() != null ? req.getReturnUrl() : "");
+                params.put("vnp_CreateDate", String.valueOf(Instant.now().toEpochMilli()));
+
+                StringBuilder query = new StringBuilder();
+                StringBuilder signData = new StringBuilder();
+                boolean first = true;
+                for (Map.Entry<String, String> en : params.entrySet()) {
+                    if (!first) {
+                        query.append('&');
+                        signData.append('&');
+                    }
+                    first = false;
+                    query.append(URLEncoder.encode(en.getKey(), StandardCharsets.UTF_8)).append('=')
+                         .append(URLEncoder.encode(en.getValue(), StandardCharsets.UTF_8));
+                    signData.append(en.getKey()).append('=').append(en.getValue());
+                }
+                String hash = hmacSHA512(signData.toString(), vnpaySecret == null ? "" : vnpaySecret);
+                query.append("&vnp_SecureHash=").append(URLEncoder.encode(hash, StandardCharsets.UTF_8));
+                paymentUrl = vnpayBaseUrl + "?" + query.toString();
+            } catch (Exception ex) {
+                // ignore and continue with no paymentUrl
+            }
+        } else if ("MOMO".equalsIgnoreCase(req.getProvider())) {
+            // Build MOMO payment URL (basic implementation)
+            try {
+                Map<String, String> params = new TreeMap<>();
+                params.put("partnerCode", "");
+                params.put("accessKey", "");
+                params.put("amount", String.valueOf(Math.round(req.getAmount())));
+                params.put("orderId", req.getOrderId() != null ? req.getOrderId() : paymentId);
+                params.put("orderInfo", "Order " + req.getOrderId());
+                params.put("returnUrl", req.getReturnUrl() != null ? req.getReturnUrl() : "");
+                params.put("notifyUrl", "");
+                params.put("extraData", "");
+
+                StringBuilder query = new StringBuilder();
+                StringBuilder raw = new StringBuilder();
+                boolean first = true;
+                for (Map.Entry<String, String> en : params.entrySet()) {
+                    if (!first) query.append('&');
+                    first = false;
+                    query.append(URLEncoder.encode(en.getKey(), StandardCharsets.UTF_8)).append('=')
+                         .append(URLEncoder.encode(en.getValue(), StandardCharsets.UTF_8));
+                    if (raw.length() > 0) raw.append('&');
+                    raw.append(en.getKey()).append('=').append(en.getValue());
+                }
+                String signature = hmacSHA256(raw.toString(), momoSecret == null ? "" : momoSecret);
+                query.append("&signature=").append(URLEncoder.encode(signature, StandardCharsets.UTF_8));
+                paymentUrl = momoBaseUrl + "?" + query.toString();
+            } catch (Exception ex) {
+                // ignore
+            }
+        }
         }
 
+        // persist providerTransactionId and clientSecret if available
+        if (providerTxId != null) p.setProviderTransactionId(providerTxId);
         paymentRepo.save(p);
 
         PaymentResponse.PaymentResponseBuilder resp = PaymentResponse.builder()
@@ -112,6 +197,7 @@ public class PaymentServiceImpl implements PaymentService {
 
         if (clientSecret != null) resp.clientSecret(clientSecret);
         if (providerTxId != null) resp.paymentUrl(providerTxId);
+        if (paymentUrl != null) resp.paymentUrl(paymentUrl);
 
         return resp.build();
     }
@@ -153,11 +239,37 @@ public class PaymentServiceImpl implements PaymentService {
 
         PaymentTable p = opt.get();
 
+        // Provider specific status mapping and optional signature verification
+        String provider = webhookRequest.getProvider();
         String providerStatus = payload.getOrDefault("status", payload.getOrDefault("result", ""));
-        if (providerStatus != null && (providerStatus.equalsIgnoreCase("SUCCESS") || providerStatus.equalsIgnoreCase("PAID") || providerStatus.equals("00"))) {
-            p.setStatus("PAID");
-        } else {
+        boolean verified = true;
+        // Basic verification using configured secrets if signature present
+        String sig = payload.get("signature");
+        if (sig != null) {
+            try {
+                if ("VNPAY".equalsIgnoreCase(provider) && vnpaySecret != null && !vnpaySecret.isEmpty()) {
+                    // verify vnp_SecureHash or signature field
+                    String data = payload.getOrDefault("data", "");
+                    String calc = hmacSHA512(data, vnpaySecret);
+                    verified = sig.equals(calc);
+                } else if ("MOMO".equalsIgnoreCase(provider) && momoSecret != null && !momoSecret.isEmpty()) {
+                    String data = payload.getOrDefault("data", "");
+                    String calc = hmacSHA256(data, momoSecret);
+                    verified = sig.equals(calc);
+                }
+            } catch (Exception e) {
+                verified = false;
+            }
+        }
+
+        if (!verified) {
             p.setStatus("FAILED");
+        } else {
+            if (providerStatus != null && (providerStatus.equalsIgnoreCase("SUCCESS") || providerStatus.equalsIgnoreCase("PAID") || providerStatus.equals("00"))) {
+                p.setStatus("PAID");
+            } else {
+                p.setStatus("FAILED");
+            }
         }
 
         if (providerTx != null) p.setProviderTransactionId(providerTx);
@@ -231,6 +343,31 @@ public class PaymentServiceImpl implements PaymentService {
         }
 
         return PaymentResponse.builder().status("IGNORED").build();
+    }
+
+    // Utility HMAC helpers
+    private String hmacSHA256(String data, String secret) throws Exception {
+        if (secret == null) secret = "";
+        Mac sha256_HMAC = Mac.getInstance("HmacSHA256");
+        SecretKeySpec secret_key = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+        sha256_HMAC.init(secret_key);
+        byte[] hash = sha256_HMAC.doFinal(data.getBytes(StandardCharsets.UTF_8));
+        return bytesToHex(hash);
+    }
+
+    private String hmacSHA512(String data, String secret) throws Exception {
+        if (secret == null) secret = "";
+        Mac sha512_HMAC = Mac.getInstance("HmacSHA512");
+        SecretKeySpec secret_key = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA512");
+        sha512_HMAC.init(secret_key);
+        byte[] hash = sha512_HMAC.doFinal(data.getBytes(StandardCharsets.UTF_8));
+        return bytesToHex(hash);
+    }
+
+    private String bytesToHex(byte[] bytes) {
+        StringBuilder sb = new StringBuilder();
+        for (byte b : bytes) sb.append(String.format("%02x", b & 0xff));
+        return sb.toString();
     }
 
     @Override

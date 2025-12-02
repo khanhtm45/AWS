@@ -38,7 +38,6 @@ public class OrderTable {
     private Double shippingAmount;
     private Double discountAmount;
     private Map<String, String> shippingAddress;
-    private Map<String, String> billingAddress;
     private String notes;
 
     // ORDER ITEM fields

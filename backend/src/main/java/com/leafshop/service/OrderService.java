@@ -27,7 +27,6 @@ public class OrderService {
         checkoutReq.setUserId(req.getUserId());
         checkoutReq.setSessionId(req.getSessionId());
         checkoutReq.setShippingAddress(req.getShippingAddress());
-        checkoutReq.setBillingAddress(req.getBillingAddress());
         checkoutReq.setPaymentMethod(req.getPaymentMethod());
         checkoutReq.setCouponCode(req.getCouponCode());
 
