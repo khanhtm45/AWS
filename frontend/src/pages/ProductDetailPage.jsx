@@ -83,10 +83,14 @@ function ProductDetailPage() {
   const navigate = useNavigate();
   const { addToCart } = useCart();
   
+  // API Base URL
+  const API_BASE = 'http://localhost:8080';
+  
   // --- STATE ---
   const [product, setProduct] = useState(null);
   const [variants, setVariants] = useState([]);
   const [processedImages, setProcessedImages] = useState([]);
+  const [sizes, setSizes] = useState([]); // Add sizes state
   const [isLoading, setIsLoading] = useState(true);
 
   const [selectedSize, setSelectedSize] = useState('');
@@ -104,10 +108,11 @@ function ProductDetailPage() {
         // Format ID: 1 -> 01
         const formattedId = id.padStart(2, '0');
         
-        const [productRes, variantsRes, mediaRes] = await Promise.all([
-          fetch(`http://localhost:8080/api/products/${formattedId}`),
-          fetch(`http://localhost:8080/api/products/${formattedId}/variants`),
-          fetch(`http://localhost:8080/api/products/${formattedId}/media`)
+        const [productRes, variantsRes, mediaRes, sizesRes] = await Promise.all([
+          fetch(`${API_BASE}/api/products/${formattedId}`),
+          fetch(`${API_BASE}/api/products/${formattedId}/variants`),
+          fetch(`${API_BASE}/api/products/${formattedId}/media`),
+          fetch(`${API_BASE}/api/sizes`) // Fetch sizes from API
         ]);
 
         // Product sẽ được set trong phần xử lý media bên dưới
@@ -174,6 +179,22 @@ function ProductDetailPage() {
             setProcessedImages(processedProductImages);
           }
         }
+        
+        // Process sizes response
+        if (sizesRes.ok) {
+          const sizesData = await sizesRes.json();
+          console.log('🎯 Sizes from API:', sizesData);
+          
+          // Filter active sizes and sort by order
+          const activeSizes = sizesData.filter(size => size.isActive)
+                                      .sort((a, b) => a.sizeOrder - b.sizeOrder);
+          setSizes(activeSizes);
+          
+          // Set default size to first available size
+          if (activeSizes.length > 0 && !selectedSize) {
+            setSelectedSize(activeSizes[0].sizeName);
+          }
+        }
 
       } catch (error) {
         console.error("Lỗi tải dữ liệu:", error);
@@ -182,7 +203,7 @@ function ProductDetailPage() {
       }
     };
     fetchAllData();
-  }, [id]);
+  }, [id]); // Remove selectedSize dependency since we only want to run once
 
   // --- Fetch media khi chọn variant khác ---
   useEffect(() => {
@@ -224,11 +245,11 @@ function ProductDetailPage() {
   // --- 3. XỬ LÝ DỮ LIỆU LOGIC ---
   
   // Lấy danh sách Size/Màu duy nhất
-  const uniqueSizes = ['S', 'M', 'L', 'XL']; // Set cứng sizes
-  const displaySizes = uniqueSizes;
+  const displaySizes = sizes.map(size => size.sizeName); // Use sizes from API
   const uniqueColors = [...new Set(variants.map(v => v.color).filter(Boolean))];
   
-  // Map tên màu sang mã Hex
+  console.log('📏 Display sizes:', displaySizes);
+  console.log('🎨 Available colors:', uniqueColors);
   const getColorCode = (name) => {
     switch(name?.toLowerCase()) {
       case 'trắng': return '#FFFFFF';
@@ -294,10 +315,23 @@ function ProductDetailPage() {
   };
 
   const handleAddToCart = () => {
+    console.log('🎯 Adding to cart with:', {
+      selectedSize,
+      selectedColor,
+      currentVariant,
+      displaySizes
+    });
+    
     if (!currentVariant) { 
       alert('Vui lòng chọn màu sắc và kích thước!'); 
       return; 
     }
+    
+    if (!selectedSize) {
+      alert('Vui lòng chọn kích thước!');
+      return;
+    }
+    
     const cartItem = {
       id: product.productId,
       variantId: selectedVariantId,
@@ -308,6 +342,8 @@ function ProductDetailPage() {
       selectedColor: selectedColor || 'N/A',
       quantity
     };
+    
+    console.log('📦 Cart item being added:', cartItem);
     addToCart(cartItem);
     navigate('/cart');
   };
