@@ -77,7 +77,7 @@ public class CustomerProductService {
 					boolean sizeMatch = !StringUtils.hasText(size) || 
 						(StringUtils.hasText(v.getSize()) && size.equalsIgnoreCase(v.getSize()));
 					boolean colorMatch = !StringUtils.hasText(color) || 
-						(StringUtils.hasText(v.getColor()) && color.equalsIgnoreCase(v.getColor()));
+						(v.getColors() != null && v.getColors().stream().anyMatch(c -> color.equalsIgnoreCase(c)));
 					return sizeMatch && colorMatch;
 				});
 			});
@@ -211,7 +211,7 @@ public class CustomerProductService {
 		return ProductVariantResponse.builder()
 			.productId(productId)
 			.variantId(variantId)
-			.color(item.getColor())
+			.colors(item.getColors())
 			.size(item.getSize())
 			.variantPrice(item.getVariantPrice())
 			.sku(item.getSku())

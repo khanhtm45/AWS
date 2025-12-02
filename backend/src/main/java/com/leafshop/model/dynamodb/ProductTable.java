@@ -51,7 +51,7 @@ public class ProductTable {
     private List<String> tags;
 
     // VARIANT fields
-    private String color; // Màu sắc của biến thể
+    private List<String> colors; // Danh sách màu sắc của sản phẩm/biến thể
 
     private String size; // Kích thước của biến thể
 

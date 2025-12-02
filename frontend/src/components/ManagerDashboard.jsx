@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import OrderDetailModal from './OrderDetailModal';
+import { useAuth } from '../context/AuthContext';
 import {
   BarChart,
   Bar,
@@ -44,6 +46,10 @@ const ManagerDashboard = () => {
 
   const [blogData, setBlogData] = useState({ total: 0, published: 0, draft: 0, scheduled: 0, hidden: 0 });
   const [blogPosts, setBlogPosts] = useState([]);
+  const { accessToken } = useAuth();
+
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [showOrderDetail, setShowOrderDetail] = useState(false);
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount || 0);
@@ -168,9 +174,16 @@ const ManagerDashboard = () => {
       if (!res.ok) throw new Error('Staff orders API error ' + res.status);
       const orders = await res.json();
       // show last 5 orders
-      setRecentOrders((orders || []).slice(0, 5).map(o => ({ id: o.orderId || o.orderId, customer: o.customerName || o.userId || o.userName || '', date: o.createdAt ? new Date(o.createdAt).toLocaleString() : '', total: o.totalAmount || o.paymentAmount || 0, status: (o.orderStatus || o.status || 'pending').toLowerCase() })));
+      setRecentOrders((orders || []).slice(0, 5).map(o => ({ 
+        id: o.orderId || o.order_id || o.id, 
+        customer: o.customerName || o.customer_name || o.userName || o.user_name || o.userId || 'N/A', 
+        date: o.orderDate || o.order_date || o.createdAt || o.created_at ? new Date(o.orderDate || o.order_date || o.createdAt || o.created_at).toLocaleString('vi-VN') : '', 
+        total: o.totalAmount || o.total_amount || o.total || 0, 
+        status: (o.orderStatus || o.order_status || o.status || 'pending').toLowerCase() 
+      })));
     } catch (err) {
       console.error('Error loading staff orders:', err);
+      setRecentOrders([]); // Clear orders on error
     }
   };
 
@@ -183,6 +196,51 @@ const ManagerDashboard = () => {
       // For now we don't set a dedicated state, but store topProducts/customer counts if needed
     } catch (err) {
       console.error('Error loading staff customers:', err);
+    }
+  };
+
+  // Fetch single order detail and show modal
+  const handleViewOrderDetail = async (orderId) => {
+    if (!orderId) return;
+    const headers = { 'Content-Type': 'application/json' };
+    if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+
+    try {
+      const res = await fetch(`http://localhost:8080/api/orders/${encodeURIComponent(orderId)}`, { headers });
+      if (!res.ok) {
+        console.warn('Không thể lấy chi tiết đơn hàng', orderId, 'Status:', res.status);
+        return;
+      }
+      const data = await res.json();
+      if (!data) {
+        console.warn('Không có dữ liệu đơn hàng', orderId);
+        return;
+      }
+
+      // Map backend shape to OrderDetailModal expected shape
+      const mapped = {
+        order_id: data.order_id || data.orderId || data.id || orderId,
+        user_id: data.user_id || data.userId || data.customerId || (data.customer && (data.customer.id || data.customer.userId)),
+        shipping_address_id: data.shipping_address_id || data.shippingAddressId || (data.shippingAddress && data.shippingAddress.id),
+        billing_address_id: data.billing_address_id || data.billingAddressId || data.billing_address || null,
+        notes: data.notes || data.note || data.comments || '',
+        payment_method: data.payment_method || data.paymentMethod || data.payment || '',
+        shipping_cost: data.shipping_cost || data.shippingCost || data.shipping_fee || 0,
+        discount_amount: data.discount_amount || data.discount || 0,
+        total_amount: data.total_amount || data.totalAmount || data.total || 0,
+        order_date: data.order_date || data.createdAt || data.created_at || data.orderDate || null,
+        estimated_delivery_date: data.estimated_delivery_date || data.estimatedDelivery || null,
+        warehouse_id: data.warehouse_id || data.warehouseId || null,
+        staff_confirm_id: data.staff_confirm_id || data.staffConfirmId || null,
+        updated_at: data.updated_at || data.updatedAt || null,
+        order_status: data.order_status || data.status || data.orderStatus || (data.state && String(data.state)),
+        __raw: data
+      };
+
+      setSelectedOrder(mapped);
+      setShowOrderDetail(true);
+    } catch (e) {
+      console.error('Error fetching order detail:', e);
     }
   };
 
@@ -218,14 +276,8 @@ const ManagerDashboard = () => {
     fetchCategories();
     fetchWarehousesAndInventory();
     fetchWarehouseAlerts();
-    fetchStaffOrders();
+    fetchStaffOrders(); // Now fetches real order data from /api/staff/orders
     fetchStaffCustomers();
-    // recentOrders kept as mock because backend needs user-scoped endpoint
-    setRecentOrders([
-      { id: 'ORD001', customer: 'Nguyễn Văn A', date: '05/12/2024 14:30', total: 850000, status: 'pending' },
-      { id: 'ORD002', customer: 'Trần Thị B', date: '05/12/2024 13:15', total: 1200000, status: 'shipping' },
-      { id: 'ORD003', customer: 'Lê Văn C', date: '05/12/2024 11:20', total: 650000, status: 'completed' }
-    ]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeFilter]);
 
@@ -367,12 +419,21 @@ const ManagerDashboard = () => {
             <div>Tổng</div>
           </div>
           {recentOrders.map((order) => (
-            <div key={order.id} className="table-row">
+            <div key={order.id} className="table-row" style={{ alignItems: 'center' }}>
               <div className="order-id">{order.id}</div>
               <div className="customer-name">{order.customer}</div>
               <div className="order-date">{order.date}</div>
               <div className={`status ${order.status}`}>{getStatusText(order.status)}</div>
               <div className="order-price">{formatCurrency(order.total)}</div>
+              <div style={{ marginLeft: 12 }}>
+                <button
+                  className="view-order-btn"
+                  onClick={() => handleViewOrderDetail(order.id)}
+                  style={{ background: '#2563eb', color: 'white', padding: '6px 10px', borderRadius: 6, border: 'none', cursor: 'pointer' }}
+                >
+                  Xem
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -554,6 +615,16 @@ const ManagerDashboard = () => {
           {activeTab === 'dashboard' && <DashboardView />}
           {activeTab === 'warehouse' && <WarehouseView />}
           {activeTab === 'blog' && <BlogView />}
+
+          {showOrderDetail && (
+            <OrderDetailModal
+              order={selectedOrder}
+              onClose={() => {
+                setShowOrderDetail(false);
+                setSelectedOrder(null);
+              }}
+            />
+          )}
         </main>
       </div>
     </div>
