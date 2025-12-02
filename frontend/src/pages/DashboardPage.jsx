@@ -4,9 +4,14 @@ import { ProductModal } from '../components/ProductModal';
 import { EditProductModal } from '../components/EditProductModal';
 import { ProductDetailModal } from '../components/ProductDetailModal';
 import './DashboardPage.css';
+import { useAuth } from '../context/AuthContext';
+
+const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:8080';
 
 const DashboardPage = () => {
   const navigate = useNavigate();
+
+  const { accessToken, logout } = useAuth();
 
   const [user, setUser] = useState(null);
   const [selectedMenu, setSelectedMenu] = useState('Dashboard');
@@ -18,7 +23,8 @@ const DashboardPage = () => {
     password: '',
     confirmPassword: '',
     email: '',
-    phone: ''
+    phone: '',
+    role: 'staff'
   });
   const [staffCreationMessage, setStaffCreationMessage] = useState('');
 
@@ -119,38 +125,146 @@ const DashboardPage = () => {
     setUser(parsedUser);
 
     // Define functions inside useEffect to avoid dependency warning
-    const loadOrders = () => {
-      const mockOrders = [
-        {
-          id: 1,
-          customerName: 'Nguyen Van A',
-          productName: 'Apple Watch Series 4',
-          quantity: 1,
-          totalAmount: 690.0,
-          status: 'pending',
-          date: '2024-01-15',
-          orderDate: new Date('2024-01-15')
-        },
-        // ... other mock orders
-      ];
-      setOrders(mockOrders);
-      setFilteredOrders(mockOrders);
+    const loadOrders = async () => {
+      try {
+        let url = `${API_BASE}/api/orders`;
+        // backend requires userId request param — include if we have a logged-in user
+        try {
+          const stored = localStorage.getItem('staffAdminUser');
+          if (stored) {
+            const pu = JSON.parse(stored);
+            const userIdParam = pu.username || pu.email || pu.userId || pu.id;
+            if (userIdParam) url += `?userId=${encodeURIComponent(userIdParam)}`;
+          }
+        } catch (e) {
+          // ignore parse errors and call without userId (will be handled by backend)
+        }
+
+        const res = await fetch(url);
+        if (!res.ok) {
+          console.warn('Orders API returned non-ok status', res.status);
+          throw new Error('Orders API error');
+        }
+        const data = await res.json();
+        // Map backend order shape to front-end expected shape
+        const mapped = (data || []).map(o => {
+          const od = o.orderDate || o.createdAt || o.date || o.order_date || o.created_at;
+          const parsedDate = od ? new Date(od) : null;
+          const formattedDate = parsedDate
+            ? `${parsedDate.getDate()}/${parsedDate.getMonth() + 1}/${parsedDate.getFullYear()}`
+            : (o.orderDate || o.date || '');
+
+          const priceNum = o.totalAmount || o.total || o.amount || 0;
+
+          return {
+            id: String(o.id || o.orderId || o.code || ''),
+            productName: o.product?.name || o.productName || o.itemName || (o.items && o.items[0]?.name) || 'Không rõ',
+            customerName: o.customer?.fullName || o.customerName || o.buyerName || 'Khách hàng',
+            orderDate: formattedDate,
+            price: typeof priceNum === 'number' ? priceNum.toLocaleString() + 'đ' : (o.price || String(priceNum)),
+            status: o.status || o.state || 'pending',
+            statusText: o.statusText || (o.status || o.state) || 'Chờ xử lý',
+            phone: o.customer?.phone || o.phone || '',
+            address: o.shippingAddress || o.address || '',
+            quantity: o.quantity || (o.items && o.items.reduce((s, it) => s + (it.qty || it.quantity || 0), 0)) || 0,
+            size: o.size || '',
+            color: o.color || ''
+          };
+        });
+
+        setOrders(mapped);
+        setFilteredOrders(mapped);
+      } catch (error) {
+        console.warn('Cannot load orders from API, falling back to mock orders:', error);
+        // fallback to existing mock list
+        const mockOrders = [
+          {
+            id: '00001',
+            productName: 'Áo Thun Thể Thao Ultra Stretch The Trainer Đen',
+            customerName: 'Nguyễn Văn A',
+            orderDate: '1/1/2025',
+            price: '297.000đ',
+            status: 'completed',
+            statusText: 'Hoàn Thành',
+            phone: '0123456789',
+            address: '123 Đường ABC, Quận 1, TP.HCM',
+            quantity: 1,
+            size: 'M',
+            color: 'Đen'
+          },
+          {
+            id: '00002',
+            productName: 'Áo Polo Classic Premium White',
+            customerName: 'Trần Thị B',
+            orderDate: '1/1/2025',
+            price: '450.000đ',
+            status: 'completed',
+            statusText: 'Hoàn Thành',
+            phone: '0987654321',
+            address: '456 Đường XYZ, Quận 2, TP.HCM',
+            quantity: 2,
+            size: 'L',
+            color: 'Trắng'
+          }
+        ];
+        setOrders(mockOrders);
+        setFilteredOrders(mockOrders);
+      }
     };
 
-    const loadUsers = () => {
-      const mockUsers = [
-        {
-          id: 1,
-          name: 'John Doe',
-          email: 'john@example.com',
-          registrationDate: '2023-12-01',
-          status: 'active',
-          orders: []
-        },
-        // ... other mock users
-      ];
-      setUsers(mockUsers);
-      setFilteredUsers(mockUsers);
+    const loadUsers = async () => {
+      try {
+        const headers = { 'Content-Type': 'application/json' };
+        if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+        const res = await fetch(`${API_BASE}/api/users`, { headers });
+        if (!res.ok) {
+          console.warn('Users API returned non-ok status', res.status);
+          throw new Error('Users API error');
+        }
+        const data = await res.json();
+        const mapped = (data || []).map(u => ({
+          id: u.id || u.userId || u.email,
+          name: u.name || u.fullName || u.username || u.email,
+          email: u.email || '',
+          phone: u.phone || u.mobile || '',
+          joinDate: u.joinDate || u.createdAt || '',
+          status: u.status || 'active',
+          totalOrders: u.totalOrders || u.ordersCount || 0,
+          totalSpent: u.totalSpent || u.spent || '0đ',
+          avatar: u.avatarUrl || u.avatar || '/api/placeholder/40/40'
+        }));
+
+        setUsers(mapped);
+        setFilteredUsers(mapped);
+      } catch (error) {
+        console.warn('Cannot load users from API, falling back to mock users:', error);
+        const mockUsers = [
+          {
+            id: 'USR001',
+            name: 'John Carter',
+            email: 'john@example.com',
+            phone: '0123456789',
+            joinDate: '15/12/2024',
+            status: 'active',
+            totalOrders: 5,
+            totalSpent: '1,485,000đ',
+            avatar: '/api/placeholder/40/40'
+          },
+          {
+            id: 'USR002',
+            name: 'Sophia Moore',
+            email: 'sophia@example.com',
+            phone: '0987654321',
+            joinDate: '20/12/2024',
+            status: 'active',
+            totalOrders: 3,
+            totalSpent: '891,000đ',
+            avatar: '/api/placeholder/40/40'
+          }
+        ];
+        setUsers(mockUsers);
+        setFilteredUsers(mockUsers);
+      }
     };
 
     const loadProducts = () => {
@@ -161,7 +275,7 @@ const DashboardPage = () => {
 
     const loadCategories = async () => {
       try {
-        const res = await fetch('http://localhost:8080/api/categories');
+        const res = await fetch(`${API_BASE}/api/categories`);
         if (!res.ok) {
           console.error('Lỗi gọi API categories, status:', res.status);
           return;
@@ -185,7 +299,13 @@ const DashboardPage = () => {
   }, [navigate]);
 
   const handleLogout = () => {
-    localStorage.removeItem('staffAdminUser');
+    try {
+      // Use centralized logout to clear tokens and user state
+      if (typeof logout === 'function') logout();
+    } catch (e) {}
+
+    // Ensure staff-specific key is removed and redirect
+    try { localStorage.removeItem('staffAdminUser'); } catch (e) {}
     navigate('/staff-admin-login');
   };
 
@@ -198,7 +318,7 @@ const DashboardPage = () => {
     }));
   };
 
-  const handleCreateStaff = (e) => {
+  const handleCreateStaff = async (e) => {
     e.preventDefault();
 
     if (!staffForm.fullName || !staffForm.username || !staffForm.password || !staffForm.email) {
@@ -216,6 +336,79 @@ const DashboardPage = () => {
       return;
     }
 
+    // Prepare payload for /api/auth/register (backend expects firstName/lastName/phoneNumber/email/username/password)
+    const nameParts = (staffForm.fullName || '').trim().split(/\s+/);
+    const firstName = nameParts.shift() || '';
+    const lastName = nameParts.join(' ') || '';
+    const regPayload = {
+      firstName,
+      lastName,
+      phoneNumber: staffForm.phone || '',
+      email: staffForm.email || '',
+      username: staffForm.username,
+      password: staffForm.password,
+      role: (staffForm.role || 'staff')
+    };
+
+    // Try calling backend register endpoint. If it fails, fallback to the localStorage mock.
+    try {
+      const token = accessToken || (() => {
+        try { return localStorage.getItem('accessToken'); } catch (e) { return null; }
+      })();
+
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers.Authorization = `Bearer ${token}`;
+
+      const res = await fetch(`${API_BASE}/api/auth/register`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(regPayload)
+      });
+
+      if (res.ok) {
+        const created = await res.json();
+        setStaffCreationMessage('Tạo tài khoản thành công!');
+        setStaffForm({
+          fullName: '', username: '', password: '', confirmPassword: '', email: '', phone: '', role: 'staff'
+        });
+
+        // Refresh users list if current user is admin
+        try {
+          if (user && user.role === 'admin') {
+            const ures = await fetch(`${API_BASE}/api/users`);
+            if (ures.ok) {
+              const udata = await ures.json();
+              const mapped = (udata || []).map(u => ({
+                id: u.id || u.userId || u.email,
+                name: u.name || u.fullName || u.username || u.email,
+                email: u.email || '',
+                phone: u.phone || u.mobile || '',
+                joinDate: u.joinDate || u.createdAt || '',
+                status: u.status || 'active',
+                totalOrders: u.totalOrders || u.ordersCount || 0,
+                totalSpent: u.totalSpent || u.spent || '0đ',
+                avatar: u.avatarUrl || u.avatar || '/api/placeholder/40/40'
+              }));
+              setUsers(mapped);
+              setFilteredUsers(mapped);
+            }
+          }
+        } catch (e) {
+          // ignore refresh errors
+        }
+
+        setTimeout(() => setStaffCreationMessage(''), 3000);
+        return;
+      }
+
+      // If API returned non-ok, fall through to fallback
+      const text = await res.text();
+      console.warn('Create user API returned non-ok', res.status, text);
+    } catch (err) {
+      console.warn('Create user API error, falling back to localStorage:', err);
+    }
+
+    // Fallback localStorage mock behavior (keeps previous behavior if backend unavailable)
     try {
       const existingStaff = JSON.parse(localStorage.getItem('staffAccounts') || '[]');
 
@@ -231,9 +424,9 @@ const DashboardPage = () => {
         password: staffForm.password,
         email: staffForm.email,
         phone: staffForm.phone,
-        role: 'staff',
+        role: staffForm.role || 'staff',
         createdAt: new Date().toISOString(),
-        createdBy: user.username
+        createdBy: user?.username
       };
 
       const updatedStaff = [...existingStaff, newStaff];
@@ -245,7 +438,8 @@ const DashboardPage = () => {
         password: '',
         confirmPassword: '',
         email: '',
-        phone: ''
+        phone: '',
+        role: 'staff'
       });
       setStaffCreationMessage('Tạo tài khoản nhân viên thành công!');
 
@@ -359,9 +553,7 @@ const DashboardPage = () => {
     }
 
     try {
-      const response = await fetch(
-        `http://localhost:8080/api/s3/download-url?s3Key=${encodeURIComponent(s3KeyOrUrl)}`
-      );
+      const response = await fetch(`${API_BASE}/api/s3/download-url?s3Key=${encodeURIComponent(s3KeyOrUrl)}`);
       
       if (!response.ok) {
         console.error('Failed to get presigned URL:', response.status);
@@ -383,8 +575,8 @@ const DashboardPage = () => {
       
       // Fetch products and categories in parallel
       const [productsRes, categoriesRes] = await Promise.all([
-        fetch('http://localhost:8080/api/products'),
-        fetch('http://localhost:8080/api/categories')
+        fetch(`${API_BASE}/api/products`),
+        fetch(`${API_BASE}/api/categories`)
       ]);
       
       if (!productsRes.ok) {
@@ -430,7 +622,7 @@ const DashboardPage = () => {
             // Nếu không có trong product.images, thử gọi API /media
             console.log(`⚠️ No images in product.images, trying /media endpoint...`);
             try {
-              const mediaRes = await fetch(`http://localhost:8080/api/products/${encodeURIComponent(product.productId)}/media`);
+              const mediaRes = await fetch(`${API_BASE}/api/products/${encodeURIComponent(product.productId)}/media`);
               console.log(`📡 Media API response status:`, mediaRes.status);
               if (mediaRes.ok) {
                 const mediaData = await mediaRes.json();
@@ -541,7 +733,7 @@ const DashboardPage = () => {
     try {
       console.log(`🗑️ Deleting product: ${productId}`);
       
-      const response = await fetch(`http://localhost:8080/api/products/${encodeURIComponent(productId)}`, {
+      const response = await fetch(`${API_BASE}/api/products/${encodeURIComponent(productId)}`, {
         method: 'DELETE',
         headers: {
           'Accept': 'application/json'
@@ -586,7 +778,7 @@ const DashboardPage = () => {
   // ======================= CATEGORY API (GET/POST/PUT/DELETE) =======================
   const loadCategoriesData = async () => {
     try {
-      const res = await fetch('http://localhost:8080/api/categories');
+      const res = await fetch(`${API_BASE}/api/categories`);
       if (!res.ok) {
         console.error('Lỗi gọi API categories, status:', res.status);
         return;
@@ -643,12 +835,7 @@ const DashboardPage = () => {
     if (!ok) return;
 
     try {
-      const res = await fetch(
-        `http://localhost:8080/api/categories/${encodeURIComponent(categoryId)}`,
-        {
-          method: 'DELETE'
-        }
-      );
+      const res = await fetch(`${API_BASE}/api/categories/${encodeURIComponent(categoryId)}`, { method: 'DELETE' });
 
       if (!res.ok) {
         const text = await res.text();
@@ -676,8 +863,8 @@ const DashboardPage = () => {
     const isEdit = !!editingCategoryId;
 
     const url = isEdit
-      ? `http://localhost:8080/api/categories/${encodeURIComponent(editingCategoryId)}`
-      : 'http://localhost:8080/api/categories';
+      ? `${API_BASE}/api/categories/${encodeURIComponent(editingCategoryId)}`
+      : `${API_BASE}/api/categories`;
 
     const method = isEdit ? 'PUT' : 'POST';
 
@@ -938,91 +1125,74 @@ const DashboardPage = () => {
 
   // Dashboard stats
   // Load customers data
-  const loadCustomersData = () => {
-    const mockCustomers = [
-      {
-        id: 'KH001',
-        type: 'Khách vãng lai',
-        name: 'vy test',
-        email: 'giavy@imgroup.vn',
-        phone: '0909090909',
-        city: 'TP. Hồ Chí Minh'
-      },
-      {
-        id: 'KH002',
-        type: 'Vỹ Đỗ',
-        name: 'Vỹ Đỗ',
-        email: 'vivian.do1403@gmail.com',
-        phone: '0928283142',
-        city: 'TP. Hồ Chí Minh'
-      },
-      {
-        id: 'KH003',
-        type: 'Khách vãng lai',
-        name: 'vy test',
-        email: 'giavy@imgroup.vn',
-        phone: '0919811003',
-        city: 'Lào Cai'
-      },
-      {
-        id: 'KH004',
-        type: 'Tài khoản thuộc',
-        name: 'Nguyễn Thanh Huy',
-        email: 'huytuan.vha@yahoo.com',
-        phone: '0905967890',
-        city: 'TP. Hồ Chí Minh'
-      },
-      {
-        id: 'KH005',
-        type: 'Khách vãng lai',
-        name: 'vy test',
-        email: 'giavy@imgroup.vn',
-        phone: '0909090909',
-        city: 'TP. Hồ Chí Minh'
-      },
-      {
-        id: 'KH006',
-        type: 'Tài khoản Affiliate',
-        name: 'Đỗ Nhật Gia Vy',
-        email: 'support@imgroup.vnn',
-        phone: '01226490882',
-        city: 'TP. Hồ Chí Minh'
-      },
-      {
-        id: 'KH007',
-        type: 'Tài khoản Affiliate',
-        name: 'Đỗ Nhật Gia Vy',
-        email: 'chv1@imgroup.vn',
-        phone: '1226490082',
-        city: 'Phú Thọ'
-      },
-      {
-        id: 'KH008',
-        type: 'Khách vãng lai',
-        name: 'Đỗ Nhật Gia Vy',
-        email: 'donhatgiavy@gmail.com',
-        phone: '9625751244',
-        city: 'TP. Hồ Chí Minh'
-      },
-      {
-        id: 'KH009',
-        type: 'Khách vãng lai',
-        name: 'Trần Hoàng Sang',
-        email: 'hoanggang@imgroup.vn',
-        phone: '9625751244',
-        city: 'TP. Hồ Chí Minh'
-      },
-      {
-        id: 'KH010',
-        type: 'Khách vãng lai',
-        name: 'test',
-        email: 'tuyetmai@imgroup.vn',
-        phone: '0987654321',
-        city: 'TP. Hồ Chí Minh'
+  const loadCustomersData = async () => {
+    try {
+      // If logged-in staff/admin, use staff endpoint which returns all customers
+      let url = `${API_BASE}/api/staff/customers`;
+      try {
+        const stored = localStorage.getItem('staffAdminUser');
+        if (!stored) {
+          // not staff view — no staff endpoint access; try public customer endpoints if any
+          url = `${API_BASE}/api/customer/profile`; // requires email param — we'll fallback to mock below
+        }
+      } catch (e) {
+        url = `${API_BASE}/api/customer/profile`;
       }
-    ];
-    setCustomers(mockCustomers);
-    setFilteredCustomers(mockCustomers);
+
+      const res = await fetch(url);
+      if (!res.ok) {
+        console.warn('Customers API returned non-ok status', res.status);
+        throw new Error('Customers API error');
+      }
+
+      // staff endpoint returns array, public profile returns single object — handle both
+      const data = await res.json();
+      let mapped = [];
+      if (Array.isArray(data)) {
+        mapped = data.map(c => ({
+          id: c.id || c.userId || c.email,
+          type: c.type || c.customerType || 'Khách vãng lai',
+          name: c.name || c.fullName || c.email,
+          email: c.email || '',
+          phone: c.phone || c.mobile || '',
+          city: c.city || c.province || ''
+        }));
+      } else if (data) {
+        mapped = [{
+          id: data.id || data.userId || data.email,
+          type: data.type || 'Khách vãng lai',
+          name: data.name || data.fullName || data.email,
+          email: data.email || '',
+          phone: data.phone || data.mobile || '',
+          city: data.city || data.province || ''
+        }];
+      }
+
+      setCustomers(mapped);
+      setFilteredCustomers(mapped);
+    } catch (error) {
+      console.warn('Cannot load customers from API, falling back to mock data:', error);
+      const mockCustomers = [
+        {
+          id: 'KH001',
+          type: 'Khách vãng lai',
+          name: 'vy test',
+          email: 'giavy@imgroup.vn',
+          phone: '0909090909',
+          city: 'TP. Hồ Chí Minh'
+        },
+        {
+          id: 'KH002',
+          type: 'Vỹ Đỗ',
+          name: 'Vỹ Đỗ',
+          email: 'vivian.do1403@gmail.com',
+          phone: '0928283142',
+          city: 'TP. Hồ Chí Minh'
+        }
+      ];
+      setCustomers(mockCustomers);
+      setFilteredCustomers(mockCustomers);
+    }
   };
 
   const dashboardStats = [
@@ -1095,7 +1265,6 @@ const DashboardPage = () => {
         { name: 'Sản Phẩm', icon: '🎯' },
         { name: 'Kho hàng', icon: '🏪' },
         { name: 'Danh Mục', icon: '📋' },
-        { name: 'Danh sách khách hàng', icon: '👤' },
         { name: 'Người dùng', icon: '👥' },
         { name: 'Tạo tài khoản Nhân viên', icon: '➕' },
         { name: 'Settings', icon: '⚙️' }
@@ -1107,7 +1276,6 @@ const DashboardPage = () => {
         { name: 'Sản Phẩm', icon: '🎯' },
         { name: 'Kho hàng', icon: '🏪' },
         { name: 'Danh Mục', icon: '📋' },
-        { name: 'Danh sách khách hàng', icon: '👤' },
         { name: 'Settings', icon: '⚙️' }
       ];
 
@@ -1355,6 +1523,7 @@ const DashboardPage = () => {
                         />
                       </div>
                     </div>
+
                   </div>
 
                   {staffCreationMessage && (
@@ -1988,131 +2157,7 @@ const DashboardPage = () => {
             </div>
           )}
 
-          {/* DANH SÁCH KHÁCH HÀNG */}
-          {selectedMenu === 'Danh sách khách hàng' && (
-            <div className="customer-list-container">
-              <div className="customer-list-header">
-                <h1>Danh sách Khách hàng</h1>
-              </div>
-
-              <div className="customer-list-filters">
-                <div className="filter-row">
-                  <div className="filter-group">
-                    <label>Chọn tác vụ:</label>
-                    <select className="filter-select" disabled>
-                      <option>Ấp dụng</option>
-                    </select>
-                  </div>
-
-                  <div className="filter-group">
-                    <label>Tất cả điều kiện:</label>
-                    <select
-                      className="filter-select"
-                      value={customerTypeFilter}
-                      onChange={(e) => setCustomerTypeFilter(e.target.value)}
-                    >
-                      <option value="all">Tất cả</option>
-                      <option value="Khách vãng lai">Khách vãng lai</option>
-                      <option value="Tài khoản Affiliate">Tài khoản Affiliate</option>
-                      <option value="Tài khoản thuộc">Tài khoản thuộc</option>
-                    </select>
-                  </div>
-
-                  <div className="search-group">
-                    <label>Nhập từ khóa:</label>
-                    <input
-                      type="text"
-                      className="search-input"
-                      placeholder="Tìm kiếm..."
-                      value={customerSearchTerm}
-                      onChange={(e) => setCustomerSearchTerm(e.target.value)}
-                    />
-                  </div>
-
-                  <button className="export-btn" title="Export danh sách">
-                    Export danh sách lọc
-                  </button>
-                </div>
-              </div>
-
-              <div className="customer-list-table-container">
-                <table className="customer-list-table">
-                  <thead>
-                    <tr>
-                      <th>
-                        <input type="checkbox" />
-                      </th>
-                      <th>Loại</th>
-                      <th>Họ và tên</th>
-                      <th>Gói tính</th>
-                      <th>Email</th>
-                      <th>Số điện thoại</th>
-                      <th>Tỉnh thành</th>
-                      <th>Chi tiết</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {currentCustomers.map((customer) => (
-                      <tr key={customer.id}>
-                        <td>
-                          <input type="checkbox" />
-                        </td>
-                        <td>
-                          <span className="customer-type-badge">{customer.type}</span>
-                        </td>
-                        <td className="customer-name">{customer.name}</td>
-                        <td className="customer-package">-</td>
-                        <td className="customer-email">{customer.email}</td>
-                        <td className="customer-phone">{customer.phone}</td>
-                        <td className="customer-city">{customer.city}</td>
-                        <td>
-                          <button
-                            className="customer-delete-btn"
-                            onClick={() => {
-                              if (window.confirm(`Bạn có chắc chắn muốn xóa khách hàng ${customer.name}?`)) {
-                                alert('Chức năng xóa khách hàng');
-                              }
-                            }}
-                            title="Xóa"
-                          >
-                            🗑️
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                    {currentCustomers.length === 0 && (
-                      <tr>
-                        <td colSpan="8" style={{ textAlign: 'center', padding: '2rem' }}>
-                          Không có khách hàng nào
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="customer-list-pagination">
-                <button
-                  className="pagination-btn"
-                  disabled={currentCustomerPage === 1}
-                  onClick={() => setCurrentCustomerPage((prev) => prev - 1)}
-                >
-                  Trang trước
-                </button>
-                <div className="pagination-info">
-                  Trang {currentCustomerPage} / {totalCustomerPages || 1}
-                </div>
-                <button
-                  className="pagination-btn"
-                  disabled={currentCustomerPage === totalCustomerPages || totalCustomerPages === 0}
-                  onClick={() => setCurrentCustomerPage((prev) => prev + 1)}
-                >
-                  Trang sau
-                </button>
-              </div>
-            </div>
-          )}
-
+          {/* NGƯỜI DÙNG (ADMIN) */}
           {/* NGƯỜI DÙNG (ADMIN) */}
           {selectedMenu === 'Người dùng' && user?.role === 'admin' && (
             <div className="users-tab-container">

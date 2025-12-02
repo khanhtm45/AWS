@@ -27,6 +27,7 @@ public class DynamoDBTableInitializer {
         createTableIfNotExist("ReviewTable", "PK", "SK");
         createTableIfNotExist("BlogTable", "PK", "SK");
         createTableIfNotExist("CouponTable", "PK", "SK");
+        createSizeTableIfNotExist();
     }
 
     private void createTableIfNotExist(String tableName, String pkName, String skName) {
@@ -88,6 +89,43 @@ public class DynamoDBTableInitializer {
             }
         }
         System.out.println("Table " + tableName + " is ACTIVE.");
+    }
+
+    private void createSizeTableIfNotExist() {
+        String tableName = "SizeTable";
+        try {
+            dynamoDbClient.describeTable(b -> b.tableName(tableName));
+            System.out.println("Table " + tableName + " already exists");
+        } catch (ResourceNotFoundException e) {
+            System.out.println("Creating table " + tableName);
+
+            try {
+                dynamoDbClient.createTable(b -> b
+                    .tableName(tableName)
+                    .keySchema(
+                            KeySchemaElement.builder()
+                                    .attributeName("sizeId")
+                                    .keyType(KeyType.HASH)
+                                    .build()
+                    )
+                    .attributeDefinitions(
+                            AttributeDefinition.builder()
+                                    .attributeName("sizeId")
+                                    .attributeType(ScalarAttributeType.S)
+                                    .build()
+                    )
+                    .billingMode(BillingMode.PAY_PER_REQUEST)
+                );
+
+                waitForTableActive(tableName);
+            } catch (SdkClientException sce) {
+                System.out.println("Skipping table creation for " + tableName + " because AWS SDK cannot load credentials or connect: " + sce.getMessage());
+                return;
+            }
+        } catch (SdkClientException sce) {
+            System.out.println("Cannot access AWS DynamoDB for table checks (no credentials or network). Skipping table initialization. " + sce.getMessage());
+            return;
+        }
     }
 }
 

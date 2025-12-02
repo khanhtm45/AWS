@@ -58,8 +58,8 @@ export const CartProvider = ({ children }) => {
       // UI fields that may be absent from server; keep placeholders
       name: it.getProductName ? it.getProductName() : it.productName || '',
       image: '/LEAF.png',
-      selectedSize: '',
-      selectedColor: ''
+      selectedSize: it.getSize ? it.getSize() : it.size || '',
+      selectedColor: it.getColor ? it.getColor() : it.color || ''
     }));
   };
 
@@ -97,7 +97,9 @@ export const CartProvider = ({ children }) => {
           sessionId: sessionId,
           productId: product.id,
           variantId: product.variantId || null,
-          quantity: product.quantity || 1
+          quantity: product.quantity || 1,
+          size: product.selectedSize || null,
+          color: product.selectedColor || null
         };
         const headers = { 'Content-Type': 'application/json' };
         if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;

@@ -1,6 +1,7 @@
 package com.leafshop.controller;
 
 import com.leafshop.dto.staff.CustomerResponse;
+import com.leafshop.dto.order.OrderResponse;
 import com.leafshop.dto.staff.CustomerPurchaseHistoryResponse;
 import com.leafshop.service.StaffService;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +38,15 @@ public class StaffController {
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+    @GetMapping("/orders")
+    public ResponseEntity<List<OrderResponse>> getAllOrders() {
+        try {
+            List<OrderResponse> orders = staffService.getAllOrders();
+            return ResponseEntity.ok(orders);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }

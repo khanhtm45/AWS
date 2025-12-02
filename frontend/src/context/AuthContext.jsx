@@ -56,6 +56,10 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
+    // Also clear staff admin session key if present
+    try {
+      localStorage.removeItem('staffAdminUser');
+    } catch (e) {}
   };
 
   const setAuth = ({ accessToken: at, refreshToken: rt }, userInfo) => {

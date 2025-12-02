@@ -42,8 +42,8 @@ public class AuthService {
             .updatedAt(now)
             .build();
 
-        // determine role
-        String roleName = "Customer";
+        // determine role (use provided role if present, else default to Staff)
+        String roleName = (req.getRole() != null && !req.getRole().isBlank()) ? req.getRole() : "Staff";
         String resolvedRoleId = roleName.toUpperCase();
 
         // ACCOUNT item
