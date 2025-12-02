@@ -3,8 +3,28 @@ import { MessageCircle, X, Send } from 'lucide-react';
 import './ChatBox.css';
 
 function ChatBox() {
-  // Open chat by default so chat is always visible on the frontend
-  const [isOpen, setIsOpen] = useState(true);
+  // Load chat open state from localStorage, default to false (closed)
+  const loadChatOpenState = () => {
+    try {
+      const saved = localStorage.getItem('leafshop_chat_open');
+      return saved ? JSON.parse(saved) : false;
+    } catch (e) {
+      return false;
+    }
+  };
+
+  const [isOpen, setIsOpen] = useState(loadChatOpenState);
+
+  // Save chat open state to localStorage
+  const updateChatOpenState = (newState) => {
+    try {
+      localStorage.setItem('leafshop_chat_open', JSON.stringify(newState));
+      setIsOpen(newState);
+    } catch (e) {
+      console.warn('Failed to save chat open state:', e);
+      setIsOpen(newState);
+    }
+  };
 
   // Persist chat messages to localStorage so users keep history across reloads.
   const STORAGE_KEY = 'leafshop_chat_messages_v1';
@@ -288,7 +308,7 @@ function ChatBox() {
       {!isOpen && (
         <button 
           className="chat-button"
-          onClick={() => setIsOpen(true)}
+          onClick={() => updateChatOpenState(true)}
           aria-label="Open chat"
         >
           <MessageCircle size={24} />
@@ -328,7 +348,7 @@ function ChatBox() {
                 </button>
                 <button 
                   className="chat-close-button"
-                  onClick={() => setIsOpen(false)}
+                  onClick={() => updateChatOpenState(false)}
                   aria-label="Close chat"
                 >
                   <X size={20} />
