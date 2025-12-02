@@ -1259,7 +1259,6 @@ const DashboardPage = () => {
         { name: 'Sản Phẩm', icon: '🎯' },
         { name: 'Kho hàng', icon: '🏪' },
         { name: 'Danh Mục', icon: '📋' },
-        { name: 'Danh sách khách hàng', icon: '👤' },
         { name: 'Người dùng', icon: '👥' },
         { name: 'Tạo tài khoản Nhân viên', icon: '➕' },
         { name: 'Settings', icon: '⚙️' }
@@ -1271,7 +1270,6 @@ const DashboardPage = () => {
         { name: 'Sản Phẩm', icon: '🎯' },
         { name: 'Kho hàng', icon: '🏪' },
         { name: 'Danh Mục', icon: '📋' },
-        { name: 'Danh sách khách hàng', icon: '👤' },
         { name: 'Settings', icon: '⚙️' }
       ];
 
@@ -2153,131 +2151,7 @@ const DashboardPage = () => {
             </div>
           )}
 
-          {/* DANH SÁCH KHÁCH HÀNG */}
-          {selectedMenu === 'Danh sách khách hàng' && (
-            <div className="customer-list-container">
-              <div className="customer-list-header">
-                <h1>Danh sách Khách hàng</h1>
-              </div>
-
-              <div className="customer-list-filters">
-                <div className="filter-row">
-                  <div className="filter-group">
-                    <label>Chọn tác vụ:</label>
-                    <select className="filter-select" disabled>
-                      <option>Ấp dụng</option>
-                    </select>
-                  </div>
-
-                  <div className="filter-group">
-                    <label>Tất cả điều kiện:</label>
-                    <select
-                      className="filter-select"
-                      value={customerTypeFilter}
-                      onChange={(e) => setCustomerTypeFilter(e.target.value)}
-                    >
-                      <option value="all">Tất cả</option>
-                      <option value="Khách vãng lai">Khách vãng lai</option>
-                      <option value="Tài khoản Affiliate">Tài khoản Affiliate</option>
-                      <option value="Tài khoản thuộc">Tài khoản thuộc</option>
-                    </select>
-                  </div>
-
-                  <div className="search-group">
-                    <label>Nhập từ khóa:</label>
-                    <input
-                      type="text"
-                      className="search-input"
-                      placeholder="Tìm kiếm..."
-                      value={customerSearchTerm}
-                      onChange={(e) => setCustomerSearchTerm(e.target.value)}
-                    />
-                  </div>
-
-                  <button className="export-btn" title="Export danh sách">
-                    Export danh sách lọc
-                  </button>
-                </div>
-              </div>
-
-              <div className="customer-list-table-container">
-                <table className="customer-list-table">
-                  <thead>
-                    <tr>
-                      <th>
-                        <input type="checkbox" />
-                      </th>
-                      <th>Loại</th>
-                      <th>Họ và tên</th>
-                      <th>Gói tính</th>
-                      <th>Email</th>
-                      <th>Số điện thoại</th>
-                      <th>Tỉnh thành</th>
-                      <th>Chi tiết</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {currentCustomers.map((customer) => (
-                      <tr key={customer.id}>
-                        <td>
-                          <input type="checkbox" />
-                        </td>
-                        <td>
-                          <span className="customer-type-badge">{customer.type}</span>
-                        </td>
-                        <td className="customer-name">{customer.name}</td>
-                        <td className="customer-package">-</td>
-                        <td className="customer-email">{customer.email}</td>
-                        <td className="customer-phone">{customer.phone}</td>
-                        <td className="customer-city">{customer.city}</td>
-                        <td>
-                          <button
-                            className="customer-delete-btn"
-                            onClick={() => {
-                              if (window.confirm(`Bạn có chắc chắn muốn xóa khách hàng ${customer.name}?`)) {
-                                alert('Chức năng xóa khách hàng');
-                              }
-                            }}
-                            title="Xóa"
-                          >
-                            🗑️
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                    {currentCustomers.length === 0 && (
-                      <tr>
-                        <td colSpan="8" style={{ textAlign: 'center', padding: '2rem' }}>
-                          Không có khách hàng nào
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="customer-list-pagination">
-                <button
-                  className="pagination-btn"
-                  disabled={currentCustomerPage === 1}
-                  onClick={() => setCurrentCustomerPage((prev) => prev - 1)}
-                >
-                  Trang trước
-                </button>
-                <div className="pagination-info">
-                  Trang {currentCustomerPage} / {totalCustomerPages || 1}
-                </div>
-                <button
-                  className="pagination-btn"
-                  disabled={currentCustomerPage === totalCustomerPages || totalCustomerPages === 0}
-                  onClick={() => setCurrentCustomerPage((prev) => prev + 1)}
-                >
-                  Trang sau
-                </button>
-              </div>
-            </div>
-          )}
-
+          {/* NGƯỜI DÙNG (ADMIN) */}
           {/* NGƯỜI DÙNG (ADMIN) */}
           {selectedMenu === 'Người dùng' && user?.role === 'admin' && (
             <div className="users-tab-container">
