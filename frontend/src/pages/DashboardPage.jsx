@@ -83,6 +83,30 @@ const DashboardPage = () => {
   const [editingCategoryId, setEditingCategoryId] = useState(null); // null = tạo mới, khác null = đang sửa
   const categoriesPerPage = 10;
 
+  // Customer management state
+  const [customers, setCustomers] = useState([]);
+  const [filteredCustomers, setFilteredCustomers] = useState([]);
+  const [customerTypeFilter, setCustomerTypeFilter] = useState('all');
+  const [customerSearchTerm, setCustomerSearchTerm] = useState('');
+  const [customerContactFilter, setCustomerContactFilter] = useState('');
+  const [currentCustomerPage, setCurrentCustomerPage] = useState(1);
+  const customersPerPage = 10;
+
+  // Warehouse management state
+  const [warehouseTab, setWarehouseTab] = useState('inventory'); // inventory, ledger, import, export, audit
+  const [warehouseProducts, setWarehouseProducts] = useState([]);
+  const [filteredWarehouseProducts, setFilteredWarehouseProducts] = useState([]);
+  const [warehouseSearchTerm, setWarehouseSearchTerm] = useState('');
+  const [warehouseCategoryFilter, setWarehouseCategoryFilter] = useState('all');
+  const [currentWarehousePage, setCurrentWarehousePage] = useState(1);
+  const warehouseProductsPerPage = 10;
+  const [warehouseStats, setWarehouseStats] = useState({
+    totalProducts: 0,
+    totalValue: 0,
+    lowStockItems: 0,
+    outOfStockItems: 0
+  });
+
   // ======================= CHECK LOGIN & LOAD DATA =======================
   useEffect(() => {
     const userData = localStorage.getItem('staffAdminUser');
@@ -156,6 +180,7 @@ const DashboardPage = () => {
     }
     loadProductsData();
     loadCategoriesData(); // <-- GỌI API CATEGORY
+    loadCustomersData(); // <-- Load customers
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
 
@@ -769,6 +794,80 @@ const DashboardPage = () => {
     }
   }, [categorySearchTerm, categories]);
 
+  // Customer filter
+  useEffect(() => {
+    if (customers.length > 0) {
+      let filtered = [...customers];
+
+      // Filter by customer type
+      if (customerTypeFilter !== 'all') {
+        filtered = filtered.filter(customer => customer.type === customerTypeFilter);
+      }
+
+      // Filter by search term (name)
+      if (customerSearchTerm) {
+        filtered = filtered.filter(customer =>
+          customer.name.toLowerCase().includes(customerSearchTerm.toLowerCase())
+        );
+      }
+
+      // Filter by contact
+      if (customerContactFilter) {
+        filtered = filtered.filter(customer =>
+          customer.email.toLowerCase().includes(customerContactFilter.toLowerCase()) ||
+          customer.phone.includes(customerContactFilter)
+        );
+      }
+
+      setFilteredCustomers(filtered);
+      setCurrentCustomerPage(1);
+    }
+  }, [customerTypeFilter, customerSearchTerm, customerContactFilter, customers]);
+
+  // Warehouse filter
+  useEffect(() => {
+    if (products.length > 0) {
+      let filtered = [...products];
+
+      // Filter by search term
+      if (warehouseSearchTerm) {
+        filtered = filtered.filter(product =>
+          product.id.toLowerCase().includes(warehouseSearchTerm.toLowerCase()) ||
+          product.name.toLowerCase().includes(warehouseSearchTerm.toLowerCase())
+        );
+      }
+
+      // Filter by category
+      if (warehouseCategoryFilter !== 'all') {
+        filtered = filtered.filter(product => product.category === warehouseCategoryFilter);
+      }
+
+      setFilteredWarehouseProducts(filtered);
+      setCurrentWarehousePage(1);
+
+      // Update warehouse stats
+      const totalProducts = filtered.reduce((sum, p) => sum + (p.quantity || 0), 0);
+      const totalValue = filtered.reduce((sum, p) => sum + ((p.price || 0) * (p.quantity || 0)), 0);
+      const lowStockItems = filtered.filter(p => (p.quantity || 0) > 0 && (p.quantity || 0) < 10).length;
+      const outOfStockItems = filtered.filter(p => (p.quantity || 0) === 0).length;
+
+      setWarehouseStats({
+        totalProducts,
+        totalValue,
+        lowStockItems,
+        outOfStockItems
+      });
+    } else {
+      setFilteredWarehouseProducts([]);
+    }
+  }, [warehouseSearchTerm, warehouseCategoryFilter, products]);
+
+  // Sync warehouse products with products
+  useEffect(() => {
+    setWarehouseProducts(products);
+    setFilteredWarehouseProducts(products);
+  }, [products]);
+
   // ======================= HELPERS =======================
   const getStatusColor = (status) => {
     switch (status) {
@@ -807,6 +906,18 @@ const DashboardPage = () => {
   const indexOfFirstCategory = indexOfLastCategory - categoriesPerPage;
   const currentCategories = filteredCategories.slice(indexOfFirstCategory, indexOfLastCategory);
 
+  // Pagination customers
+  const indexOfLastCustomer = currentCustomerPage * customersPerPage;
+  const indexOfFirstCustomer = indexOfLastCustomer - customersPerPage;
+  const currentCustomers = filteredCustomers.slice(indexOfFirstCustomer, indexOfLastCustomer);
+  const totalCustomerPages = Math.ceil(filteredCustomers.length / customersPerPage);
+
+  // Pagination warehouse
+  const indexOfLastWarehouseProduct = currentWarehousePage * warehouseProductsPerPage;
+  const indexOfFirstWarehouseProduct = indexOfLastWarehouseProduct - warehouseProductsPerPage;
+  const currentWarehouseProducts = filteredWarehouseProducts.slice(indexOfFirstWarehouseProduct, indexOfLastWarehouseProduct);
+  const totalWarehousePages = Math.ceil(filteredWarehouseProducts.length / warehouseProductsPerPage);
+
   // Toggle user status
   const toggleUserStatus = (userId) => {
     setUsers(prev =>
@@ -826,6 +937,94 @@ const DashboardPage = () => {
   };
 
   // Dashboard stats
+  // Load customers data
+  const loadCustomersData = () => {
+    const mockCustomers = [
+      {
+        id: 'KH001',
+        type: 'Khách vãng lai',
+        name: 'vy test',
+        email: 'giavy@imgroup.vn',
+        phone: '0909090909',
+        city: 'TP. Hồ Chí Minh'
+      },
+      {
+        id: 'KH002',
+        type: 'Vỹ Đỗ',
+        name: 'Vỹ Đỗ',
+        email: 'vivian.do1403@gmail.com',
+        phone: '0928283142',
+        city: 'TP. Hồ Chí Minh'
+      },
+      {
+        id: 'KH003',
+        type: 'Khách vãng lai',
+        name: 'vy test',
+        email: 'giavy@imgroup.vn',
+        phone: '0919811003',
+        city: 'Lào Cai'
+      },
+      {
+        id: 'KH004',
+        type: 'Tài khoản thuộc',
+        name: 'Nguyễn Thanh Huy',
+        email: 'huytuan.vha@yahoo.com',
+        phone: '0905967890',
+        city: 'TP. Hồ Chí Minh'
+      },
+      {
+        id: 'KH005',
+        type: 'Khách vãng lai',
+        name: 'vy test',
+        email: 'giavy@imgroup.vn',
+        phone: '0909090909',
+        city: 'TP. Hồ Chí Minh'
+      },
+      {
+        id: 'KH006',
+        type: 'Tài khoản Affiliate',
+        name: 'Đỗ Nhật Gia Vy',
+        email: 'support@imgroup.vnn',
+        phone: '01226490882',
+        city: 'TP. Hồ Chí Minh'
+      },
+      {
+        id: 'KH007',
+        type: 'Tài khoản Affiliate',
+        name: 'Đỗ Nhật Gia Vy',
+        email: 'chv1@imgroup.vn',
+        phone: '1226490082',
+        city: 'Phú Thọ'
+      },
+      {
+        id: 'KH008',
+        type: 'Khách vãng lai',
+        name: 'Đỗ Nhật Gia Vy',
+        email: 'donhatgiavy@gmail.com',
+        phone: '9625751244',
+        city: 'TP. Hồ Chí Minh'
+      },
+      {
+        id: 'KH009',
+        type: 'Khách vãng lai',
+        name: 'Trần Hoàng Sang',
+        email: 'hoanggang@imgroup.vn',
+        phone: '9625751244',
+        city: 'TP. Hồ Chí Minh'
+      },
+      {
+        id: 'KH010',
+        type: 'Khách vãng lai',
+        name: 'test',
+        email: 'tuyetmai@imgroup.vn',
+        phone: '0987654321',
+        city: 'TP. Hồ Chí Minh'
+      }
+    ];
+    setCustomers(mockCustomers);
+    setFilteredCustomers(mockCustomers);
+  };
+
   const dashboardStats = [
     {
       title: 'Total User',
@@ -894,7 +1093,9 @@ const DashboardPage = () => {
         { name: 'Thông tin đặt hàng', icon: '📦' },
         { name: 'Inbox', icon: '📧' },
         { name: 'Sản Phẩm', icon: '🎯' },
+        { name: 'Kho hàng', icon: '🏪' },
         { name: 'Danh Mục', icon: '📋' },
+        { name: 'Danh sách khách hàng', icon: '👤' },
         { name: 'Người dùng', icon: '👥' },
         { name: 'Tạo tài khoản Nhân viên', icon: '➕' },
         { name: 'Settings', icon: '⚙️' }
@@ -904,7 +1105,9 @@ const DashboardPage = () => {
         { name: 'Thông tin đặt hàng', icon: '📦' },
         { name: 'Inbox', icon: '📧' },
         { name: 'Sản Phẩm', icon: '🎯' },
+        { name: 'Kho hàng', icon: '🏪' },
         { name: 'Danh Mục', icon: '📋' },
+        { name: 'Danh sách khách hàng', icon: '👤' },
         { name: 'Settings', icon: '⚙️' }
       ];
 
@@ -1434,6 +1637,222 @@ const DashboardPage = () => {
             </div>
           )}
 
+          {/* KHO HÀNG */}
+          {selectedMenu === 'Kho hàng' && (
+            <div className="warehouse-page-wrapper">
+              <div className="warehouse-page-header">
+                <h1>Kho hàng</h1>
+              </div>
+
+              {/* Warehouse Tabs */}
+              <div className="warehouse-tabs">
+                <button
+                  className={`warehouse-tab ${warehouseTab === 'inventory' ? 'active' : ''}`}
+                  onClick={() => setWarehouseTab('inventory')}
+                >
+                  📦 Kho hàng
+                </button>
+                <button
+                  className={`warehouse-tab ${warehouseTab === 'ledger' ? 'active' : ''}`}
+                  onClick={() => setWarehouseTab('ledger')}
+                >
+                  📔 Sổ kho
+                </button>
+                <button
+                  className={`warehouse-tab ${warehouseTab === 'import' ? 'active' : ''}`}
+                  onClick={() => setWarehouseTab('import')}
+                >
+                  📥 Số nhập hàng
+                </button>
+                <button
+                  className={`warehouse-tab ${warehouseTab === 'export' ? 'active' : ''}`}
+                  onClick={() => setWarehouseTab('export')}
+                >
+                  📤 Số xuất hàng
+                </button>
+                <button
+                  className={`warehouse-tab ${warehouseTab === 'audit' ? 'active' : ''}`}
+                  onClick={() => setWarehouseTab('audit')}
+                >
+                  🔍 Kiểm kho
+                </button>
+              </div>
+
+              {/* Kho hàng Tab Content */}
+              {warehouseTab === 'inventory' && (
+                <div className="warehouse-content">
+                  {/* Stats Cards */}
+                  <div className="warehouse-stats-grid">
+                    <div className="warehouse-stat-card">
+                      <div className="stat-number">{warehouseStats.totalProducts}</div>
+                      <div className="stat-label">Số lượng</div>
+                    </div>
+                    <div className="warehouse-stat-card">
+                      <div className="stat-number">{warehouseStats.totalValue.toLocaleString()}</div>
+                      <div className="stat-label">Giá trị tồn</div>
+                    </div>
+                    <div className="warehouse-stat-card">
+                      <div className="stat-number">{warehouseStats.lowStockItems}</div>
+                      <div className="stat-label">Thiếu hàng</div>
+                    </div>
+                    <div className="warehouse-stat-card">
+                      <div className="stat-number">{warehouseStats.outOfStockItems}</div>
+                      <div className="stat-label">Chưa đặt tên kho</div>
+                    </div>
+                  </div>
+
+                  {/* Filters and Search */}
+                  <div className="warehouse-controls">
+                    <div className="warehouse-search-group">
+                      <input
+                        type="text"
+                        className="warehouse-search-input"
+                        placeholder="Tìm kiếm mã SKU/ Tên SP"
+                        value={warehouseSearchTerm}
+                        onChange={(e) => setWarehouseSearchTerm(e.target.value)}
+                      />
+                    </div>
+                    <select
+                      className="warehouse-filter-select"
+                      value={warehouseCategoryFilter}
+                      onChange={(e) => setWarehouseCategoryFilter(e.target.value)}
+                    >
+                      <option value="all">Danh mục</option>
+                      {categories.map(cat => (
+                        <option key={cat.categoryId} value={cat.categoryId}>
+                          {cat.categoryName}
+                        </option>
+                      ))}
+                    </select>
+                    <button className="warehouse-create-btn">
+                      Tạo giao dịch
+                    </button>
+                  </div>
+
+                  {/* Products Table */}
+                  <div className="warehouse-table-wrapper">
+                    <table className="warehouse-table">
+                      <thead>
+                        <tr>
+                          <th>SKU</th>
+                          <th>SẢN PHẨM</th>
+                          <th>GIÁ VỐN</th>
+                          <th>TỒN KHO</th>
+                          <th>GIÁ TRỊ TỒN</th>
+                          <th></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {currentWarehouseProducts.map(product => (
+                          <tr key={product.id}>
+                            <td className="warehouse-sku">{product.id}</td>
+                            <td>
+                              <div className="warehouse-product-info">
+                                <img 
+                                  src={product.image || '/api/placeholder/60/60'} 
+                                  alt={product.name}
+                                  className="warehouse-product-image"
+                                />
+                                <div className="warehouse-product-details">
+                                  <div className="warehouse-product-name">{product.name}</div>
+                                  <div className="warehouse-product-variant">{product.category}</div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="warehouse-price">{product.price?.toLocaleString() || 0}</td>
+                            <td className="warehouse-stock">
+                              {product.quantity > 0 ? (
+                                <span className="stock-available">{product.quantity}</span>
+                              ) : (
+                                <span className="stock-out">0</span>
+                              )}
+                            </td>
+                            <td className="warehouse-total-value">
+                              {((product.price || 0) * (product.quantity || 0)).toLocaleString()}
+                            </td>
+                            <td>
+                              <button className="warehouse-more-btn" title="Xem thêm">
+                                ⋮
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                        {currentWarehouseProducts.length === 0 && (
+                          <tr>
+                            <td colSpan="6" style={{ textAlign: 'center', padding: '2rem' }}>
+                              Không có sản phẩm trong kho
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Pagination */}
+                  <div className="warehouse-pagination">
+                    <button
+                      className="pagination-btn"
+                      disabled={currentWarehousePage === 1}
+                      onClick={() => setCurrentWarehousePage(prev => prev - 1)}
+                    >
+                      ← Trước
+                    </button>
+                    <span className="pagination-info">
+                      Trang {currentWarehousePage} / {totalWarehousePages || 1}
+                    </span>
+                    <button
+                      className="pagination-btn"
+                      disabled={currentWarehousePage >= totalWarehousePages || totalWarehousePages === 0}
+                      onClick={() => setCurrentWarehousePage(prev => prev + 1)}
+                    >
+                      Sau →
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Sổ kho Tab */}
+              {warehouseTab === 'ledger' && (
+                <div className="warehouse-content">
+                  <div className="warehouse-placeholder">
+                    <h3>📔 Sổ kho</h3>
+                    <p>Chức năng đang được phát triển</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Số nhập hàng Tab */}
+              {warehouseTab === 'import' && (
+                <div className="warehouse-content">
+                  <div className="warehouse-placeholder">
+                    <h3>📥 Số nhập hàng</h3>
+                    <p>Chức năng đang được phát triển</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Số xuất hàng Tab */}
+              {warehouseTab === 'export' && (
+                <div className="warehouse-content">
+                  <div className="warehouse-placeholder">
+                    <h3>📤 Số xuất hàng</h3>
+                    <p>Chức năng đang được phát triển</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Kiểm kho Tab */}
+              {warehouseTab === 'audit' && (
+                <div className="warehouse-content">
+                  <div className="warehouse-placeholder">
+                    <h3>🔍 Kiểm kho</h3>
+                    <p>Chức năng đang được phát triển</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* DANH MỤC - KẾT NỐI API THẬT + CRUD */}
           {selectedMenu === 'Danh Mục' && (
             <div className="category-page-wrapper">
@@ -1566,6 +1985,131 @@ const DashboardPage = () => {
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* DANH SÁCH KHÁCH HÀNG */}
+          {selectedMenu === 'Danh sách khách hàng' && (
+            <div className="customer-list-container">
+              <div className="customer-list-header">
+                <h1>Danh sách Khách hàng</h1>
+              </div>
+
+              <div className="customer-list-filters">
+                <div className="filter-row">
+                  <div className="filter-group">
+                    <label>Chọn tác vụ:</label>
+                    <select className="filter-select" disabled>
+                      <option>Ấp dụng</option>
+                    </select>
+                  </div>
+
+                  <div className="filter-group">
+                    <label>Tất cả điều kiện:</label>
+                    <select
+                      className="filter-select"
+                      value={customerTypeFilter}
+                      onChange={(e) => setCustomerTypeFilter(e.target.value)}
+                    >
+                      <option value="all">Tất cả</option>
+                      <option value="Khách vãng lai">Khách vãng lai</option>
+                      <option value="Tài khoản Affiliate">Tài khoản Affiliate</option>
+                      <option value="Tài khoản thuộc">Tài khoản thuộc</option>
+                    </select>
+                  </div>
+
+                  <div className="search-group">
+                    <label>Nhập từ khóa:</label>
+                    <input
+                      type="text"
+                      className="search-input"
+                      placeholder="Tìm kiếm..."
+                      value={customerSearchTerm}
+                      onChange={(e) => setCustomerSearchTerm(e.target.value)}
+                    />
+                  </div>
+
+                  <button className="export-btn" title="Export danh sách">
+                    Export danh sách lọc
+                  </button>
+                </div>
+              </div>
+
+              <div className="customer-list-table-container">
+                <table className="customer-list-table">
+                  <thead>
+                    <tr>
+                      <th>
+                        <input type="checkbox" />
+                      </th>
+                      <th>Loại</th>
+                      <th>Họ và tên</th>
+                      <th>Gói tính</th>
+                      <th>Email</th>
+                      <th>Số điện thoại</th>
+                      <th>Tỉnh thành</th>
+                      <th>Chi tiết</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {currentCustomers.map((customer) => (
+                      <tr key={customer.id}>
+                        <td>
+                          <input type="checkbox" />
+                        </td>
+                        <td>
+                          <span className="customer-type-badge">{customer.type}</span>
+                        </td>
+                        <td className="customer-name">{customer.name}</td>
+                        <td className="customer-package">-</td>
+                        <td className="customer-email">{customer.email}</td>
+                        <td className="customer-phone">{customer.phone}</td>
+                        <td className="customer-city">{customer.city}</td>
+                        <td>
+                          <button
+                            className="customer-delete-btn"
+                            onClick={() => {
+                              if (window.confirm(`Bạn có chắc chắn muốn xóa khách hàng ${customer.name}?`)) {
+                                alert('Chức năng xóa khách hàng');
+                              }
+                            }}
+                            title="Xóa"
+                          >
+                            🗑️
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {currentCustomers.length === 0 && (
+                      <tr>
+                        <td colSpan="8" style={{ textAlign: 'center', padding: '2rem' }}>
+                          Không có khách hàng nào
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="customer-list-pagination">
+                <button
+                  className="pagination-btn"
+                  disabled={currentCustomerPage === 1}
+                  onClick={() => setCurrentCustomerPage((prev) => prev - 1)}
+                >
+                  Trang trước
+                </button>
+                <div className="pagination-info">
+                  Trang {currentCustomerPage} / {totalCustomerPages || 1}
+                </div>
+                <button
+                  className="pagination-btn"
+                  disabled={currentCustomerPage === totalCustomerPages || totalCustomerPages === 0}
+                  onClick={() => setCurrentCustomerPage((prev) => prev + 1)}
+                >
+                  Trang sau
+                </button>
+              </div>
             </div>
           )}
 

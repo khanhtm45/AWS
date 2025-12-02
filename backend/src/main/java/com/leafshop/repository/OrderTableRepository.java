@@ -31,6 +31,21 @@ public class OrderTableRepository {
 	public void save(OrderTable order) {
 		orderTable().putItem(order);
 	}
+	public List<OrderTable> scanAllOrdersMeta() {
+        Map<String, AttributeValue> eav = new HashMap<>();
+        eav.put(":meta", AttributeValue.builder().s("META").build());
+
+        Expression filterExpression = Expression.builder()
+                .expression("SK = :meta")
+                .expressionValues(eav)
+                .build();
+
+        return orderTable()
+                .scan(ScanEnhancedRequest.builder().filterExpression(filterExpression).build())
+                .items()
+                .stream()
+                .collect(Collectors.toList());
+    }
 
 	// Find order by PK (USER#<user_id>#ORDER#<order_id> or ORDER#<order_id>)
 	public List<OrderTable> findByPk(String pk) {
