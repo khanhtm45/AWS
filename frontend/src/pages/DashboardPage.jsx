@@ -11,7 +11,7 @@ const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:8080';
 const DashboardPage = () => {
   const navigate = useNavigate();
 
-  const { accessToken } = useAuth();
+  const { accessToken, logout } = useAuth();
 
   const [user, setUser] = useState(null);
   const [selectedMenu, setSelectedMenu] = useState('Dashboard');
@@ -299,7 +299,13 @@ const DashboardPage = () => {
   }, [navigate]);
 
   const handleLogout = () => {
-    localStorage.removeItem('staffAdminUser');
+    try {
+      // Use centralized logout to clear tokens and user state
+      if (typeof logout === 'function') logout();
+    } catch (e) {}
+
+    // Ensure staff-specific key is removed and redirect
+    try { localStorage.removeItem('staffAdminUser'); } catch (e) {}
     navigate('/staff-admin-login');
   };
 
