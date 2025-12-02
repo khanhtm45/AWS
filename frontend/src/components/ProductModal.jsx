@@ -21,7 +21,6 @@ export function ProductModal({ isOpen, onClose, onSubmit }) {
     {
       variantId: `variant-${Date.now()}`,
       color: '',
-      size: 'M', // Default size
       variantPrice: 0
     }
   ]);
@@ -60,7 +59,6 @@ export function ProductModal({ isOpen, onClose, onSubmit }) {
         {
           variantId: `variant-${Date.now()}`,
           color: '',
-          size: 'M',
           variantPrice: 0
         }
       ]);
@@ -107,7 +105,6 @@ export function ProductModal({ isOpen, onClose, onSubmit }) {
   };
 
   // Variant management functions
-  const SIZE_OPTIONS = ['S', 'M', 'L', 'XL', 'XXL'];
   
   const addVariant = () => {
     setVariants([
@@ -115,7 +112,6 @@ export function ProductModal({ isOpen, onClose, onSubmit }) {
       {
         variantId: `variant-${Date.now()}`,
         color: '',
-        size: 'M',
         variantPrice: formData.price
       }
     ]);
@@ -476,8 +472,7 @@ export function ProductModal({ isOpen, onClose, onSubmit }) {
         
         const variantPayload = {
           variantId: `variant_${createdProductId}_${Date.now()}_${i}`,
-          color: variant.color,
-          size: variant.size,
+          colors: [variant.color],
           variantPrice: variant.variantPrice || formData.price,
           sku: `SKU_${createdProductId}_${variant.color}`,
           barcode: `BC_${createdProductId}_${Date.now()}_${i}`
@@ -520,7 +515,6 @@ export function ProductModal({ isOpen, onClose, onSubmit }) {
       const finalProductData = {
         ...formData,
         colors: validVariants.map(v => v.color),
-        sizes: validVariants.map(v => v.size),
         variants: createdVariants, // Include API response variants
         id: Date.now(),
         // Use first S3 image as main image, fallback to placeholder
@@ -916,44 +910,35 @@ export function ProductModal({ isOpen, onClose, onSubmit }) {
             ) : (
               // Step 2: Add Variants
               <div className="variants-section">
-              
+                <div style={{
+                  background: '#e8f5e9',
+                  padding: '12px 16px',
+                  borderRadius: '8px',
+                  marginBottom: '20px',
+                  border: '1px solid #4CAF50'
+                }}>
+                  <p style={{ margin: 0, fontSize: '14px', color: '#2e7d32' }}>
+                    💡 <strong>Mẹo:</strong> Bạn có thể thêm nhiều màu sắc khác nhau cho sản phẩm. 
+                    Mỗi màu sẽ tạo thành 1 biến thể riêng. Nhấn nút "➕ Thêm biến thể màu sắc" bên dưới để thêm màu mới!
+                  </p>
+                </div>
                 
                 <div className="variants-container">
                   {variants.map((variant, index) => (
                     <div key={variant.variantId} className="variant-item">
                       {/* Header */}
                       <div className="variant-header">
-                        <span className="variant-title">Biến thể {index + 1}</span>
+                        <span className="variant-title">🎨 Màu sắc {index + 1}</span>
                         {variants.length > 1 && (
                           <button
                             type="button"
                             onClick={() => removeVariant(index)}
                             className="remove-variant-btn"
+                            title="Xóa màu này"
                           >
-                            🗑️
+                            🗑️ Xóa
                           </button>
                         )}
-                      </div>
-
-                      {/* Size selection */}
-                      <div className="size-selection">
-                        <label className="product-modal-label">
-                          Kích thước <span className="required">*</span>
-                        </label>
-                        <div className="size-options-grid">
-                          {SIZE_OPTIONS.map((size) => (
-                            <button
-                              key={size}
-                              type="button"
-                              onClick={() => updateVariant(index, 'size', size)}
-                              className={`size-option-btn ${
-                                variant.size === size ? 'selected' : ''
-                              }`}
-                            >
-                              {size}
-                            </button>
-                          ))}
-                        </div>
                       </div>
 
                       {/* Color selection */}
@@ -1031,11 +1016,48 @@ export function ProductModal({ isOpen, onClose, onSubmit }) {
                   onClick={addVariant}
                   className="add-variant-btn"
                   disabled={errors.variants === 'Đang tạo variants...'}
+                  style={{
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    color: 'white',
+                    padding: '14px 24px',
+                    fontSize: '16px',
+                    fontWeight: 'bold',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    width: '100%',
+                    marginTop: '20px',
+                    transition: 'all 0.3s ease',
+                    boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)'
+                  }}
+                  onMouseOver={(e) => {
+                    if (errors.variants !== 'Đang tạo variants...') {
+                      e.target.style.transform = 'translateY(-2px)';
+                      e.target.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.6)';
+                    }
+                  }}
+                  onMouseOut={(e) => {
+                    e.target.style.transform = 'translateY(0)';
+                    e.target.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.4)';
+                  }}
                 >
                   {errors.variants === 'Đang tạo variants...' ? (
                     <>⏳ Đang tạo variants...</>
                   ) : (
-                    <>➕ Thêm biến thể màu sắc</>
+                    <>
+                      ➕ Thêm màu sắc mới
+                      <span style={{ 
+                        fontSize: '12px', 
+                        opacity: 0.9,
+                        fontWeight: 'normal'
+                      }}>
+                        (Hiện có {variants.length} màu)
+                      </span>
+                    </>
                   )}
                 </button>
 

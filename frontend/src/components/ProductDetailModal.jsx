@@ -104,7 +104,8 @@ export function ProductDetailModal({ isOpen, onClose, productId }) {
           const variantsData = await variantsRes.json();
           variants = variantsData.map(v => ({
             variantId: v.variantId,
-            color: v.variantAttributes?.color || '',
+            colors: v.colors || [],
+            color: (v.colors && v.colors.length > 0) ? v.colors[0] : '',
             price: v.variantPrice || product.price
           }));
         }
@@ -389,56 +390,78 @@ export function ProductDetailModal({ isOpen, onClose, productId }) {
                 </div>
 
                 {/* Colors/Variants Section */}
-                {productData.variants && productData.variants.length > 0 && (
+                {(() => {
+                  if (!productData.variants || productData.variants.length === 0) return null;
+                  
+                  const allColors = productData.variants.flatMap(v => {
+                    if (v.colors && Array.isArray(v.colors) && v.colors.length > 0) {
+                      return v.colors;
+                    }
+                    if (v.color) {
+                      return [v.color];
+                    }
+                    return [];
+                  }).filter(Boolean);
+                  
+                  const uniqueColors = [...new Set(allColors)];
+                  
+                  const getColorCode = (name) => {
+                    switch(name?.toLowerCase()) {
+                      case 'trắng': return '#FFFFFF';
+                      case 'đen': return '#000000';
+                      case 'đỏ': return '#DC143C';
+                      case 'tím': return '#800080';
+                      case 'nâu': return '#8B4513';
+                      case 'xanh nhạt': return '#ADD8E6';
+                      case 'xanh dương': return '#4169E1';
+                      case 'xanh lá': return '#228B22';
+                      case 'vàng': return '#FFD700';
+                      case 'cam': return '#FFA500';
+                      case 'hồng': return '#FFC0CB';
+                      default: return '#CCCCCC';
+                    }
+                  };
+                  
+                  return uniqueColors.length > 0 ? (
                   <div>
                     <label className="product-modal-label">
-                      <span className="inline mr-1">🎨</span>
-                      Màu sắc ({productData.variants.length} màu):
+                      Màu sắc ({uniqueColors.length} màu):
                     </label>
                     <div style={{ 
                       display: 'flex', 
                       flexWrap: 'wrap',
-                      gap: '0.75rem', 
-                      marginTop: '0.75rem' 
+                      gap: '0.5rem', 
+                      marginTop: '0.5rem' 
                     }}>
-                      {productData.variants.map((variant, index) => (
+                      {uniqueColors.map((color, index) => (
                         <div
-                          key={variant.variantId}
+                          key={index}
                           style={{
-                            padding: '0.75rem 1.25rem',
-                            backgroundColor: '#ffffff',
-                            border: '2px solid #e5e7eb',
-                            borderRadius: '10px',
-                            fontSize: '0.95rem',
-                            fontWeight: '500',
-                            color: '#374151',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            transition: 'all 0.2s'
+                            width: '60px',
+                            height: '60px',
+                            backgroundColor: getColorCode(color),
+                            border: getColorCode(color) === '#FFFFFF' ? '2px solid #ddd' : '1px solid rgba(0,0,0,0.1)',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                            position: 'relative'
                           }}
+                          title={color}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.borderColor = '#3B82F6';
-                            e.currentTarget.style.backgroundColor = '#eff6ff';
+                            e.currentTarget.style.transform = 'scale(1.05)';
+                            e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
                           }}
                           onMouseLeave={(e) => {
-                            e.currentTarget.style.borderColor = '#e5e7eb';
-                            e.currentTarget.style.backgroundColor = '#ffffff';
+                            e.currentTarget.style.transform = 'scale(1)';
+                            e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
                           }}
-                        >
-                          <span style={{
-                            width: '16px',
-                            height: '16px',
-                            borderRadius: '50%',
-                            backgroundColor: '#3B82F6',
-                            border: '2px solid #e5e7eb'
-                          }} />
-                          <span>{variant.color}</span>
-                        </div>
+                        />
                       ))}
                     </div>
                   </div>
-                )}
+                  ) : null;
+                })()}
 
                 {productData.description && (
                   <div>

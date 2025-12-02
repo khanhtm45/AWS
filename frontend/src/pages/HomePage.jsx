@@ -190,6 +190,21 @@ function HomePage() {
   const shirtProducts = getShirtProducts();
   const pantsProducts = getPantsProducts();
 
+  // Lấy sản phẩm combo từ category thực tế
+  const getComboProducts = () => {
+    return products.filter(product => {
+      const categoryId = product.categoryId?.toUpperCase() || '';
+      const categoryName = product.categoryName?.toLowerCase() || '';
+      
+      // Tìm sản phẩm có category là COM_BO, COM_BO_1 hoặc tên chứa "combo"
+      return categoryId.includes('COM_BO') || 
+             categoryId === 'COMBO' ||
+             categoryName.includes('combo');
+    }).slice(0, 6); // Hiển thị tối đa 6 combo
+  };
+
+  const comboProducts = getComboProducts();
+
   if (loading) {
     return (
       <div className="homepage">
@@ -266,30 +281,131 @@ function HomePage() {
         </div>
       </section>
 
+      {/* Combo Section */}
+      <section className="products-section combo-section">
+        <h2>🎁 Combo Đặc Biệt ({comboProducts.length})</h2>
+        {comboProducts.length > 0 ? (
+          <div className="products-grid combo-grid">
+            {comboProducts.map(combo => (
+              <div 
+                key={combo.id} 
+                className="product-card combo-card"
+                onClick={() => navigate(`/product/${combo.id}`)}
+                style={{ position: 'relative', border: '2px solid #4CAF50', cursor: 'pointer' }}
+              >
+                <div className="combo-badge" style={{
+                  position: 'absolute',
+                  top: '10px',
+                  right: '10px',
+                  background: '#4CAF50',
+                  color: 'white',
+                  padding: '5px 10px',
+                  borderRadius: '5px',
+                  fontWeight: 'bold',
+                  fontSize: '12px',
+                  zIndex: 1
+                }}>
+                  COMBO
+                </div>
+                <div className="product-image" style={{ height: '280px' }}>
+                  <img 
+                    src={combo.image} 
+                    alt={combo.name}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }}
+                    onError={(e) => { e.target.src = '/LEAF.png'; }}
+                  />
+                </div>
+                <div className="product-info">
+                  <h3 style={{ fontSize: '16px', marginBottom: '8px', minHeight: '48px' }}>
+                    {combo.name}
+                  </h3>
+                  <p className="product-price" style={{ 
+                    color: '#4CAF50',
+                    fontWeight: 'bold',
+                    fontSize: '18px',
+                    marginTop: '8px'
+                  }}>
+                    {combo.price}
+                  </p>
+                  <p className="product-stock" style={{ 
+                    marginTop: 6, 
+                    color: combo.quantity > 0 ? '#2a7a2a' : '#a00',
+                    fontSize: '14px'
+                  }}>
+                    {combo.quantity > 0 ? `Còn ${combo.quantity}` : 'Hết hàng'}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p style={{ textAlign: 'center', color: '#666' }}>
+            Chưa có combo nào
+          </p>
+        )}
+        <button 
+          className="view-all-btn"
+          onClick={() => navigate('/products')}
+        >
+          Xem Tất Cả Combo
+        </button>
+      </section>
+
       {/* Áo Nam Section */}
-      <section className="products-section">
-        <h2>Áo Nam ({shirtProducts.length})</h2>
+      <section className="products-section shirt-section">
+        <h2>👕 Áo Nam ({shirtProducts.length})</h2>
         {shirtProducts.length > 0 ? (
-          <div className="products-grid">
+          <div className="products-grid shirt-grid">
             {shirtProducts.map(product => (
               <div 
                 key={product.id} 
-                className="product-card"
+                className="product-card shirt-card"
                 onClick={() => navigate(`/product/${product.id}`)}
+                style={{ position: 'relative', border: '2px solid #2196F3', cursor: 'pointer' }}
               >
-                <div className="product-image">
+                <div className="shirt-badge" style={{
+                  position: 'absolute',
+                  top: '10px',
+                  right: '10px',
+                  background: 'linear-gradient(135deg, #2196F3 0%, #1976D2 100%)',
+                  color: 'white',
+                  padding: '5px 10px',
+                  borderRadius: '5px',
+                  fontWeight: 'bold',
+                  fontSize: '12px',
+                  zIndex: 1
+                }}>
+                  ÁO
+                </div>
+                <div className="product-image" style={{ height: '280px' }}>
                   <img 
                     src={product.image} 
                     alt={product.name}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }}
                     onError={(e) => {
                       e.target.src = '/LEAF.png';
                     }}
                   />
                 </div>
                 <div className="product-info">
-                  <h3>{product.name}</h3>
-                  <p className="product-price">{product.price}</p>
-                  <p className="product-stock" style={{ marginTop: 6, color: product.quantity > 0 ? '#2a7a2a' : '#a00' }}>{product.quantity > 0 ? `Còn ${product.quantity}` : 'Hết hàng'}</p>
+                  <h3 style={{ fontSize: '16px', marginBottom: '8px', minHeight: '48px' }}>
+                    {product.name}
+                  </h3>
+                  <p className="product-price" style={{ 
+                    color: '#2196F3',
+                    fontWeight: 'bold',
+                    fontSize: '18px',
+                    marginTop: '8px'
+                  }}>
+                    {product.price}
+                  </p>
+                  <p className="product-stock" style={{ 
+                    marginTop: 6, 
+                    color: product.quantity > 0 ? '#2a7a2a' : '#a00',
+                    fontSize: '14px'
+                  }}>
+                    {product.quantity > 0 ? `Còn ${product.quantity}` : 'Hết hàng'}
+                  </p>
                 </div>
               </div>
             ))}

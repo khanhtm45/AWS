@@ -119,21 +119,36 @@ function ProductDetailPage() {
         
         if (variantsRes.ok) {
           const variantsData = await variantsRes.json();
+          console.log('🔍 RAW API Response - variantsData:', JSON.stringify(variantsData, null, 2));
           
-          // Parse và normalize variants data
-          const normalizedVariants = variantsData.map(v => ({
-            ...v,
-            // Nếu color null, parse từ SKU
-            color: v.color || parseColorFromSKU(v.sku),
-            // Size không cần parse vì set cứng
-            size: v.size
-          }));
+          // Keep variants as-is, just ensure we have a primary color for selection
+          const normalizedVariants = variantsData.map((v, idx) => {
+            console.log(`\n🔍 Variant ${idx}:`, v);
+            console.log(`  - Has colors field? ${v.colors ? 'YES' : 'NO'}`);
+            console.log(`  - colors value:`, v.colors);
+            console.log(`  - colors is array? ${Array.isArray(v.colors)}`);
+            console.log(`  - colors length:`, v.colors?.length);
+            
+            const normalized = {
+              ...v,
+              // Set primary color for UI selection (first color from array)
+              primaryColor: (v.colors && v.colors.length > 0) ? v.colors[0] : parseColorFromSKU(v.sku)
+            };
+            
+            console.log(`  - Normalized variant:`, normalized);
+            console.log(`  - colors after spread:`, normalized.colors);
+            return normalized;
+          });
           
+          console.log('🔍 Final normalizedVariants:', normalizedVariants);
           setVariants(normalizedVariants);
           // Tự động chọn variant đầu tiên
           if (normalizedVariants.length > 0) {
             const firstVariant = normalizedVariants[0];
-            setSelectedColor(firstVariant.color);
+            const firstColor = (firstVariant.colors && firstVariant.colors.length > 0) 
+              ? firstVariant.colors[0] 
+              : firstVariant.primaryColor;
+            setSelectedColor(firstColor);
             setSelectedSize('M'); // Default size
             setSelectedVariantId(firstVariant.variantId);
           }
@@ -247,10 +262,41 @@ function ProductDetailPage() {
   
   // Lấy danh sách Size/Màu duy nhất
   const displaySizes = sizes.map(size => size.sizeName); // Use sizes from API
-  const uniqueColors = [...new Set(variants.map(v => v.color).filter(Boolean))];
   
+  console.log('\n🎯 COLOR EXTRACTION PROCESS:');
+  console.log('📦 Variants state:', variants);
+  console.log('📦 Number of variants:', variants.length);
+  
+  // Extract ALL colors from ALL variants - flatten the colors arrays
+  const allColors = variants.flatMap((v, idx) => {
+    console.log(`\n  Processing variant ${idx}:`);
+    console.log(`    - Variant data:`, v);
+    console.log(`    - Has colors? ${!!v.colors}`);
+    console.log(`    - colors value:`, v.colors);
+    console.log(`    - Is array? ${Array.isArray(v.colors)}`);
+    console.log(`    - Length:`, v.colors?.length);
+    
+    // Backend trả về colors array cho mỗi variant
+    if (v.colors && Array.isArray(v.colors) && v.colors.length > 0) {
+      console.log(`    ✅ Extracting colors:`, v.colors);
+      return v.colors;
+    }
+    // Fallback to primaryColor if colors array empty
+    if (v.primaryColor) {
+      console.log(`    ⚠️ Using primaryColor fallback:`, v.primaryColor);
+      return [v.primaryColor];
+    }
+    console.log(`    ❌ No colors found`);
+    return [];
+  }).filter(Boolean);
+  
+  const uniqueColors = [...new Set(allColors)];
+  
+  console.log('\n📊 RESULTS:');
   console.log('📏 Display sizes:', displaySizes);
-  console.log('🎨 Available colors:', uniqueColors);
+  console.log('🎨 All extracted colors:', allColors);
+  console.log('🎨 Unique colors for display:', uniqueColors);
+  console.log('🎨 Number of unique colors:', uniqueColors.length);
   const getColorCode = (name) => {
     switch(name?.toLowerCase()) {
       case 'trắng': return '#FFFFFF';
@@ -293,7 +339,14 @@ function ProductDetailPage() {
   const productImages = filterImagesByColor();
 
   // Lấy giá tiền theo biến thể (chỉ dựa vào màu, không quan tâm size)
-  const currentVariant = variants.find(v => v.color === selectedColor);
+  const currentVariant = variants.find(v => {
+    // Check if selected color is in the colors array
+    if (v.colors && Array.isArray(v.colors)) {
+      return v.colors.includes(selectedColor);
+    }
+    // Fallback to primaryColor
+    return v.primaryColor === selectedColor;
+  });
   const displayPrice = currentVariant ? currentVariant.variantPrice : (product?.price || 0);
   
   // Parse mô tả
@@ -304,7 +357,14 @@ function ProductDetailPage() {
   const handleColorChange = (color) => {
     setSelectedColor(color);
     // Tìm variant tương ứng với màu (size không quan trọng vì set cứng)
-    const variant = variants.find(v => v.color === color);
+    const variant = variants.find(v => {
+      // Check if color exists in variant's colors array
+      if (v.colors && Array.isArray(v.colors)) {
+        return v.colors.includes(color);
+      }
+      // Fallback to primaryColor
+      return v.primaryColor === color;
+    });
     if (variant) {
       setSelectedVariantId(variant.variantId);
     }

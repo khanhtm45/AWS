@@ -7,12 +7,12 @@ const ProductsPage = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // State cho category filter (áp dụng ngay lập tức)
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  // State cho category filter - cho phép chọn nhiều (áp dụng ngay lập tức)
+  const [selectedCategories, setSelectedCategories] = useState(['all']);
   
   // State cho price filter (cần bấm áp dụng)
-  const [appliedPriceRange, setAppliedPriceRange] = useState([0, 500]);
-  const [tempPriceRange, setTempPriceRange] = useState([0, 500]);
+  const [appliedPriceRange, setAppliedPriceRange] = useState([0, 10000]);
+  const [tempPriceRange, setTempPriceRange] = useState([0, 10000]);
 
   // Helper function để lấy presigned URL từ S3 key
   const getPresignedUrl = async (s3KeyOrUrl) => {
@@ -82,27 +82,33 @@ const ProductsPage = () => {
                   imageUrl = await getPresignedUrl(primaryImage.s3Key);
                 }
                 
-                return {
+                const mappedProduct = {
                   id: product.productId,
                   name: product.productName || product.name,
                   price: product.price || 0,
                   quantity: product.quantity != null ? product.quantity : 0,
                   category: product.categoryId || 'áo-thun',
+                  categoryName: product.categoryName || '',
                   image: imageUrl
                 };
+                console.log(`✅ Mapped product: ${mappedProduct.id}, category: ${mappedProduct.category}, categoryName: ${mappedProduct.categoryName}`);
+                return mappedProduct;
               }
             } catch (error) {
               console.error(`Error fetching media for product ${product.productId}:`, error);
             }
             
-            return {
+            const fallbackProduct = {
               id: product.productId,
               name: product.productName || product.name,
               price: product.price || 0,
               quantity: product.quantity != null ? product.quantity : 0,
               category: product.categoryId || 'áo-thun',
+              categoryName: product.categoryName || '',
               image: '/LEAF.png'
             };
+            console.log(`⚠️ Fallback product: ${fallbackProduct.id}, category: ${fallbackProduct.category}, categoryName: ${fallbackProduct.categoryName}`);
+            return fallbackProduct;
           })
         );
         
@@ -119,21 +125,61 @@ const ProductsPage = () => {
     fetchAllProducts();
   }, []);
 
+  // Toggle category selection
+  const toggleCategory = (categoryValue) => {
+    if (categoryValue === 'all') {
+      setSelectedCategories(['all']);
+    } else {
+      setSelectedCategories(prev => {
+        // Xóa 'all' nếu chọn category khác
+        const withoutAll = prev.filter(c => c !== 'all');
+        
+        if (withoutAll.includes(categoryValue)) {
+          // Nếu đã có, bỏ chọn
+          const newCategories = withoutAll.filter(c => c !== categoryValue);
+          // Nếu không còn gì, quay về 'all'
+          return newCategories.length === 0 ? ['all'] : newCategories;
+        } else {
+          // Nếu chưa có, thêm vào
+          return [...withoutAll, categoryValue];
+        }
+      });
+    }
+  };
+
   // Lọc sản phẩm theo category (ngay lập tức) và giá (sau khi áp dụng)
   const filteredProducts = products.filter(product => {
-    if (selectedCategory === 'all') return true;
-    return product.category === selectedCategory;
+    if (selectedCategories.includes('all')) return true;
+    
+    // Kiểm tra xem product có thuộc bất kỳ category nào được chọn không
+    return selectedCategories.some(selectedCat => {
+      return product.category === selectedCat;
+    });
   }).filter(product => {
     return product.price >= appliedPriceRange[0] * 1000 && product.price <= appliedPriceRange[1] * 1000;
   });
 
-  const categories = [
-    { value: 'all', label: 'Tất cả' },
-    { value: 'áo-thun', label: 'Áo thun' },
-    { value: 'quần', label: 'Quần' },
-    { value: 'áo-khoác', label: 'Áo khoác' },
-    { value: 'phụ-kiện', label: 'Phụ kiện' }
-  ];
+  // Lấy danh sách categories từ products
+  const categories = React.useMemo(() => {
+    const uniqueCategories = new Map();
+    
+    // Thêm "Tất cả" đầu tiên
+    uniqueCategories.set('all', { value: 'all', label: 'Tất cả', categoryName: 'Tất cả' });
+    
+    // Lấy unique categories từ products
+    products.forEach(product => {
+      if (product.category && !uniqueCategories.has(product.category)) {
+        const label = product.categoryName || product.category;
+        uniqueCategories.set(product.category, {
+          value: product.category,
+          label: label,
+          categoryName: label
+        });
+      }
+    });
+    
+    return Array.from(uniqueCategories.values());
+  }, [products]);
 
   // Hàm áp dụng filter giá tiền
   const applyPriceFilter = () => {
@@ -142,9 +188,9 @@ const ProductsPage = () => {
 
   // Hàm reset tất cả filter
   const resetFilters = () => {
-    setSelectedCategory('all');
-    setTempPriceRange([0, 500]);
-    setAppliedPriceRange([0, 500]);
+    setSelectedCategories(['all']);
+    setTempPriceRange([0, 10000]);
+    setAppliedPriceRange([0, 10000]);
   };
 
   const formatPrice = (price) => {
@@ -161,7 +207,7 @@ const ProductsPage = () => {
         {/* Compact Sidebar */}
         <div className="compact-sidebar">
           <div className="sidebar-header">
-            <h3>Loại áo</h3>
+            <h3>Menu</h3>
           </div>
           
           <div className="filter-group-vertical">
@@ -169,8 +215,8 @@ const ProductsPage = () => {
               <label key={category.value} className="filter-checkbox-vertical">
                 <input
                   type="checkbox"
-                  checked={selectedCategory === category.value}
-                  onChange={(e) => setSelectedCategory(e.target.checked ? category.value : 'all')}
+                  checked={selectedCategories.includes(category.value)}
+                  onChange={() => toggleCategory(category.value)}
                 />
                 <span className="checkmark"></span>
                 <span className="filter-label">{category.label}</span>
@@ -227,21 +273,25 @@ const ProductsPage = () => {
           </div>
 
           {/* Filter Status */}
-          {(selectedCategory !== 'all' || appliedPriceRange[0] !== 0 || appliedPriceRange[1] !== 500) && (
+          {(!selectedCategories.includes('all') || selectedCategories.length > 1 || appliedPriceRange[0] !== 0 || appliedPriceRange[1] !== 10000) && (
             <div className="filter-status">
               <span>Đang áp dụng filter: </span>
-              {selectedCategory !== 'all' && (
-                <span className="filter-tag">
-                  {categories.find(cat => cat.value === selectedCategory)?.label}
-                </span>
+              {!selectedCategories.includes('all') && selectedCategories.length > 0 && (
+                <>
+                  {selectedCategories.map(catValue => (
+                    <span key={catValue} className="filter-tag">
+                      {categories.find(cat => cat.value === catValue)?.label}
+                    </span>
+                  ))}
+                </>
               )}
-              {(appliedPriceRange[0] !== 0 || appliedPriceRange[1] !== 500) && (
+              {(appliedPriceRange[0] !== 0 || appliedPriceRange[1] !== 10000) && (
                 <span className="filter-tag">
                   {appliedPriceRange[0]}k - {appliedPriceRange[1]}k VND
                 </span>
               )}
-              <button className="clear-filters" onClick={resetFilters}>
-                ✕ Xóa filter
+              <button className="reset-filter-btn" onClick={resetFilters}>
+                Xóa filter
               </button>
             </div>
           )}

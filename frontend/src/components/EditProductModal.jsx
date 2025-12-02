@@ -27,7 +27,7 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
     { value: "Đen", label: "Đen", hex: "#000000" },
     { value: "Trắng", label: "Trắng", hex: "#FFFFFF" },
     { value: "Hồng", label: "Hồng", hex: "#EC4899" },
-    { value: "Tím", label: "Tím", hex: "#A855F7" },
+    { value: "Tím", label: "Tím", hex: "#fa24faff" },
     { value: "Cam", label: "Cam", hex: "#F97316" },
     { value: "Nâu", label: "Nâu", hex: "#92400E" }
   ];
@@ -105,24 +105,16 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
         
         // Thử lấy ảnh từ product.images trước
         if (productData.images && Array.isArray(productData.images) && productData.images.length > 0) {
-          // Chỉ bỏ qua ảnh đầu tiên nếu có nhiều hơn 1 ảnh (có thể có ảnh lỗi)
-          const shouldSkipFirst = productData.images.length > 1;
-          const imagesToLoad = shouldSkipFirst ? productData.images.slice(1) : productData.images;
-          
-          if (shouldSkipFirst) {
-            console.log(`💡 Có thể có ảnh lỗi đầu tiên, bỏ qua và chỉ load ${imagesToLoad.length} ảnh còn lại`);
-          } else {
-            console.log(`✅ Load tất cả ${imagesToLoad.length} ảnh`);
-          }
+          console.log(`✅ Load tất cả ${productData.images.length} ảnh từ product.images`);
           
           existingImages = await Promise.all(
-            imagesToLoad.map(async (s3KeyOrUrl, index) => {
+            productData.images.map(async (s3KeyOrUrl, index) => {
               const presignedUrl = await getPresignedUrl(s3KeyOrUrl);
               return {
                 id: `existing_${index}`,
                 url: presignedUrl,
                 s3Key: s3KeyOrUrl,
-                name: `Ảnh ${shouldSkipFirst ? index + 2 : index + 1}`,
+                name: `Ảnh ${index + 1}`,
                 uploadedToS3: true,
                 isExisting: true
               };
@@ -146,19 +138,10 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
                 // Sort theo mediaOrder để đảm bảo thứ tự đúng
                 const sortedMedia = mediaData.sort((a, b) => (a.mediaOrder || 0) - (b.mediaOrder || 0));
                 
-                // Chỉ bỏ qua ảnh đầu tiên nếu có nhiều hơn 1 ảnh và ảnh đầu tiên có thể là ảnh lỗi
-                // (ảnh lỗi thường có order = 1 và là ảnh cũ nhất)
-                const shouldSkipFirst = sortedMedia.length > 1 && sortedMedia[0].mediaOrder === 1;
-                const mediaToLoad = shouldSkipFirst ? sortedMedia.slice(1) : sortedMedia;
-                
-                if (shouldSkipFirst) {
-                  console.log(`💡 [${timestamp}] Phát hiện ảnh đầu tiên có thể bị lỗi, bỏ qua và chỉ load ${mediaToLoad.length} ảnh còn lại`);
-                } else {
-                  console.log(`✅ [${timestamp}] Load tất cả ${mediaToLoad.length} ảnh`);
-                }
+                console.log(`✅ [${timestamp}] Load tất cả ${sortedMedia.length} ảnh từ media endpoint`);
                 
                 existingImages = await Promise.all(
-                  mediaToLoad.map(async (media, index) => {
+                  sortedMedia.map(async (media, index) => {
                     console.log(`\n${media.mediaId}`);
                     console.log(`   URL: ${media.mediaUrl}`);
                     console.log(`   Type: ${media.mediaType}`);
@@ -209,7 +192,7 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
         const variantsData = await variantsRes.json();
         const formattedVariants = variantsData.map(variant => ({
           variantId: variant.variantId,
-          variantAttributes: variant.variantAttributes || { color: '' },
+          variantAttributes: { color: (variant.colors && variant.colors.length > 0) ? variant.colors[0] : '' },
           variantPrice: variant.variantPrice || 0,
           isExisting: true
         }));
@@ -562,7 +545,7 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
           // Update existing variant
           const variantPayload = {
             variantId: variant.variantId,
-            variantAttributes: variant.variantAttributes,
+            colors: [variant.variantAttributes.color],
             variantPrice: variant.variantPrice || formData.price,
             sku: variant.sku || `SKU_${formData.productId}_${variant.variantAttributes.color}`,
             barcode: variant.barcode || `BC_${formData.productId}_${Date.now()}`
@@ -580,7 +563,7 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
           // Create new variant
           const variantPayload = {
             variantId: `variant_${formData.productId}_${Date.now()}`,
-            variantAttributes: variant.variantAttributes,
+            colors: [variant.variantAttributes.color],
             variantPrice: variant.variantPrice || formData.price,
             sku: `SKU_${formData.productId}_${variant.variantAttributes.color}`,
             barcode: `BC_${formData.productId}_${Date.now()}`
@@ -1111,20 +1094,34 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
                 </>
               ) : (
                 <div className="variants-section">
+                  <div style={{
+                    background: '#e8f5e9',
+                    padding: '12px 16px',
+                    borderRadius: '8px',
+                    marginBottom: '20px',
+                    border: '1px solid #4CAF50'
+                  }}>
+                    <p style={{ margin: 0, fontSize: '14px', color: '#2e7d32' }}>
+                      💡 <strong>Mẹo:</strong> Bạn có thể thêm hoặc chỉnh sửa màu sắc cho sản phẩm. 
+                      Mỗi màu sẽ tạo thành 1 biến thể riêng. Nhấn nút "➕ Thêm màu sắc mới" bên dưới để thêm màu!
+                    </p>
+                  </div>
+                  
                   <div className="variants-container">
                     {variants.map((variant, index) => (
                       <div key={variant.variantId} className="variant-item">
                         <div className="variant-header">
                           <span className="variant-title">
-                            Biến thể {index + 1} {variant.isExisting && '(Đã có)'}
+                            🎨 Màu sắc {index + 1} {variant.isExisting && '(Đã có)'}
                           </span>
                           {variants.length > 1 && (
                             <button
                               type="button"
                               onClick={() => removeVariant(index)}
                               className="remove-variant-btn"
+                              title="Xóa màu này"
                             >
-                              🗑️
+                              🗑️ Xóa
                             </button>
                           )}
                         </div>
@@ -1178,12 +1175,55 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
                     onClick={addVariant}
                     className="add-variant-btn"
                     disabled={errors.variants === 'Đang cập nhật variants...'}
+                    style={{
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      color: 'white',
+                      padding: '14px 24px',
+                      fontSize: '16px',
+                      fontWeight: 'bold',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      width: '100%',
+                      marginTop: '20px',
+                      transition: 'all 0.3s ease',
+                      boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)'
+                    }}
+                    onMouseOver={(e) => {
+                      if (errors.variants !== 'Đang cập nhật variants...') {
+                        e.target.style.transform = 'translateY(-2px)';
+                        e.target.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.6)';
+                      }
+                    }}
+                    onMouseOut={(e) => {
+                      e.target.style.transform = 'translateY(0)';
+                      e.target.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.4)';
+                    }}
                   >
-                    ➕ Thêm biến thể màu sắc
+                    {errors.variants === 'Đang cập nhật variants...' ? (
+                      <>⏳ Đang cập nhật...</>
+                    ) : (
+                      <>
+                        ➕ Thêm màu sắc mới
+                        <span style={{ 
+                          fontSize: '12px', 
+                          opacity: 0.9,
+                          fontWeight: 'normal'
+                        }}>
+                          (Hiện có {variants.length} màu)
+                        </span>
+                      </>
+                    )}
                   </button>
 
-                  {errors.variants && (
-                    <p className="product-modal-error">{errors.variants}</p>
+                  {errors.variants && errors.variants !== 'Đang cập nhật variants...' && (
+                    <p className="product-modal-error" style={{marginTop: '16px'}}>
+                      {errors.variants}
+                    </p>
                   )}
                 </div>
               )}

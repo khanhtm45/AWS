@@ -1,5 +1,6 @@
 package com.leafshop.dto.productvariant;
 
+import java.util.List;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
@@ -9,7 +10,7 @@ public class ProductVariantRequest {
 	@NotBlank
 	private String variantId;
 
-	private String color; // Màu sắc của biến thể
+	private List<String> colors; // Màu sắc của biến thể
 
 	private String size; // Kích thước của biến thể
 
