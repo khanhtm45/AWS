@@ -38,111 +38,8 @@ function CheckoutPage() {
     paymentMethod: 'cod'
   });
 
-  // Server-side cart state (prefer this when available)
-  const [serverCart, setServerCart] = useState(null);
-  const [serverCartItems, setServerCartItems] = useState([]);
-  // Client-side resolved cart items (for local cart stored in context)
-  const [clientCartItems, setClientCartItems] = useState([]);
-
   // Fetch user addresses and auto-fill form
   useEffect(() => {
-    // Fetch server-side cart details and enrich items with product metadata
-    const fetchServerCart = async () => {
-      try {
-        const userId = user && (user.id || user.userId || user.userID) ? String(user.id || user.userId || user.userID) : null;
-        const sessionId = localStorage.getItem('cartSessionId');
-        const params = new URLSearchParams();
-        if (userId) params.append('userId', userId);
-        if (sessionId) params.append('sessionId', sessionId);
-
-        const res = await fetch(`${API_BASE}/api/cart?${params.toString()}`);
-        if (!res.ok) {
-          console.warn('[CheckoutPage] cart API returned', res.status);
-          return;
-        }
-        const cartResp = await res.json();
-        if (!cartResp) return;
-        setServerCart(cartResp);
-
-        // Try to enrich items with product metadata and resolve presigned image URLs
-        let productsMap = {};
-        try {
-          const prodRes = await fetch(`${API_BASE}/api/products`);
-          if (prodRes.ok) {
-            const prodList = await prodRes.json();
-            prodList.forEach(p => { productsMap[String(p.productId || p.id || p.productId || p.id)] = p; });
-          }
-        } catch (e) {
-          console.debug('[CheckoutPage] failed to load products for enrichment', e);
-        }
-
-        // helper to get presigned URL for s3 key or return url as-is
-        const getPresignedUrl = async (s3KeyOrUrl) => {
-          try {
-            if (!s3KeyOrUrl) return '/LEAF.png';
-            if (typeof s3KeyOrUrl === 'string' && s3KeyOrUrl.startsWith('http')) return s3KeyOrUrl;
-            const r = await fetch(`${API_BASE}/api/s3/download-url?s3Key=${encodeURIComponent(s3KeyOrUrl)}`);
-            if (!r.ok) return '/LEAF.png';
-            const d = await r.json();
-            return d && d.presignedUrl ? d.presignedUrl : '/LEAF.png';
-          } catch (err) {
-            return '/LEAF.png';
-          }
-        };
-
-        const mapped = await Promise.all((cartResp.items || []).map(async (it) => {
-          const prod = productsMap[String(it.productId)];
-          const name = prod ? (prod.name || prod.productName || '') : (it.productName || `Sản phẩm ${it.productId}`);
-
-          // Resolve image from product media endpoint (prefer mediaUrl), fallback to product.images/image or cart item image
-          let resolvedImage = '/LEAF.png';
-          try {
-            const mediaRes = await fetch(`${API_BASE}/api/products/${encodeURIComponent(it.productId)}/media`);
-            if (mediaRes.ok) {
-              const mediaData = await mediaRes.json();
-              if (Array.isArray(mediaData) && mediaData.length > 0) {
-                const primary = mediaData.find(m => m.isPrimary) || mediaData[0];
-                // media item may expose mediaUrl (full URL) or s3Key
-                const source = primary.mediaUrl || primary.s3Key || primary.mediaUrl;
-                if (source) {
-                  resolvedImage = await getPresignedUrl(source);
-                }
-              }
-            }
-          } catch (e) {
-            console.debug('[CheckoutPage] failed to fetch media for product', it.productId, e);
-          }
-
-          // Fallbacks if media endpoint did not provide an image
-          if (!resolvedImage || resolvedImage === '/LEAF.png') {
-            if (prod) {
-              if (Array.isArray(prod.images) && prod.images.length > 0) resolvedImage = await getPresignedUrl(prod.images[0]);
-              else if (prod.mediaUrl) resolvedImage = await getPresignedUrl(prod.mediaUrl);
-              else if (prod.image) resolvedImage = await getPresignedUrl(prod.image);
-            } else if (it.productImage) {
-              resolvedImage = await getPresignedUrl(it.productImage);
-            }
-          }
-
-          return {
-            cartItemId: it.itemId || it.itemId,
-            id: it.productId,
-            name,
-            image: resolvedImage,
-            quantity: it.quantity || 1,
-            price: it.unitPrice || it.itemTotal || 0,
-            selectedSize: it.size || '',
-            selectedColor: it.color || ''
-          };
-        }));
-
-        setServerCartItems(mapped);
-      } catch (e) {
-        console.error('[CheckoutPage] error fetching server cart', e);
-      }
-    };
-
-    fetchServerCart();
     const fetchUserAddresses = async () => {
       try {
         const token = accessToken || localStorage.getItem('accessToken');
@@ -217,13 +114,7 @@ function CheckoutPage() {
       return;
     }
 
-    // Validation cho thông tin thanh toán nếu khác địa chỉ vận chuyển
-    if (!formData.sameAddress) {
-      if (!formData.billingFirstName || !formData.billingLastName || !formData.billingAddress) {
-        alert('Vui lòng điền đầy đủ thông tin thanh toán!');
-        return;
-      }
-    }
+ 
 
     // Xử lý đặt hàng
     console.log('Form data:', formData);
@@ -239,10 +130,6 @@ function CheckoutPage() {
   const shipping = 10000;
   const discount = 10000; // Miễn phí ship
   const total = subtotal;
-
-  // Debug: log cart items to check data
-  console.log('CheckoutPage cartItems (context):', cartItems);
-  console.log('CheckoutPage serverCartItems:', serverCartItems);
 
   if (cartItems.length === 0) {
     return (
@@ -289,14 +176,15 @@ function CheckoutPage() {
 
               <div className="form-group">
                 <label className="form-label">Quốc gia/Khu vực</label>
-                <select
+                <input
+                  type="text"
                   name="country"
                   value={formData.country}
                   onChange={handleChange}
+                  placeholder="Quốc gia/Khu vực"
                   className="form-input"
-                >
-                  <option value="Việt Nam">Việt Nam</option>
-                </select>
+                  required
+                />
               </div>
 
               <div className="form-row">
@@ -478,39 +366,18 @@ function CheckoutPage() {
         {/* Right Column - Order Summary */}
         <div className="order-summary">
           <div className="order-items">
-            {(() => {
-              const itemsToShow = (serverCartItems && serverCartItems.length > 0)
-                ? serverCartItems
-                : (clientCartItems && clientCartItems.length > 0)
-                  ? clientCartItems
-                  : cartItems;
-
-              return itemsToShow.map((item) => (
-                <div key={item.cartItemId || item.id} className="order-item">
-                  <div
-                    className="item-image-wrapper"
-                    onClick={() => navigate(`/product/${item.id}`)}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="item-image"
-                      onError={(e) => { e.target.src = '/LEAF.png'; }}
-                    />
-                    <div className="item-quantity-below">Số lượng: {item.quantity}</div>
-                  </div>
+            {cartItems.map((item) => (
+              <div key={item.cartItemId} className="order-item">
+                <div className="item-image-wrapper">
+                  <img src={item.image} alt={item.name} className="item-image" />
+                  <span className="item-quantity">{item.quantity}</span>
+                </div>
                 <div className="item-details">
                   <h3>{item.name}</h3>
-                  <p className="item-variant">
-                    {item.selectedColor && item.selectedColor !== 'N/A' && `Color: ${item.selectedColor}`}
-                    {item.selectedColor && item.selectedColor !== 'N/A' && item.selectedSize && item.selectedSize !== 'N/A' && ' / '}
-                    {item.selectedSize && item.selectedSize !== 'N/A' && `Size: ${item.selectedSize}`}
-                    {(!item.selectedColor || item.selectedColor === 'N/A') && (!item.selectedSize || item.selectedSize === 'N/A') && 'Sản phẩm mặc định'}
-                  </p>
+                  <p className="item-variant">Hạng / {item.selectedSize}</p>
                 </div>
                 <div className="item-price">
-                  {((item.price || 0) * (item.quantity || 1)).toLocaleString('vi-VN')} ₫
+                  {(item.price * item.quantity).toLocaleString('vi-VN')} ₫
                 </div>
               </div>
             ))}
