@@ -200,53 +200,6 @@ function CheckoutPage() {
     fetchUserAddresses();
   }, [accessToken, user, API_BASE]);
 
-  // Resolve images for client-side cart items (cartItems from context)
-  useEffect(() => {
-    let cancelled = false;
-
-    const getPresignedUrl = async (s3KeyOrUrl) => {
-      try {
-        if (!s3KeyOrUrl) return '/LEAF.png';
-        if (typeof s3KeyOrUrl === 'string' && s3KeyOrUrl.startsWith('http')) return s3KeyOrUrl;
-        const r = await fetch(`${API_BASE}/api/s3/download-url?s3Key=${encodeURIComponent(s3KeyOrUrl)}`);
-        if (!r.ok) return '/LEAF.png';
-        const d = await r.json();
-        return d && d.presignedUrl ? d.presignedUrl : '/LEAF.png';
-      } catch (err) {
-        return '/LEAF.png';
-      }
-    };
-
-    const resolve = async () => {
-      if (!cartItems || cartItems.length === 0) {
-        setClientCartItems([]);
-        return;
-      }
-
-      const mapped = await Promise.all(cartItems.map(async (it) => {
-        let resolvedImage = '/LEAF.png';
-        try {
-          const src = it.image || it.productImage || it.productImageUrl || '';
-          if (src) resolvedImage = await getPresignedUrl(src);
-        } catch (e) {
-          // ignore
-        }
-
-        return {
-          ...it,
-          image: resolvedImage,
-          id: it.productId || it.id
-        };
-      }));
-
-      if (!cancelled) setClientCartItems(mapped);
-    };
-
-    resolve();
-
-    return () => { cancelled = true; };
-  }, [cartItems, API_BASE]);
-
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
