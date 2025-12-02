@@ -279,7 +279,6 @@ public class CartService {
             .totalAmount(totals.getTotalAmount())
             .cartId(cartPk)
             .shippingAddress(req.getShippingAddress())
-            .billingAddress(req.getBillingAddress() != null ? req.getBillingAddress() : req.getShippingAddress())
             .paymentMethod(req.getPaymentMethod())
             .paymentStatus("PENDING")
             .createdAt(System.currentTimeMillis())
