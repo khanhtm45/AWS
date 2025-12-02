@@ -20,6 +20,8 @@ public class ProductRequest {
 	@NotNull
 	private Double price;
 
+	private Integer quantity;
+
 	private String categoryId;
 
 	private String typeId;

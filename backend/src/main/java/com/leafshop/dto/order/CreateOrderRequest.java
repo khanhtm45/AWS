@@ -6,7 +6,10 @@ import java.util.Map;
 @Data
 public class CreateOrderRequest {
     private String userId;
-    private String sessionId;
+    private String cartId;
+    private String orderStatus; // PENDING, CONFIRMED, PROCESSING, SHIPPED, DELIVERED, CANCELLED
+    private double totalAmount;
+    private Double shippingAmount;
     private Map<String, String> shippingAddress;
     private String paymentMethod;
     private String couponCode;

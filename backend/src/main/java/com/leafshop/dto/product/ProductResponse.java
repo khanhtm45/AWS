@@ -12,6 +12,7 @@ public class ProductResponse {
 	String name;
 	String description;
 	Double price;
+	Integer quantity;
 	String categoryId;
 	String typeId;
 	Boolean isPreorder;

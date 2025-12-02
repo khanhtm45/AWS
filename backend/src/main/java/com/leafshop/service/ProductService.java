@@ -81,6 +81,7 @@ public class ProductService {
 			.isPreorder(request.getIsPreorder() != null ? request.getIsPreorder() : Boolean.FALSE)
 			.preorderDays(request.getPreorderDays())
 			.isActive(request.getIsActive() != null ? request.getIsActive() : Boolean.TRUE)
+			.quantity(request.getQuantity() != null ? request.getQuantity() : 0)
 			.tags(request.getTags())
 			.createdAt(createdAt)
 			.updatedAt(updatedAt)
@@ -101,6 +102,7 @@ public class ProductService {
 			.preorderDays(request.getPreorderDays() != null ? request.getPreorderDays() : existing.getPreorderDays())
 			.isActive(request.getIsActive() != null ? request.getIsActive() : existing.getIsActive())
 			.tags(request.getTags() != null ? request.getTags() : existing.getTags())
+			.quantity(request.getQuantity() != null ? request.getQuantity() : existing.getQuantity())
 			.createdAt(existing.getCreatedAt())
 			.updatedAt(updatedAt)
 			.build();
@@ -138,6 +140,7 @@ public class ProductService {
 			.name(item.getName())
 			.description(item.getDescription())
 			.price(item.getPrice())
+			.quantity(item.getQuantity())
 			.categoryId(item.getCategoryId())
 			.typeId(item.getTypeId())
 			.isPreorder(item.getIsPreorder())

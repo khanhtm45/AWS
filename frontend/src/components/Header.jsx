@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -9,8 +9,11 @@ export default function Header() {
   const { getCartCount } = useCart();
   const cartCount = getCartCount();
   const { user, logout } = useAuth();
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const userMenuRef = useRef(null);
 
   const handleLogout = () => {
+    setShowUserMenu(false);
     logout();
     navigate('/');
   };
@@ -41,21 +44,42 @@ export default function Header() {
       .toUpperCase();
 
     return (
-      <div className="user-info" title={displayName}>
-        <div className="user-avatar" onClick={() => navigate('/profile')}>
+      <div className="user-info" title={displayName} ref={userMenuRef}>
+        <div className="user-avatar" onClick={() => setShowUserMenu(prev => !prev)}>
           {initials}
         </div>
-        <div className="user-actions">
-          <button className="user-name" onClick={() => navigate('/profile')}>
-            {displayName}
-          </button>
-          <button className="logout-btn" onClick={handleLogout}>
-            Đăng xuất
-          </button>
-        </div>
+        <button className="user-name" onClick={() => setShowUserMenu(prev => !prev)}>
+          {displayName}
+        </button>
+
+        {showUserMenu && (
+          <div className="user-dropdown">
+            <button className="user-dropdown-item" onClick={() => { setShowUserMenu(false); navigate('/profile'); }}>
+              Hồ sơ người dùng
+            </button>
+            <button className="user-dropdown-item" onClick={() => { setShowUserMenu(false); navigate('/orders'); }}>
+              Đơn hàng
+            </button>
+            <div className="user-dropdown-divider" />
+            <button className="user-dropdown-item logout" onClick={handleLogout}>
+              Đăng xuất
+            </button>
+          </div>
+        )}
       </div>
     );
   };
+
+  // close dropdown on outside click
+  useEffect(() => {
+    function onDocClick(e) {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
+        setShowUserMenu(false);
+      }
+    }
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, []);
 
   return (
     <header className="header">

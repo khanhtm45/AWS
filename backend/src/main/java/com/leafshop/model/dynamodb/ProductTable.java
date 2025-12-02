@@ -36,6 +36,8 @@ public class ProductTable {
 
     private Double price;
 
+    private Integer quantity;
+
     private String categoryId;
 
     private String typeId;
@@ -70,6 +72,7 @@ public class ProductTable {
 
     private Boolean isPrimary;
 
+
     // CATEGORY fields
     private String categoryName;
 
@@ -100,5 +103,8 @@ public class ProductTable {
     public String getSk() {
         return sk;
     }
+
+    @DynamoDbAttribute("Quantity")
+    public Integer getQuantity() { return quantity; }
 }
 
