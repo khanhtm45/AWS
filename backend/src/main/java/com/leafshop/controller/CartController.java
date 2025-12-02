@@ -2,6 +2,8 @@ package com.leafshop.controller;
 
 import com.leafshop.dto.cart.*;
 import com.leafshop.dto.order.CreateOrderResponse;
+import com.leafshop.dto.order.CreateOrderRequest;
+import com.leafshop.service.OrderService;
 import com.leafshop.service.CartService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 public class CartController {
 
     private final CartService cartService;
+    private final OrderService orderService;
 
     @PostMapping
     public ResponseEntity<CartResponse> createOrGetCart(@RequestBody CartRequest req) {
@@ -55,5 +58,11 @@ public class CartController {
     @PostMapping("/checkout")
     public ResponseEntity<CreateOrderResponse> checkout(@RequestBody CheckoutRequest req) {
         return ResponseEntity.ok(cartService.checkout(req));
+    }
+
+    @PostMapping("/check")
+    public ResponseEntity<CreateOrderResponse> check(@RequestBody CreateOrderRequest req) {
+        CreateOrderResponse resp = orderService.createOrderFromCart(req);
+        return ResponseEntity.ok(resp);
     }
 }

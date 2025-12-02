@@ -25,7 +25,6 @@ public class OrderService {
     public CreateOrderResponse createOrderFromCart(CreateOrderRequest req) {
         com.leafshop.dto.cart.CheckoutRequest checkoutReq = new com.leafshop.dto.cart.CheckoutRequest();
         checkoutReq.setUserId(req.getUserId());
-        checkoutReq.setSessionId(req.getSessionId());
         checkoutReq.setShippingAddress(req.getShippingAddress());
         checkoutReq.setPaymentMethod(req.getPaymentMethod());
         checkoutReq.setCouponCode(req.getCouponCode());

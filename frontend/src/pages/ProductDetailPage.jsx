@@ -160,6 +160,7 @@ function ProductDetailPage() {
         // Fallback: Nếu không có media, thử lấy từ product.images
         if (productRes.ok) {
           const productData = await productRes.json();
+          productData.quantity = productData.quantity != null ? productData.quantity : 0;
           setProduct(productData);
           
           // Nếu không có media nhưng có product.images
@@ -398,6 +399,7 @@ function ProductDetailPage() {
           <h1 className="product-title">{product.name}</h1>
           <div className="product-pricing">
             <span className="price">{displayPrice.toLocaleString('vi-VN')} VND</span>
+            <div className="stock" style={{ marginTop: 8, color: product?.quantity > 0 ? '#2a7a2a' : '#a00' }}>{product?.quantity > 0 ? `Còn ${product.quantity} sản phẩm` : 'Hết hàng'}</div>
           </div>
           <div className="shipping-info">
             <span>{product.shippingInfo || "Miễn phí vận chuyển"}</span>
@@ -444,7 +446,7 @@ function ProductDetailPage() {
             <input type="number" value={quantity} readOnly className="quantity-input" />
             <button className="quantity-btn" onClick={increaseQuantity}>+</button>
           </div>
-          <button className="add-to-cart-btn" onClick={handleAddToCart}>Thêm vào giỏ hàng</button>
+          <button className="add-to-cart-btn" onClick={handleAddToCart} disabled={product?.quantity === 0}>{product?.quantity === 0 ? 'Hết hàng' : 'Thêm vào giỏ hàng'}</button>
 
           {/* --- PHẦN THÔNG TIN SẢN PHẨM (ĐÚNG THIẾT KẾ) --- */}
           <div className="product-description">

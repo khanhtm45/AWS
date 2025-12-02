@@ -217,21 +217,134 @@ function CheckoutPage() {
       return;
     }
 
-    // Validation cho thông tin thanh toán nếu khác địa chỉ vận chuyển
-    if (!formData.sameAddress) {
-      if (!formData.billingFirstName || !formData.billingLastName || !formData.billingAddress) {
-        alert('Vui lòng điền đầy đủ thông tin thanh toán!');
-        return;
+    // Xử lý đặt hàng: gửi yêu cầu checkout tới backend
+    (async () => {
+      try {
+        const userId = user && (user.id || user.userId || user.userID) ? String(user.id || user.userId || user.userID) : null;
+        const sessionId = localStorage.getItem('cartSessionId');
+
+        const token = accessToken || localStorage.getItem('accessToken');
+
+        let res;
+        // If user is logged in, use OrderService endpoint which creates orders from user's cart
+        if (userId) {
+          const createOrderReq = {
+            userId: userId,
+            cartId: serverCart ? serverCart.cartId : null,
+            shippingAddress: {
+              firstName: formData.firstName,
+              lastName: formData.lastName,
+              address: formData.address,
+              province: formData.province,
+              postalCode: formData.postalCode,
+              phone: formData.phone,
+              country: formData.country,
+              email: formData.email
+            },
+            paymentMethod: formData.paymentMethod,
+            couponCode: formData.couponCode || null
+          };
+
+          console.log('[CheckoutPage] sending createOrder request', createOrderReq);
+          res = await fetch(`${API_BASE}/api/cart/check`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+            },
+            body: JSON.stringify(createOrderReq)
+          });
+        } else {
+          // Guest checkout: call cart/checkout with sessionId
+          const checkoutReq = {
+            userId: null,
+            sessionId: sessionId,
+            shippingAddress: {
+              firstName: formData.firstName,
+              lastName: formData.lastName,
+              address: formData.address,
+              province: formData.province,
+              postalCode: formData.postalCode,
+              phone: formData.phone,
+              country: formData.country,
+              email: formData.email
+            },
+            paymentMethod: formData.paymentMethod,
+            couponCode: formData.couponCode || null
+          };
+
+          console.log('[CheckoutPage] sending checkout request (guest)', checkoutReq);
+          res = await fetch(`${API_BASE}/api/cart/checkout`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+            },
+            body: JSON.stringify(checkoutReq)
+          });
+        }
+
+        if (!res.ok) {
+          const txt = await res.text();
+          console.error('[CheckoutPage] checkout failed', res.status, txt);
+          alert('Đặt hàng thất bại: ' + res.status + ' ' + txt);
+          return;
+        }
+
+        const createResp = await res.json();
+        console.log('[CheckoutPage] checkout response', createResp);
+
+        // If online payment selected, initiate payment and redirect
+        if (formData.paymentMethod === 'online') {
+          try {
+            const payReq = {
+              orderId: createResp.orderId,
+              amount: createResp.totalAmount || total,
+              currency: 'VND',
+              method: 'CARD',
+              provider: 'VNPAY',
+              returnUrl: window.location.origin + '/payment-return'
+            };
+            const payRes = await fetch(`${API_BASE}/api/payments/initiate`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
+              body: JSON.stringify(payReq)
+            });
+            if (!payRes.ok) {
+              const txt = await payRes.text();
+              console.error('[CheckoutPage] payment initiate failed', payRes.status, txt);
+              alert('Thanh toán thất bại: ' + payRes.status + ' ' + txt);
+              return;
+            }
+            const payData = await payRes.json();
+            console.log('[CheckoutPage] payment initiate response', payData);
+            if (payData.paymentUrl) {
+              // Redirect user to provider
+              window.location.href = payData.paymentUrl;
+              return;
+            }
+            // Fallback: show message
+            alert('Thanh toán khởi tạo thành công. Vui lòng kiểm tra trang xác nhận.');
+            clearCart();
+            navigate('/');
+            return;
+          } catch (err) {
+            console.error('[CheckoutPage] payment error', err);
+            alert('Lỗi khi khởi tạo thanh toán');
+            return;
+          }
+        }
+
+        // COD or no online payment: finalize and clear cart
+        alert('Đặt hàng thành công! Mã đơn hàng: ' + createResp.orderId);
+        clearCart();
+        navigate('/');
+
+      } catch (err) {
+        console.error('[CheckoutPage] checkout error', err);
+        alert('Lỗi khi đặt hàng');
       }
-    }
-
-    // Xử lý đặt hàng
-    console.log('Form data:', formData);
-    console.log('Cart items:', cartItems);
-
-    alert('Đặt hàng thành công! Cảm ơn bạn đã mua hàng.');
-    clearCart();
-    navigate('/');
+    })();
   };
 
   const subtotal = getCartTotal();

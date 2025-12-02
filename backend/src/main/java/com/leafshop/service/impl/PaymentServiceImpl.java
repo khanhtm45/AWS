@@ -180,7 +180,6 @@ public class PaymentServiceImpl implements PaymentService {
                 // ignore
             }
         }
-        }
 
         // persist providerTransactionId and clientSecret if available
         if (providerTxId != null) p.setProviderTransactionId(providerTxId);
@@ -196,7 +195,6 @@ public class PaymentServiceImpl implements PaymentService {
             .status(p.getStatus());
 
         if (clientSecret != null) resp.clientSecret(clientSecret);
-        if (providerTxId != null) resp.paymentUrl(providerTxId);
         if (paymentUrl != null) resp.paymentUrl(paymentUrl);
 
         return resp.build();

@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import './HomePage.css';
 import ChatBox from '../components/ChatBox';
 
 function HomePage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showTopMenu, setShowTopMenu] = useState(false);
 
   // Helper function để lấy presigned URL từ S3 key - cải thiện dựa trên test tool
   const getPresignedUrl = async (s3KeyOrUrl) => {
@@ -125,6 +128,7 @@ function HomePage() {
                 id: product.productId,
                 name: product.productName || product.name || 'Unnamed Product',
                 price: product.price ? `${new Intl.NumberFormat('vi-VN').format(product.price)} VND` : '0 VND',
+                quantity: product.quantity != null ? product.quantity : 0,
                 category: category,
                 image: productImage,
                 categoryName: product.categoryName,
@@ -209,6 +213,40 @@ function HomePage() {
 
   return (
     <div className="homepage">
+      {/* Top-right floating user menu on Home */}
+      <div className="home-top-right">
+        <button
+          className="home-top-btn"
+          onClick={() => setShowTopMenu(prev => !prev)}
+          aria-haspopup="true"
+          aria-expanded={showTopMenu}
+        >
+          {user ? (user.firstName ? user.firstName.charAt(0).toUpperCase() : (user.email ? user.email.charAt(0).toUpperCase() : 'U')) : '☰'}
+        </button>
+        {showTopMenu && (
+          <div className="home-top-dropdown" role="menu">
+            {user ? (
+              <>
+                <button className="home-top-item" onClick={() => { setShowTopMenu(false); navigate('/profile'); }}>
+                  Hồ sơ người dùng
+                </button>
+                <button className="home-top-item" onClick={() => { setShowTopMenu(false); navigate('/orders'); }}>
+                  Đơn hàng
+                </button>
+              </>
+            ) : (
+              <>
+                <button className="home-top-item" onClick={() => { setShowTopMenu(false); navigate('/login'); }}>
+                  Đăng nhập
+                </button>
+                <button className="home-top-item disabled" onClick={() => { /* do nothing for guest orders */ }}>
+                  Đơn hàng (đăng nhập để xem)
+                </button>
+              </>
+            )}
+          </div>
+        )}
+      </div>
       {/* ChatBox AI */}
       <ChatBox />
       
@@ -251,6 +289,7 @@ function HomePage() {
                 <div className="product-info">
                   <h3>{product.name}</h3>
                   <p className="product-price">{product.price}</p>
+                  <p className="product-stock" style={{ marginTop: 6, color: product.quantity > 0 ? '#2a7a2a' : '#a00' }}>{product.quantity > 0 ? `Còn ${product.quantity}` : 'Hết hàng'}</p>
                 </div>
               </div>
             ))}

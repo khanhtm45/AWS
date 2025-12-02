@@ -12,8 +12,7 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
     description: '',
     price: 0,
     categoryId: '',
-    isPreorder: false,
-    preorderDays: 0,
+    quantity: 0,
     images: []
   });
 
@@ -66,8 +65,7 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
         description: '',
         price: 0,
         categoryId: '',
-        isPreorder: false,
-        preorderDays: 0,
+        quantity: 0,
         images: []
       });
       setVariants([]);
@@ -202,8 +200,7 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
           description: productData.description || '',
           price: productData.price || 0,
           categoryId: productData.categoryId || '',
-          isPreorder: productData.isPreorder || false,
-          preorderDays: productData.preorderDays || 0,
+          quantity: productData.quantity != null ? productData.quantity : 0,
           images: existingImages
         });
       }
@@ -462,8 +459,7 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
         price: Number(formData.price),
         categoryId: formData.categoryId?.trim(),
         typeId: 'clothing',
-        isPreorder: Boolean(formData.isPreorder),
-        preorderDays: Number(formData.preorderDays),
+        quantity: Number(formData.quantity) || 0,
         isActive: true,
         tags: [],
         // Gửi S3 key (không phải presigned URL)
@@ -737,35 +733,19 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
                     </div>
                   </div>
 
-                  <div className="product-modal-preorder">
-                    <div className="product-modal-checkbox-wrapper">
-                      <input
-                        name="isPreorder"
-                        checked={formData.isPreorder}
-                        onChange={handleInputChange}
-                        type="checkbox"
-                        id="isPreorder"
-                        className="product-modal-checkbox"
-                      />
-                      <label htmlFor="isPreorder" className="product-modal-label">
-                        Đặt hàng trước
-                      </label>
-                    </div>
-                    
-                    {formData.isPreorder && (
-                      <div className="product-modal-preorder-days">
-                        <label className="product-modal-label">
-                          Số ngày đặt trước
-                        </label>
-                        <input
-                          name="preorderDays"
-                          value={formData.preorderDays}
-                          onChange={handleInputChange}
-                          type="number"
-                          min="1"
-                          className="product-modal-input"
-                        />
-                      </div>
+                  {/* Quantity Field (replaces preorder) */}
+                  <div className="product-modal-field" style={{maxWidth: '220px'}}>
+                    <label className="product-modal-label">Số lượng</label>
+                    <input
+                      name="quantity"
+                      value={formData.quantity}
+                      onChange={handleInputChange}
+                      type="number"
+                      min="0"
+                      className="product-modal-input"
+                    />
+                    {errors.quantity && (
+                      <p className="product-modal-error">{errors.quantity}</p>
                     )}
                   </div>
 

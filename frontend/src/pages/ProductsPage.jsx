@@ -86,6 +86,7 @@ const ProductsPage = () => {
                   id: product.productId,
                   name: product.productName || product.name,
                   price: product.price || 0,
+                  quantity: product.quantity != null ? product.quantity : 0,
                   category: product.categoryId || 'áo-thun',
                   image: imageUrl
                 };
@@ -98,6 +99,7 @@ const ProductsPage = () => {
               id: product.productId,
               name: product.productName || product.name,
               price: product.price || 0,
+              quantity: product.quantity != null ? product.quantity : 0,
               category: product.categoryId || 'áo-thun',
               image: '/LEAF.png'
             };
@@ -263,6 +265,7 @@ const ProductsPage = () => {
                     <div className="product-info">
                       <h3 className="product-name">{product.name}</h3>
                       <p className="product-price">{formatPrice(product.price)}</p>
+                      <p className="product-stock">{product.quantity > 0 ? `Còn ${product.quantity} sản phẩm` : 'Hết hàng'}</p>
                     </div>
                   </Link>
                 </div>

@@ -12,6 +12,8 @@ import com.leafshop.repository.WarehouseTableRepository;
 import com.leafshop.model.dynamodb.WarehouseTable;
 import com.leafshop.util.DynamoDBKeyUtil;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -21,6 +23,8 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class CartService {
+
+    private static final Logger logger = LoggerFactory.getLogger(CartService.class);
 
 
 
@@ -204,11 +208,14 @@ public class CartService {
 
         // 5. Validate warehouses exist
         List<WarehouseTable> warehouses = warehouseTableRepository.findByIsActiveTrue();
-        if (warehouses.isEmpty()) {
-            throw new IllegalStateException("No active warehouses available");
+        boolean warehousesAvailable = warehouses != null && !warehouses.isEmpty();
+        if (!warehousesAvailable) {
+            logger.warn("No active warehouses available — skipping inventory checks and allocation");
         }
 
         // 6. Pre-check: Verify sufficient stock across all warehouses for each product
+        // If warehouses are not available, skip pre-check and allocation (will create order but not reserve stock)
+        if (warehousesAvailable) {
         Map<String, Integer> inventoryMap = new HashMap<>();
         for (OrderTable cartItem : cartItems) {
             int qtyNeeded = cartItem.getQuantity() != null && cartItem.getQuantity() > 0 ? cartItem.getQuantity() : 0;
@@ -254,7 +261,9 @@ public class CartService {
             }
             inventoryMap.put(inventoryKey, qtyNeeded);
         }
-
+        } else {
+            // warehouses not available -> do not perform inventory checks
+        }
         // 7. Generate order ID and PK
         String orderId = UUID.randomUUID().toString();
         String orderPk = (req.getUserId() != null && !req.getUserId().isEmpty())
@@ -302,19 +311,39 @@ public class CartService {
                 .build();
             orderTableRepository.save(orderItem);
 
-            // 11. Allocate/reserve inventory from WarehouseTable
-            int remaining = cartItem.getQuantity() != null ? cartItem.getQuantity() : 0;
-            for (WarehouseTable warehouse : warehouses) {
-                if (remaining <= 0) break;
-                if (warehouse.getPk() == null) continue;
+            // 11. Allocate/reserve inventory from WarehouseTable (if warehouses available)
+            if (warehousesAvailable) {
+                int remaining = cartItem.getQuantity() != null ? cartItem.getQuantity() : 0;
+                for (WarehouseTable warehouse : warehouses) {
+                    if (remaining <= 0) break;
+                    if (warehouse.getPk() == null) continue;
 
-                // Try to reserve from variant inventory first
-                if (cartItem.getVariantId() != null && !cartItem.getVariantId().isEmpty()) {
-                    String variantSk = DynamoDBKeyUtil.warehouseVariantSk(cartItem.getProductId(), cartItem.getVariantId());
-                    Optional<WarehouseTable> variantInv = warehouseTableRepository.findVariantInventoryByPkAndSk(
-                        warehouse.getPk(), variantSk);
-                    if (variantInv.isPresent()) {
-                        WarehouseTable inv = variantInv.get();
+                    // Try to reserve from variant inventory first
+                    if (cartItem.getVariantId() != null && !cartItem.getVariantId().isEmpty()) {
+                        String variantSk = DynamoDBKeyUtil.warehouseVariantSk(cartItem.getProductId(), cartItem.getVariantId());
+                        Optional<WarehouseTable> variantInv = warehouseTableRepository.findVariantInventoryByPkAndSk(
+                            warehouse.getPk(), variantSk);
+                        if (variantInv.isPresent()) {
+                            WarehouseTable inv = variantInv.get();
+                            int available = inv.getAvailableQuantity() != null ? inv.getAvailableQuantity() : 0;
+                            if (available > 0) {
+                                int reserve = Math.min(available, remaining);
+                                inv.setAvailableQuantity(available - reserve);
+                                inv.setReservedQuantity((inv.getReservedQuantity() != null ? inv.getReservedQuantity() : 0) + reserve);
+                                inv.setUpdatedAt(System.currentTimeMillis());
+                                warehouseTableRepository.save(inv);
+                                remaining -= reserve;
+                                continue;
+                            }
+                        }
+                    }
+
+                    // Try to reserve from product inventory
+                    String productSk = DynamoDBKeyUtil.warehouseProductSk(cartItem.getProductId());
+                    Optional<WarehouseTable> productInv = warehouseTableRepository.findProductInventoryByPkAndSk(
+                        warehouse.getPk(), productSk);
+                    if (productInv.isPresent()) {
+                        WarehouseTable inv = productInv.get();
                         int available = inv.getAvailableQuantity() != null ? inv.getAvailableQuantity() : 0;
                         if (available > 0) {
                             int reserve = Math.min(available, remaining);
@@ -323,33 +352,17 @@ public class CartService {
                             inv.setUpdatedAt(System.currentTimeMillis());
                             warehouseTableRepository.save(inv);
                             remaining -= reserve;
-                            continue;
                         }
                     }
                 }
 
-                // Try to reserve from product inventory
-                String productSk = DynamoDBKeyUtil.warehouseProductSk(cartItem.getProductId());
-                Optional<WarehouseTable> productInv = warehouseTableRepository.findProductInventoryByPkAndSk(
-                    warehouse.getPk(), productSk);
-                if (productInv.isPresent()) {
-                    WarehouseTable inv = productInv.get();
-                    int available = inv.getAvailableQuantity() != null ? inv.getAvailableQuantity() : 0;
-                    if (available > 0) {
-                        int reserve = Math.min(available, remaining);
-                        inv.setAvailableQuantity(available - reserve);
-                        inv.setReservedQuantity((inv.getReservedQuantity() != null ? inv.getReservedQuantity() : 0) + reserve);
-                        inv.setUpdatedAt(System.currentTimeMillis());
-                        warehouseTableRepository.save(inv);
-                        remaining -= reserve;
-                    }
+                // Allocation failed
+                if (remaining > 0) {
+                    throw new IllegalStateException("Failed to allocate stock for product " + cartItem.getProductId() 
+                        + ". Could not reserve: " + remaining + " units");
                 }
-            }
-
-            // Allocation failed
-            if (remaining > 0) {
-                throw new IllegalStateException("Failed to allocate stock for product " + cartItem.getProductId() 
-                    + ". Could not reserve: " + remaining + " units");
+            } else {
+                logger.warn("Skipping inventory allocation for product {} because no active warehouses", cartItem.getProductId());
             }
 
             // 12. Delete cart item
