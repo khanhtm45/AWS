@@ -118,8 +118,8 @@ export function ProductDetailModal({ isOpen, onClose, productId }) {
         variants
       });
       
-      // Khởi tạo selectedImageIndex = 1 để bỏ qua ảnh đầu tiên
-      setSelectedImageIndex(images.length > 1 ? 1 : 0);
+      // Khởi tạo selectedImageIndex từ 0 (hiển thị ảnh đầu tiên)
+      setSelectedImageIndex(0);
     } catch (error) {
       console.error('Error fetching product details:', error);
       alert('Không thể tải thông tin sản phẩm');
@@ -161,11 +161,11 @@ export function ProductDetailModal({ isOpen, onClose, productId }) {
           ) : productData ? (
             <div style={{ padding: '1.5rem' }}>
               {/* Image Gallery Section */}
-              {productData.images && productData.images.length > 1 && (
+              {productData.images && productData.images.length > 0 && (
                 <div style={{ marginBottom: '2rem' }}>
                   <label className="product-modal-label" style={{ marginBottom: '1rem', display: 'block' }}>
                     <span className="inline mr-1">🖼️</span>
-                    Hình ảnh sản phẩm ({productData.images.length - 1} ảnh)
+                    Hình ảnh sản phẩm ({productData.images.length} ảnh)
                   </label>
                   
                   {/* Main Image Display */}
@@ -250,77 +250,74 @@ export function ProductDetailModal({ isOpen, onClose, productId }) {
                     gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
                     gap: '0.75rem'
                   }}>
-                    {productData.images.slice(1).map((image, index) => {
-                      const actualIndex = index + 1; // Vì đã bỏ ảnh đầu tiên
-                      return (
-                        <div
-                          key={image.id}
-                          onClick={() => setSelectedImageIndex(actualIndex)}
+                    {productData.images.map((image, index) => (
+                      <div
+                        key={image.id}
+                        onClick={() => setSelectedImageIndex(index)}
+                        style={{
+                          border: selectedImageIndex === index ? '3px solid #3B82F6' : '2px solid #e5e7eb',
+                          borderRadius: '8px',
+                          overflow: 'hidden',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                          position: 'relative',
+                          backgroundColor: '#ffffff'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (selectedImageIndex !== index) {
+                            e.currentTarget.style.borderColor = '#9ca3af';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (selectedImageIndex !== index) {
+                            e.currentTarget.style.borderColor = '#e5e7eb';
+                          }
+                        }}
+                      >
+                        <img
+                          src={image.url}
+                          alt={`Thumbnail ${index + 1}`}
                           style={{
-                            border: selectedImageIndex === actualIndex ? '3px solid #3B82F6' : '2px solid #e5e7eb',
-                            borderRadius: '8px',
-                            overflow: 'hidden',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s',
-                            position: 'relative',
-                            backgroundColor: '#ffffff'
+                            width: '100%',
+                            height: '100px',
+                            objectFit: 'cover',
+                            display: 'block'
                           }}
-                          onMouseEnter={(e) => {
-                            if (selectedImageIndex !== actualIndex) {
-                              e.currentTarget.style.borderColor = '#9ca3af';
-                            }
-                          }}
-                          onMouseLeave={(e) => {
-                            if (selectedImageIndex !== actualIndex) {
-                              e.currentTarget.style.borderColor = '#e5e7eb';
-                            }
-                          }}
-                        >
-                          <img
-                            src={image.url}
-                            alt={`Thumbnail ${actualIndex + 1}`}
-                            style={{
-                              width: '100%',
-                              height: '100px',
-                              objectFit: 'cover',
-                              display: 'block'
-                            }}
-                          />
-                          
-                          {/* Order Badge on Thumbnail */}
+                        />
+                        
+                        {/* Order Badge on Thumbnail */}
+                        <div style={{
+                          position: 'absolute',
+                          bottom: '4px',
+                          right: '4px',
+                          backgroundColor: 'rgba(0,0,0,0.75)',
+                          color: 'white',
+                          padding: '2px 6px',
+                          borderRadius: '4px',
+                          fontSize: '0.7rem',
+                          fontWeight: '600'
+                        }}>
+                          {image.order || index + 1}
+                        </div>
+                        
+                        {/* Primary Star on Thumbnail */}
+                        {image.isPrimary && (
                           <div style={{
                             position: 'absolute',
-                            bottom: '4px',
-                            right: '4px',
-                            backgroundColor: 'rgba(0,0,0,0.75)',
+                            top: '4px',
+                            left: '4px',
+                            backgroundColor: '#F59E0B',
                             color: 'white',
                             padding: '2px 6px',
                             borderRadius: '4px',
                             fontSize: '0.7rem',
                             fontWeight: '600'
                           }}>
-                            {image.order || actualIndex + 1}
+                            ⭐
                           </div>
-                          
-                          {/* Primary Star on Thumbnail */}
-                          {image.isPrimary && (
-                            <div style={{
-                              position: 'absolute',
-                              top: '4px',
-                              left: '4px',
-                              backgroundColor: '#F59E0B',
-                              color: 'white',
-                              padding: '2px 6px',
-                              borderRadius: '4px',
-                              fontSize: '0.7rem',
-                              fontWeight: '600'
-                            }}>
-                              ⭐
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}

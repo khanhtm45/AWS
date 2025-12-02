@@ -107,9 +107,15 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
         
         // Thử lấy ảnh từ product.images trước
         if (productData.images && Array.isArray(productData.images) && productData.images.length > 0) {
-          // Bỏ qua ảnh đầu tiên (index 0) - chỉ lấy từ ảnh thứ 2 trở đi
-          const imagesToLoad = productData.images.slice(1);
-          console.log(`💡 Bỏ qua ảnh đầu tiên trong product.images, chỉ load ${imagesToLoad.length} ảnh còn lại`);
+          // Chỉ bỏ qua ảnh đầu tiên nếu có nhiều hơn 1 ảnh (có thể có ảnh lỗi)
+          const shouldSkipFirst = productData.images.length > 1;
+          const imagesToLoad = shouldSkipFirst ? productData.images.slice(1) : productData.images;
+          
+          if (shouldSkipFirst) {
+            console.log(`💡 Có thể có ảnh lỗi đầu tiên, bỏ qua và chỉ load ${imagesToLoad.length} ảnh còn lại`);
+          } else {
+            console.log(`✅ Load tất cả ${imagesToLoad.length} ảnh`);
+          }
           
           existingImages = await Promise.all(
             imagesToLoad.map(async (s3KeyOrUrl, index) => {
@@ -118,7 +124,7 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
                 id: `existing_${index}`,
                 url: presignedUrl,
                 s3Key: s3KeyOrUrl,
-                name: `Ảnh ${index + 2}`, // +2 vì đã bỏ ảnh đầu tiên
+                name: `Ảnh ${shouldSkipFirst ? index + 2 : index + 1}`,
                 uploadedToS3: true,
                 isExisting: true
               };
@@ -142,9 +148,16 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
                 // Sort theo mediaOrder để đảm bảo thứ tự đúng
                 const sortedMedia = mediaData.sort((a, b) => (a.mediaOrder || 0) - (b.mediaOrder || 0));
                 
-                // Bỏ qua ảnh đầu tiên (index 0) - chỉ lấy từ ảnh thứ 2 trở đi
-                const mediaToLoad = sortedMedia.slice(1);
-                console.log(`💡 [${timestamp}] Bỏ qua ảnh đầu tiên, chỉ load ${mediaToLoad.length} ảnh còn lại`);
+                // Chỉ bỏ qua ảnh đầu tiên nếu có nhiều hơn 1 ảnh và ảnh đầu tiên có thể là ảnh lỗi
+                // (ảnh lỗi thường có order = 1 và là ảnh cũ nhất)
+                const shouldSkipFirst = sortedMedia.length > 1 && sortedMedia[0].mediaOrder === 1;
+                const mediaToLoad = shouldSkipFirst ? sortedMedia.slice(1) : sortedMedia;
+                
+                if (shouldSkipFirst) {
+                  console.log(`💡 [${timestamp}] Phát hiện ảnh đầu tiên có thể bị lỗi, bỏ qua và chỉ load ${mediaToLoad.length} ảnh còn lại`);
+                } else {
+                  console.log(`✅ [${timestamp}] Load tất cả ${mediaToLoad.length} ảnh`);
+                }
                 
                 existingImages = await Promise.all(
                   mediaToLoad.map(async (media, index) => {
