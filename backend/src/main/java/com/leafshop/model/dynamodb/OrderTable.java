@@ -44,6 +44,7 @@ public class OrderTable {
     // ORDER ITEM fields
     private String productId;
     private String variantId;
+    private String size;
     private String productName;
     private Integer quantity;
     private Double unitPrice;

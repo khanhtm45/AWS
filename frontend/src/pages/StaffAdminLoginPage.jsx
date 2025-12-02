@@ -46,10 +46,10 @@ function StaffAdminLoginPage() {
       }
       const body = await res.json();
       // body: { accessToken, tokenType, refreshToken, expiresIn }
-      setAuth({ accessToken: body.accessToken, refreshToken: body.refreshToken }, { username: formData.username, role: 'staff' });
+      setAuth({ accessToken: body.accessToken, refreshToken: body.refreshToken }, { username: formData.username, role: 'admin' || 'staff' || 'manager' });
 
       // Fetch profile info and store a value that DashboardPage expects (`staffAdminUser`)
-      let staffUser = { username: formData.username, role: 'staff' };
+      let staffUser = { username: formData.username, role: 'admin' ||  'staff' || 'manager' };
       try {
         const profileRes = await fetch(`${API_BASE}/api/user/profile`, {
           method: 'GET',
@@ -57,7 +57,7 @@ function StaffAdminLoginPage() {
         });
         if (profileRes.ok) {
           const profile = await profileRes.json();
-          staffUser = { ...profile, username: profile.username || formData.username, role: (profile.role || 'staff') };
+          staffUser = { ...profile, username: profile.username || formData.username, role: (profile.role || 'admin' || 'staff' || 'manager') };
           setAuth({ accessToken: body.accessToken, refreshToken: body.refreshToken }, profile);
         }
       } catch (e) {

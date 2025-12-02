@@ -43,9 +43,8 @@ function HomePage() {
     const fetchAllProducts = async () => {
       try {
         setLoading(true);
-        // Use env-configurable API base; fallback to localhost backend
-        const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:8080';
-        const response = await fetch(`${API_BASE}/api/public/products`);
+        
+        const response = await fetch('http://localhost:8080/api/products');
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -78,7 +77,7 @@ function HomePage() {
               // Strategy 2: Fallback to media API
               if (productImage === '/LEAF.png') {
                 try {
-                  const mediaResponse = await fetch(`${API_BASE}/api/products/${product.productId}/media`);
+                  const mediaResponse = await fetch(`http://localhost:8080/api/products/${product.productId}/media`);
                   
                   if (mediaResponse.ok) {
                     const mediaData = await mediaResponse.json();
@@ -106,15 +105,20 @@ function HomePage() {
                 }
               }
 
-              // Determine category based on categoryName or categoryId
+              // Determine category based on categoryName, categoryId, and productName
               let category = 'other';
-              if (product.categoryName || product.categoryId) {
-                const categoryText = (product.categoryName || product.categoryId || '').toLowerCase();
-                if (categoryText.includes('áo') || categoryText.includes('shirt') || categoryText.includes('ao')) {
-                  category = 'shirt';
-                } else if (categoryText.includes('quần') || categoryText.includes('pants') || categoryText.includes('quan')) {
-                  category = 'pants';
-                }
+              const categoryName = product.categoryName?.toLowerCase() || '';
+              const categoryId = product.categoryId?.toLowerCase() || '';
+              const productName = (product.productName || product.name || '').toLowerCase();
+              
+              if (categoryName.includes('áo') || categoryName.includes('shirt') || categoryName.includes('ao') ||
+                  categoryId.includes('áo') || categoryId.includes('shirt') || categoryId.includes('ao') ||
+                  productName.includes('áo') || productName.includes('shirt')) {
+                category = 'shirt';
+              } else if (categoryName.includes('quần') || categoryName.includes('pants') || categoryName.includes('quan') ||
+                         categoryId.includes('quần') || categoryId.includes('pants') || categoryId.includes('quan') ||
+                         productName.includes('quần') || productName.includes('pants')) {
+                category = 'pants';
               }
 
               return {
@@ -160,7 +164,8 @@ function HomePage() {
              categoryName.includes('shirt') || 
              categoryName.includes('ao') ||
              categoryId.includes('shirt') ||
-             categoryId.includes('áo');
+             categoryId.includes('áo') ||
+             product.category === 'shirt';
     }).slice(0, 4);
   };
 
@@ -173,7 +178,8 @@ function HomePage() {
              categoryName.includes('pants') || 
              categoryName.includes('quan') ||
              categoryId.includes('pants') ||
-             categoryId.includes('quần');
+             categoryId.includes('quần') ||
+             product.category === 'pants';
     }).slice(0, 4);
   };
 
