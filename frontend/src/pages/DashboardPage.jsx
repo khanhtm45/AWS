@@ -289,9 +289,6 @@ const DashboardPage = () => {
     };
 
     loadOrders();
-    if (parsedUser.role === 'admin') {
-      loadUsers();
-    }
     loadProductsData();
     loadCategoriesData(); // <-- GỌI API CATEGORY
     loadCustomersData(); // <-- Load customers
@@ -984,7 +981,8 @@ const DashboardPage = () => {
   // Customer filter
   useEffect(() => {
     if (customers.length > 0) {
-      let filtered = [...customers];
+      // First, filter to only show customers with email
+      let filtered = customers.filter(customer => customer.email && customer.email !== 'N/A' && customer.email.trim() !== '');
 
       // Filter by customer type
       if (customerTypeFilter !== 'all') {
@@ -1114,6 +1112,15 @@ const DashboardPage = () => {
     );
   };
 
+  // Toggle customer status
+  const toggleCustomerStatus = (customerId) => {
+    setCustomers(prev =>
+      prev.map(c =>
+        c.id === customerId ? { ...c, status: c.status === 'active' ? 'banned' : 'active' } : c
+      )
+    );
+  };
+
   const viewUserOrders = (userId, userName) => {
     const userOrders = orders.filter(order =>
       order.customerName.toLowerCase().includes(userName.toLowerCase().split(' ')[0])
@@ -1123,53 +1130,63 @@ const DashboardPage = () => {
     setShowUserOrdersModal(true);
   };
 
+  const viewCustomerOrders = (customerId, customerName) => {
+    const customerOrders = orders.filter(order =>
+      order.customerName.toLowerCase().includes(customerName.toLowerCase().split(' ')[0])
+    );
+    setSelectedUserOrders(customerOrders);
+    setSelectedUserName(customerName);
+    setShowUserOrdersModal(true);
+  };
+
   // Dashboard stats
   // Load customers data
   const loadCustomersData = async () => {
     try {
-      // If logged-in staff/admin, use staff endpoint which returns all customers
-      let url = `${API_BASE}/api/staff/customers`;
-      try {
-        const stored = localStorage.getItem('staffAdminUser');
-        if (!stored) {
-          // not staff view — no staff endpoint access; try public customer endpoints if any
-          url = `${API_BASE}/api/customer/profile`; // requires email param — we'll fallback to mock below
+      const token = accessToken || localStorage.getItem('accessToken');
+      if (!token) {
+        console.log('[DashboardPage] No access token found');
+        // Fall back to mock data if no token
+        throw new Error('No authentication token');
+      }
+
+      console.log('[DashboardPage] Fetching customers from API...');
+      const response = await fetch(`${API_BASE}/api/staff/customers`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
         }
-      } catch (e) {
-        url = `${API_BASE}/api/customer/profile`;
+      });
+
+      if (!response.ok) {
+        console.error('[DashboardPage] Failed to fetch customers:', response.status);
+        throw new Error(`Failed to fetch customers: ${response.status}`);
       }
 
-      const res = await fetch(url);
-      if (!res.ok) {
-        console.warn('Customers API returned non-ok status', res.status);
-        throw new Error('Customers API error');
-      }
+      const customersData = await response.json();
+      console.log('[DashboardPage] Successfully fetched customers:', customersData);
 
-      // staff endpoint returns array, public profile returns single object — handle both
-      const data = await res.json();
-      let mapped = [];
-      if (Array.isArray(data)) {
-        mapped = data.map(c => ({
-          id: c.id || c.userId || c.email,
-          type: c.type || c.customerType || 'Khách vãng lai',
-          name: c.name || c.fullName || c.email,
-          email: c.email || '',
-          phone: c.phone || c.mobile || '',
-          city: c.city || c.province || ''
-        }));
-      } else if (data) {
-        mapped = [{
-          id: data.id || data.userId || data.email,
-          type: data.type || 'Khách vãng lai',
-          name: data.name || data.fullName || data.email,
-          email: data.email || '',
-          phone: data.phone || data.mobile || '',
-          city: data.city || data.province || ''
-        }];
-      }
+      // Transform API data to match component state structure
+      const transformedCustomers = customersData.map(customer => ({
+        id: customer.userId || 'N/A',
+        type: 'Khách hàng', // All are customers from this endpoint
+        name: `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || customer.email || 'N/A',
+        email: customer.email || 'N/A',
+        phone: customer.phone || 'N/A',
+        city: 'N/A', // API doesn't provide city info
+        registrationDate: customer.registrationDate ? 
+          new Date(customer.registrationDate).toLocaleDateString('vi-VN') : 'N/A',
+        totalOrders: customer.totalOrders || 0,
+        totalSpent: customer.totalSpent ? `${customer.totalSpent.toLocaleString('vi-VN')}đ` : '0đ',
+        status: customer.status || 'active',
+        formattedDate: customer.formattedDate || 'N/A'
+      }));
 
-      setCustomers(mapped);
-      setFilteredCustomers(mapped);
+      setCustomers(transformedCustomers);
+      setFilteredCustomers(transformedCustomers);
+      console.log('[DashboardPage] Customers loaded successfully:', transformedCustomers.length);
     } catch (error) {
       console.warn('Cannot load customers from API, falling back to mock data:', error);
       const mockCustomers = [
@@ -2163,7 +2180,7 @@ const DashboardPage = () => {
             <div className="users-tab-container">
               <div className="users-tab-header">
                 <h1>Quản lý người dùng</h1>
-                <div className="users-count">Tổng: {users.length}</div>
+                <div className="users-count">Tổng: {customers.length}</div>
               </div>
 
               <div className="users-tab-filters">
@@ -2174,16 +2191,16 @@ const DashboardPage = () => {
                       type="text"
                       className="search-input"
                       placeholder="Tên hoặc email..."
-                      value={userSearchTerm}
-                      onChange={(e) => setUserSearchTerm(e.target.value)}
+                      value={customerSearchTerm}
+                      onChange={(e) => setCustomerSearchTerm(e.target.value)}
                     />
                   </div>
                   <div className="filter-group">
                     <label>Trạng thái:</label>
                     <select
                       className="filter-select"
-                      value={userStatusFilter}
-                      onChange={(e) => setUserStatusFilter(e.target.value)}
+                      value={customerTypeFilter}
+                      onChange={(e) => setCustomerTypeFilter(e.target.value)}
                     >
                       <option value="all">Tất cả</option>
                       <option value="active">Active</option>
@@ -2197,7 +2214,6 @@ const DashboardPage = () => {
                 <table className="users-tab-table">
                   <thead>
                     <tr>
-                      <th>ID</th>
                       <th>Người dùng</th>
                       <th>Email</th>
                       <th>Ngày tham gia</th>
@@ -2208,21 +2224,13 @@ const DashboardPage = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {currentUsers.map(u => (
+                    {currentCustomers.map(u => (
                       <tr key={u.id}>
-                        <td className="user-id">{u.id}</td>
                         <td>
-                          <div className="user-info">
-                            <img
-                              src={u.avatar}
-                              alt={u.name}
-                              className="user-avatar"
-                            />
-                            <span className="user-name">{u.name}</span>
-                          </div>
+                          <span className="user-name">{u.name}</span>
                         </td>
                         <td className="user-email">{u.email}</td>
-                        <td className="join-date">{u.joinDate}</td>
+                        <td className="join-date">{u.registrationDate}</td>
                         <td className="total-orders">{u.totalOrders}</td>
                         <td className="total-spent">{u.totalSpent}</td>
                         <td>
@@ -2238,14 +2246,14 @@ const DashboardPage = () => {
                           <div className="action-buttons">
                             <button
                               className="view-orders-btn"
-                              onClick={() => viewUserOrders(u.id, u.name)}
+                              onClick={() => viewCustomerOrders(u.id, u.name)}
                               title="Xem đơn hàng"
                             >
                               📦
                             </button>
                             <button
                               className={`ban-btn ${u.status === 'active' ? 'ban' : 'unban'}`}
-                              onClick={() => toggleUserStatus(u.id)}
+                              onClick={() => toggleCustomerStatus(u.id)}
                               title={u.status === 'active' ? 'Ban' : 'Unban'}
                             >
                               {u.status === 'active' ? '🚫' : '✅'}
@@ -2254,9 +2262,9 @@ const DashboardPage = () => {
                         </td>
                       </tr>
                     ))}
-                    {currentUsers.length === 0 && (
+                    {currentCustomers.length === 0 && (
                       <tr>
-                        <td colSpan="8" style={{ textAlign: 'center', padding: '1rem' }}>
+                        <td colSpan="7" style={{ textAlign: 'center', padding: '1rem' }}>
                           Không có người dùng
                         </td>
                       </tr>
@@ -2268,20 +2276,20 @@ const DashboardPage = () => {
               <div className="users-tab-pagination">
                 <button
                   className="pagination-btn"
-                  disabled={currentUserPage === 1}
-                  onClick={() => setCurrentUserPage(prev => prev - 1)}
+                  disabled={currentCustomerPage === 1}
+                  onClick={() => setCurrentCustomerPage(prev => prev - 1)}
                 >
                   Trang trước
                 </button>
                 <div className="pagination-info">
-                  Trang {currentUserPage} / {totalUserPages || 1}
+                  Trang {currentCustomerPage} / {totalCustomerPages || 1}
                 </div>
                 <button
                   className="pagination-btn"
                   disabled={
-                    currentUserPage === totalUserPages || totalUserPages === 0
+                    currentCustomerPage === totalCustomerPages || totalCustomerPages === 0
                   }
-                  onClick={() => setCurrentUserPage(prev => prev + 1)}
+                  onClick={() => setCurrentCustomerPage(prev => prev + 1)}
                 >
                   Trang sau
                 </button>
