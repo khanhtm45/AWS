@@ -44,59 +44,86 @@ public class StaffService {
     public List<CustomerResponse> getAllCustomers() {
         try {
             // Scan all users with META records
-            List<UserTable> users = userRepository.scanAllUsersMeta();
+            List<UserTable> metaUsers = userRepository.scanAllUsersMeta();
+            System.out.println("📊 [getAllCustomers] Found " + metaUsers.size() + " META users");
             
-            return users.stream()
-                    .map(user -> {
-                        try {
-                            // Extract userId from PK (format: USER#<user_id>)
-                            String userId = user.getPk() != null ? user.getPk().replace("USER#", "") : "";
-                            
-                            // Get orders for this user
-                            String orderPkPrefix = "USER#" + userId + "#ORDER#";
-                            List<OrderTable> orders = orderRepository.findByPkStartingWith(orderPkPrefix);
-                            
-                            // Filter only META orders
-                            List<OrderTable> metaOrders = orders.stream()
-                                    .filter(order -> order.getSk() != null && order.getSk().equals("META"))
-                                    .collect(Collectors.toList());
-                            
-                            // Calculate total spent
-                            double totalSpent = metaOrders.stream()
-                                    .filter(order -> order.getTotalAmount() != null)
-                                    .mapToDouble(OrderTable::getTotalAmount)
-                                    .sum();
-                            
-                            // Build response
-                            return CustomerResponse.builder()
-                                    .userId(userId)
-                                    .email(user.getEmail())
-                                    .phone(null)
-                                    .firstName(user.getFirstName())
-                                    .lastName(user.getLastName())
-                                    .registrationDate(user.getCreatedAt())
-                                    .formattedDate(CustomerResponse.formatDate(user.getCreatedAt()))
-                                    .totalOrders(metaOrders.size())
-                                    .totalSpent(totalSpent)
-                                    .status(user.getIsActive() != null && user.getIsActive() ? "active" : "inactive")
-                                    .build();
-                        } catch (Exception e) {
-                            // Log error but continue processing other users
-                            System.err.println("Error processing user: " + user.getPk() + " - " + e.getMessage());
-                            // Return minimal customer info
-                            return CustomerResponse.builder()
-                                    .userId(user.getPk() != null ? user.getPk().replace("USER#", "") : "")
-                                    .email(user.getEmail())
-                                    .firstName(user.getFirstName())
-                                    .lastName(user.getLastName())
-                                    .registrationDate(user.getCreatedAt())
-                                    .totalOrders(0)
-                                    .totalSpent(0.0)
-                                    .status("active")
-                                    .build();
-                        }
-                    })
-                    .collect(Collectors.toList());
+            // For each user, get ACCOUNT record to check role
+            List<CustomerResponse> customerResponses = new java.util.ArrayList<>();
+            
+            for (UserTable metaUser : metaUsers) {
+                try {
+                    // Extract userId from PK (format: USER#<user_id>)
+                    String userPk = metaUser.getPk();
+                    String userId = userPk != null ? userPk.replace("USER#", "") : "";
+                    
+                    // Get ACCOUNT record to check role
+                    UserTable accountRecord = userRepository.findByPkAndSk(userPk, "ACCOUNT")
+                            .orElse(null);
+                    
+                    if (accountRecord == null) {
+                        System.out.println("⚠️ [getAllCustomers] No ACCOUNT record found for user: " + userId);
+                        continue;
+                    }
+                    
+                    String role = accountRecord.getRole();
+                    String roleId = accountRecord.getRoleId();
+                    System.out.println("👤 [getAllCustomers] User: " + accountRecord.getEmail() + ", role: " + role + ", roleId: " + roleId);
+                    
+                    // Filter only customers
+                    boolean isCustomer = (role != null && role.equalsIgnoreCase("customer")) ||
+                                       (roleId != null && roleId.equalsIgnoreCase("CUSTOMER"));
+                    
+                    if (!isCustomer) {
+                        System.out.println("⏭️ [getAllCustomers] Skipping non-customer user: " + userId);
+                        continue;
+                    }
+                    
+                    System.out.println("✅ [getAllCustomers] Processing customer: " + userId);
+                    
+                    // Get orders for this user
+                    String orderPkPrefix = "USER#" + userId + "#ORDER#";
+                    System.out.println("🔍 [getAllCustomers] Searching orders with prefix: " + orderPkPrefix);
+                    List<OrderTable> orders = orderRepository.findByPkStartingWith(orderPkPrefix);
+                    System.out.println("📦 [getAllCustomers] Found " + orders.size() + " order records for user: " + userId);
+                    
+                    // Filter only META orders
+                    List<OrderTable> metaOrders = orders.stream()
+                            .filter(order -> order.getSk() != null && order.getSk().equals("META"))
+                            .collect(Collectors.toList());
+                    System.out.println("✅ [getAllCustomers] Found " + metaOrders.size() + " META orders for user: " + userId);
+                    
+                    // Calculate total spent
+                    double totalSpent = metaOrders.stream()
+                            .filter(order -> order.getTotalAmount() != null)
+                            .mapToDouble(OrderTable::getTotalAmount)
+                            .sum();
+                    System.out.println("💰 [getAllCustomers] Total spent for user " + userId + ": " + totalSpent);
+                    
+                    // Build response
+                    CustomerResponse response = CustomerResponse.builder()
+                            .userId(userId)
+                            .email(accountRecord.getEmail())
+                            .phone(metaUser.getPhoneNumber())
+                            .firstName(metaUser.getFirstName())
+                            .lastName(metaUser.getLastName())
+                            .registrationDate(metaUser.getCreatedAt())
+                            .formattedDate(CustomerResponse.formatDate(metaUser.getCreatedAt()))
+                            .totalOrders(metaOrders.size())
+                            .totalSpent(totalSpent)
+                            .status(accountRecord.getIsActive() != null && accountRecord.getIsActive() ? "active" : "inactive")
+                            .build();
+                    
+                    customerResponses.add(response);
+                    
+                } catch (Exception e) {
+                    // Log error but continue processing other users
+                    System.err.println("❌ [getAllCustomers] Error processing user: " + metaUser.getPk() + " - " + e.getMessage());
+                    e.printStackTrace();
+                }
+            }
+            
+            System.out.println("✅ [getAllCustomers] Total customers returned: " + customerResponses.size());
+            return customerResponses;
         } catch (Exception e) {
             System.err.println("Error in getAllCustomers: " + e.getMessage());
             e.printStackTrace();
