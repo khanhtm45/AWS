@@ -1280,20 +1280,16 @@ const DashboardPage = () => {
         { name: 'Thông tin đặt hàng', icon: '📦' },
         { name: 'Inbox', icon: '📧' },
         { name: 'Sản Phẩm', icon: '🎯' },
-        { name: 'Kho hàng', icon: '🏪' },
         { name: 'Danh Mục', icon: '📋' },
         { name: 'Người dùng', icon: '👥' },
-        { name: 'Tạo tài khoản Nhân viên', icon: '➕' },
-        { name: 'Settings', icon: '⚙️' }
+        { name: 'Tạo tài khoản Nhân viên', icon: '➕' }
       ]
     : [
         { name: 'Dashboard', icon: '⚡' },
         { name: 'Thông tin đặt hàng', icon: '📦' },
         { name: 'Inbox', icon: '📧' },
         { name: 'Sản Phẩm', icon: '🎯' },
-        { name: 'Kho hàng', icon: '🏪' },
-        { name: 'Danh Mục', icon: '📋' },
-        { name: 'Settings', icon: '⚙️' }
+        { name: 'Danh Mục', icon: '📋' }
       ];
 
   if (!user) {
@@ -1717,154 +1713,24 @@ const DashboardPage = () => {
               </div>
             </div>
           )}
-
-          {/* SẢN PHẨM (mock) */}
+          {/* SẢN PHẨM */}
           {selectedMenu === 'Sản Phẩm' && (
-            <div className="product-page-wrapper">
-              <div className="product-page-header">
-                <div>
-                  <h1>Quản Lý Sản Phẩm</h1>
-                  <p className="product-page-subtitle">Quản lý sản phẩm</p>
-                </div>
-              </div>
-
-              <div className="product-page-content">
-                <div className="product-page-top">
-                  <div className="product-page-title-row">
-                    <h3>Danh mục sản phẩm</h3>
-                    <span className="product-page-count">{filteredProducts.length} sản phẩm</span>
-                  </div>
-                  <div className="product-page-controls">
-                    <input
-                      type="text"
-                      className="product-page-search"
-                      placeholder="Tìm kiếm sản phẩm..."
-                      value={productSearchTerm}
-                      onChange={(e) => setProductSearchTerm(e.target.value)}
-                    />
-                    <button
-                      className="product-page-add-btn"
-                      onClick={() => {
-                        setSelectedProduct(null);
-                        setProductForm({
-                          name: '',
-                          category: '',
-                          price: '',
-                          quantity: '',
-                          description: '',
-                          colors: []
-                        });
-                        setShowProductModal(true);
-                      }}
-                    >
-                      + Thêm sản phẩm
-                    </button>
-                  </div>
-                </div>
-
-                <div className="product-page-table-wrapper">
-                  <table className="product-page-table">
-                    <thead>
-                      <tr>
-                        <th>Mã Sản Phẩm</th>
-                        <th>Tên Sản Phẩm</th>
-                        <th>Giá</th>
-                        <th>Danh Mục</th>
-                        <th>Chi tiết</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {currentProducts.map(product => {
-                        return (
-                          <tr key={product.id}>
-                            <td>{product.id}</td>
-                            <td>{product.name}</td>
-                            <td>{product.price}</td>
-                            <td>{product.category}</td>
-                            <td>
-                              <div className="product-page-actions">
-                                <button
-                                  className="product-page-view-btn"
-                                  onClick={() => handleViewProduct(product)}
-                                  title="Xem chi tiết"
-                                >
-                                  👁️
-                                </button>
-                                <button
-                                  className="product-page-edit-btn"
-                                  onClick={() => handleEditProduct(product)}
-                                  title="Sửa"
-                                >
-                                  ✏️
-                                </button>
-                                <button
-                                  className="product-page-delete-btn"
-                                  onClick={() => handleDeleteProduct(product.id, product.name)}
-                                  title="Xóa"
-                                >
-                                  🗑️
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                      {currentProducts.length === 0 && (
-                        <tr>
-                          <td colSpan="5" style={{ textAlign: 'center', padding: '2rem', color: '#6c757d' }}>
-                            Không có sản phẩm
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* KHO HÀNG */}
-          {selectedMenu === 'Kho hàng' && (
             <div className="warehouse-page-wrapper">
               <div className="warehouse-page-header">
-                <h1>Kho hàng</h1>
+                <h1>Sản Phẩm</h1>
               </div>
 
-              {/* Warehouse Tabs */}
+              {/* Product Tabs */}
               <div className="warehouse-tabs">
                 <button
                   className={`warehouse-tab ${warehouseTab === 'inventory' ? 'active' : ''}`}
                   onClick={() => setWarehouseTab('inventory')}
                 >
-                  📦 Kho hàng
-                </button>
-                <button
-                  className={`warehouse-tab ${warehouseTab === 'ledger' ? 'active' : ''}`}
-                  onClick={() => setWarehouseTab('ledger')}
-                >
-                  📔 Sổ kho
-                </button>
-                <button
-                  className={`warehouse-tab ${warehouseTab === 'import' ? 'active' : ''}`}
-                  onClick={() => setWarehouseTab('import')}
-                >
-                  📥 Số nhập hàng
-                </button>
-                <button
-                  className={`warehouse-tab ${warehouseTab === 'export' ? 'active' : ''}`}
-                  onClick={() => setWarehouseTab('export')}
-                >
-                  📤 Số xuất hàng
-                </button>
-                <button
-                  className={`warehouse-tab ${warehouseTab === 'audit' ? 'active' : ''}`}
-                  onClick={() => setWarehouseTab('audit')}
-                >
-                  🔍 Kiểm kho
+                  📦 Sản Phẩm
                 </button>
               </div>
 
-              {/* Kho hàng Tab Content */}
+              {/* Sản Phẩm Tab Content */}
               {warehouseTab === 'inventory' && (
                 <div className="warehouse-content">
                   {/* Stats Cards */}
@@ -1905,13 +1771,16 @@ const DashboardPage = () => {
                     >
                       <option value="all">Danh mục</option>
                       {categories.map(cat => (
-                        <option key={cat.categoryId} value={cat.categoryId}>
+                        <option key={cat.categoryId} value={cat.categoryName}>
                           {cat.categoryName}
                         </option>
                       ))}
                     </select>
-                    <button className="warehouse-create-btn">
-                      Tạo giao dịch
+                    <button 
+                      className="warehouse-create-btn"
+                      onClick={() => setShowProductModal(true)}
+                    >
+                      + Tạo Sản Phẩm
                     </button>
                   </div>
 
@@ -1957,9 +1826,29 @@ const DashboardPage = () => {
                               {((product.price || 0) * (product.quantity || 0)).toLocaleString()}
                             </td>
                             <td>
-                              <button className="warehouse-more-btn" title="Xem thêm">
-                                ⋮
-                              </button>
+                              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                                <button
+                                  className="product-page-view-btn"
+                                  onClick={() => handleViewProduct(product)}
+                                  title="Xem chi tiết"
+                                >
+                                  👁️
+                                </button>
+                                <button
+                                  className="product-page-edit-btn"
+                                  onClick={() => handleEditProduct(product)}
+                                  title="Sửa"
+                                >
+                                  ✏️
+                                </button>
+                                <button
+                                  className="product-page-delete-btn"
+                                  onClick={() => handleDeleteProduct(product.id, product.name)}
+                                  title="Xóa"
+                                >
+                                  🗑️
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -2337,14 +2226,6 @@ const DashboardPage = () => {
                   </div>
                 </div>
               )}
-            </div>
-          )}
-
-          {/* SETTINGS */}
-          {selectedMenu === 'Settings' && (
-            <div>
-              <h1>Settings</h1>
-              <p>Chức năng cài đặt sẽ được bổ sung sau.</p>
             </div>
           )}
 
