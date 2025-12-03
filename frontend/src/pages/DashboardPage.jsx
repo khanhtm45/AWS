@@ -979,15 +979,16 @@ const DashboardPage = () => {
       // First, filter to only show customers with email
       let filtered = customers.filter(customer => customer.email && customer.email !== 'N/A' && customer.email.trim() !== '');
 
-      // Filter by customer type
+      // Filter by customer status (active/banned)
       if (customerTypeFilter !== 'all') {
-        filtered = filtered.filter(customer => customer.type === customerTypeFilter);
+        filtered = filtered.filter(customer => customer.status === customerTypeFilter);
       }
 
-      // Filter by search term (name)
+      // Filter by search term (name or email)
       if (customerSearchTerm) {
         filtered = filtered.filter(customer =>
-          customer.name.toLowerCase().includes(customerSearchTerm.toLowerCase())
+          customer.name.toLowerCase().includes(customerSearchTerm.toLowerCase()) ||
+          customer.email.toLowerCase().includes(customerSearchTerm.toLowerCase())
         );
       }
 
@@ -1001,6 +1002,8 @@ const DashboardPage = () => {
 
       setFilteredCustomers(filtered);
       setCurrentCustomerPage(1);
+    } else {
+      setFilteredCustomers([]);
     }
   }, [customerTypeFilter, customerSearchTerm, customerContactFilter, customers]);
 
