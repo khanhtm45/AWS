@@ -26,6 +26,23 @@ public class CartService {
 
     private static final Logger logger = LoggerFactory.getLogger(CartService.class);
 
+    // Helper: Convert ShippingAddress to Map
+    private Map<String, String> shippingAddressToMap(com.leafshop.dto.order.ShippingAddress address) {
+        if (address == null) return null;
+        Map<String, String> map = new HashMap<>();
+        if (address.getFullName() != null) map.put("fullName", address.getFullName());
+        if (address.getPhoneNumber() != null) map.put("phoneNumber", address.getPhoneNumber());
+        if (address.getAddressLine1() != null) map.put("addressLine1", address.getAddressLine1());
+        if (address.getAddressLine2() != null) map.put("addressLine2", address.getAddressLine2());
+        if (address.getWard() != null) map.put("ward", address.getWard());
+        if (address.getDistrict() != null) map.put("district", address.getDistrict());
+        if (address.getCity() != null) map.put("city", address.getCity());
+        if (address.getPostalCode() != null) map.put("postalCode", address.getPostalCode());
+        if (address.getCountry() != null) map.put("country", address.getCountry());
+        if (address.getNotes() != null) map.put("notes", address.getNotes());
+        return map;
+    }
+
 
 
     private final OrderTableRepository orderTableRepository;
@@ -158,7 +175,7 @@ public class CartService {
         if (req.getUserId() == null && req.getSessionId() == null) {
             throw new IllegalArgumentException("Either userId or sessionId must be provided");
         }
-        if (req.getShippingAddress() == null || req.getShippingAddress().isEmpty()) {
+        if (req.getShippingAddress() == null) {
             throw new IllegalArgumentException("Shipping address is required");
         }
 
@@ -287,7 +304,7 @@ public class CartService {
             .discountAmount(totals.getDiscountAmount())
             .totalAmount(totals.getTotalAmount())
             .cartId(cartPk)
-            .shippingAddress(req.getShippingAddress())
+            .shippingAddress(shippingAddressToMap(req.getShippingAddress()))
             .paymentMethod(req.getPaymentMethod())
             .paymentStatus("PENDING")
             .createdAt(System.currentTimeMillis())

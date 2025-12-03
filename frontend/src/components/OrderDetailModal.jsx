@@ -105,14 +105,41 @@ const OrderDetailModal = ({ order, onClose }) => {
                                 <span className="info-label">ID Khách hàng:</span>
                                 <span>{order.user_id}</span>
                             </div>
-                            <div className="info-item">
-                                <span className="info-label">Địa chỉ giao hàng (ID):</span>
-                                <span>{order.shipping_address_id}</span>
-                            </div>
-                            <div className="info-item">
-                                <span className="info-label">Địa chỉ thanh toán (ID):</span>
-                                <span>{order.billing_address_id || 'Như địa chỉ giao hàng'}</span>
-                            </div>
+                            
+                            <h3 className="column-title">Địa chỉ giao hàng</h3>
+                            {order.shipping_address ? (
+                              <>
+                                <div className="info-item">
+                                  <span className="info-label">Họ tên:</span>
+                                  <span>{order.shipping_address.fullName || '-'}</span>
+                                </div>
+                                <div className="info-item">
+                                  <span className="info-label">Số điện thoại:</span>
+                                  <span>{order.shipping_address.phoneNumber || '-'}</span>
+                                </div>
+                                <div className="info-item">
+                                  <span className="info-label">Địa chỉ:</span>
+                                  <span>
+                                    {[
+                                      order.shipping_address.addressLine1,
+                                      order.shipping_address.addressLine2,
+                                      order.shipping_address.ward,
+                                      order.shipping_address.district,
+                                      order.shipping_address.city,
+                                      order.shipping_address.postalCode
+                                    ].filter(Boolean).join(', ')}
+                                  </span>
+                                </div>
+                                {order.shipping_address.notes && (
+                                  <div className="info-item">
+                                    <span className="info-label">Ghi chú địa chỉ:</span>
+                                    <span>{order.shipping_address.notes}</span>
+                                  </div>
+                                )}
+                              </>
+                            ) : (
+                              <p className="notes-content">Không có thông tin địa chỉ</p>
+                            )}
 
                             <h3 className="column-title">Ghi chú</h3>
                             <p className="notes-content">{order.notes || 'Không có ghi chú.'}</p>

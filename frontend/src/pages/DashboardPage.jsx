@@ -127,88 +127,93 @@ const DashboardPage = () => {
     // Define functions inside useEffect to avoid dependency warning
     const loadOrders = async () => {
       try {
-        let url = `${API_BASE}/api/orders`;
-        // backend requires userId request param — include if we have a logged-in user
-        try {
-          const stored = localStorage.getItem('staffAdminUser');
-          if (stored) {
-            const pu = JSON.parse(stored);
-            const userIdParam = pu.username || pu.email || pu.userId || pu.id;
-            if (userIdParam) url += `?userId=${encodeURIComponent(userIdParam)}`;
-          }
-        } catch (e) {
-          // ignore parse errors and call without userId (will be handled by backend)
-        }
-
+        // Gọi API để lấy tất cả đơn hàng (không cần userId cho admin/staff)
+        const url = `${API_BASE}/api/orders`;
         const res = await fetch(url);
         if (!res.ok) {
           console.warn('Orders API returned non-ok status', res.status);
           throw new Error('Orders API error');
         }
         const data = await res.json();
+        console.log('✅ Loaded', data.length, 'orders from API');
+        
         // Map backend order shape to front-end expected shape
         const mapped = (data || []).map(o => {
-          const od = o.orderDate || o.createdAt || o.date || o.order_date || o.created_at;
-          const parsedDate = od ? new Date(od) : null;
-          const formattedDate = parsedDate
+          // Parse createdAt timestamp to date
+          const timestamp = o.createdAt || o.orderDate || o.date;
+          const parsedDate = timestamp ? new Date(timestamp) : null;
+          const formattedDate = parsedDate && !isNaN(parsedDate.getTime())
             ? `${parsedDate.getDate()}/${parsedDate.getMonth() + 1}/${parsedDate.getFullYear()}`
-            : (o.orderDate || o.date || '');
+            : '';
 
           const priceNum = o.totalAmount || o.total || o.amount || 0;
+          
+          // Get product name from items array
+          const productName = o.items && o.items.length > 0 
+            ? o.items[0].productName 
+            : o.productName || 'Không rõ';
+          
+          // Get customer name from shippingAddress
+          const customerName = o.shippingAddress?.fullName || o.customerName || 'Khách hàng';
+          
+          // Format address from shippingAddress
+          const address = o.shippingAddress 
+            ? [
+                o.shippingAddress.addressLine1,
+                o.shippingAddress.addressLine2,
+                o.shippingAddress.ward,
+                o.shippingAddress.district,
+                o.shippingAddress.city
+              ].filter(Boolean).join(', ')
+            : '';
+          
+          // Get phone from shippingAddress
+          const phone = o.shippingAddress?.phoneNumber || o.phone || '';
+          
+          // Calculate total quantity from items
+          const quantity = o.items 
+            ? o.items.reduce((sum, item) => sum + (item.quantity || 0), 0) 
+            : 0;
+          
+          // Map orderStatus to display status
+          const statusMap = {
+            'PENDING': { text: 'Chờ Xử Lý', value: 'pending' },
+            'CONFIRMED': { text: 'Đã Xác Nhận', value: 'confirmed' },
+            'PROCESSING': { text: 'Đang Xử Lý', value: 'processing' },
+            'SHIPPING': { text: 'Đang Giao', value: 'shipping' },
+            'DELIVERED': { text: 'Đã Giao', value: 'completed' },
+            'COMPLETED': { text: 'Hoàn Thành', value: 'completed' },
+            'CANCELLED': { text: 'Đã Hủy', value: 'cancelled' },
+            'RETURNED': { text: 'Đã Trả', value: 'returned' }
+          };
+          
+          const statusInfo = statusMap[o.orderStatus] || { text: o.orderStatus || 'Chờ Xử Lý', value: 'pending' };
 
           return {
-            id: String(o.id || o.orderId || o.code || ''),
-            productName: o.product?.name || o.productName || o.itemName || (o.items && o.items[0]?.name) || 'Không rõ',
-            customerName: o.customer?.fullName || o.customerName || o.buyerName || 'Khách hàng',
+            id: o.orderId || o.id || '',
+            productName: productName,
+            customerName: customerName,
             orderDate: formattedDate,
-            price: typeof priceNum === 'number' ? priceNum.toLocaleString() + 'đ' : (o.price || String(priceNum)),
-            status: o.status || o.state || 'pending',
-            statusText: o.statusText || (o.status || o.state) || 'Chờ xử lý',
-            phone: o.customer?.phone || o.phone || '',
-            address: o.shippingAddress || o.address || '',
-            quantity: o.quantity || (o.items && o.items.reduce((s, it) => s + (it.qty || it.quantity || 0), 0)) || 0,
+            price: typeof priceNum === 'number' ? priceNum.toLocaleString() + 'đ' : String(priceNum),
+            status: statusInfo.value,
+            statusText: statusInfo.text,
+            phone: phone,
+            address: address,
+            quantity: quantity,
             size: o.size || '',
-            color: o.color || ''
+            color: o.color || '',
+            // Keep original data for detail view
+            originalData: o
           };
         });
 
         setOrders(mapped);
         setFilteredOrders(mapped);
+        console.log('✅ Mapped orders:', mapped);
       } catch (error) {
-        console.warn('Cannot load orders from API, falling back to mock orders:', error);
-        // fallback to existing mock list
-        const mockOrders = [
-          {
-            id: '00001',
-            productName: 'Áo Thun Thể Thao Ultra Stretch The Trainer Đen',
-            customerName: 'Nguyễn Văn A',
-            orderDate: '1/1/2025',
-            price: '297.000đ',
-            status: 'completed',
-            statusText: 'Hoàn Thành',
-            phone: '0123456789',
-            address: '123 Đường ABC, Quận 1, TP.HCM',
-            quantity: 1,
-            size: 'M',
-            color: 'Đen'
-          },
-          {
-            id: '00002',
-            productName: 'Áo Polo Classic Premium White',
-            customerName: 'Trần Thị B',
-            orderDate: '1/1/2025',
-            price: '450.000đ',
-            status: 'completed',
-            statusText: 'Hoàn Thành',
-            phone: '0987654321',
-            address: '456 Đường XYZ, Quận 2, TP.HCM',
-            quantity: 2,
-            size: 'L',
-            color: 'Trắng'
-          }
-        ];
-        setOrders(mockOrders);
-        setFilteredOrders(mockOrders);
+        console.error('❌ Cannot load orders from API:', error);
+        setOrders([]);
+        setFilteredOrders([]);
       }
     };
 
@@ -444,71 +449,6 @@ const DashboardPage = () => {
     } catch (error) {
       setStaffCreationMessage('Có lỗi xảy ra khi tạo tài khoản');
     }
-  };
-
-  // ======================= MOCK ORDERS =======================
-  const loadOrdersData = () => {
-    const mockOrders = [
-      {
-        id: '00001',
-        productName: 'Áo Thun Thể Thao Ultra Stretch The Trainer Đen',
-        customerName: 'Nguyễn Văn A',
-        orderDate: '1/1/2025',
-        price: '297.000đ',
-        status: 'completed',
-        statusText: 'Hoàn Thành',
-        phone: '0123456789',
-        address: '123 Đường ABC, Quận 1, TP.HCM',
-        quantity: 1,
-        size: 'M',
-        color: 'Đen'
-      },
-      {
-        id: '00002',
-        productName: 'Áo Polo Classic Premium White',
-        customerName: 'Trần Thị B',
-        orderDate: '1/1/2025',
-        price: '450.000đ',
-        status: 'completed',
-        statusText: 'Hoàn Thành',
-        phone: '0987654321',
-        address: '456 Đường XYZ, Quận 2, TP.HCM',
-        quantity: 2,
-        size: 'L',
-        color: 'Trắng'
-      },
-      {
-        id: '00003',
-        productName: 'Quần Jean Slim Fit Dark Blue',
-        customerName: 'Lê Văn C',
-        orderDate: '1/1/2025',
-        price: '650.000đ',
-        status: 'processing',
-        statusText: 'Đang Xử Lý',
-        phone: '0369852147',
-        address: '789 Đường DEF, Quận 3, TP.HCM',
-        quantity: 1,
-        size: 'XL',
-        color: 'Xanh Đậm'
-      },
-      {
-        id: '00004',
-        productName: 'Áo Thun Jersey Thoáng Mát No Style',
-        customerName: 'Phạm Thị D',
-        orderDate: '2/1/2025',
-        price: '227.000đ',
-        status: 'shipping',
-        statusText: 'Đang Giao',
-        phone: '0741852963',
-        address: '321 Đường GHI, Quận 4, TP.HCM',
-        quantity: 3,
-        size: 'S',
-        color: 'Trắng'
-      }
-    ];
-
-    setOrders(mockOrders);
-    setFilteredOrders(mockOrders);
   };
 
   // ======================= MOCK USERS =======================

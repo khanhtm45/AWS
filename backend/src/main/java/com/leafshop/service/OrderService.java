@@ -20,6 +20,44 @@ public class OrderService {
     private final CartService cartService;
 
     // -----------------------------
+    // Helper: Convert ShippingAddress to Map
+    // -----------------------------
+    private Map<String, Object> shippingAddressToMap(ShippingAddress address) {
+        if (address == null) return null;
+        Map<String, Object> map = new HashMap<>();
+        if (address.getFullName() != null) map.put("fullName", address.getFullName());
+        if (address.getPhoneNumber() != null) map.put("phoneNumber", address.getPhoneNumber());
+        if (address.getAddressLine1() != null) map.put("addressLine1", address.getAddressLine1());
+        if (address.getAddressLine2() != null) map.put("addressLine2", address.getAddressLine2());
+        if (address.getWard() != null) map.put("ward", address.getWard());
+        if (address.getDistrict() != null) map.put("district", address.getDistrict());
+        if (address.getCity() != null) map.put("city", address.getCity());
+        if (address.getPostalCode() != null) map.put("postalCode", address.getPostalCode());
+        if (address.getCountry() != null) map.put("country", address.getCountry());
+        if (address.getNotes() != null) map.put("notes", address.getNotes());
+        return map;
+    }
+
+    // -----------------------------
+    // Helper: Convert Map to ShippingAddress
+    // -----------------------------
+    private ShippingAddress mapToShippingAddress(Map<String, String> map) {
+        if (map == null || map.isEmpty()) return null;
+        return ShippingAddress.builder()
+                .fullName(map.get("fullName"))
+                .phoneNumber(map.get("phoneNumber"))
+                .addressLine1(map.get("addressLine1"))
+                .addressLine2(map.get("addressLine2"))
+                .ward(map.get("ward"))
+                .district(map.get("district"))
+                .city(map.get("city"))
+                .postalCode(map.get("postalCode"))
+                .country(map.get("country"))
+                .notes(map.get("notes"))
+                .build();
+    }
+
+    // -----------------------------
     // Create order from cart
     // -----------------------------
     public CreateOrderResponse createOrderFromCart(CreateOrderRequest req) {
@@ -34,6 +72,63 @@ public class OrderService {
         // Recalculate amounts (overload cho CreateOrderResponse)
         recalcOrderAmounts(resp);
 
+        return resp;
+    }
+
+    // -----------------------------
+    // Get all orders (for admin/staff)
+    // -----------------------------
+    public List<OrderResponse> getAllOrders() {
+        // Get all order META records
+        List<OrderTable> allOrdersMeta = orderTableRepository.scanAllOrdersMeta();
+        List<OrderResponse> resp = new ArrayList<>();
+
+        for (OrderTable m : allOrdersMeta) {
+            // Get items for this order
+            String pk = m.getPk();
+            List<OrderTable> items = orderTableRepository.findOrderItemsByPk(pk);
+            
+            List<OrderItemResponse> itemResponses = items.stream()
+                    .map(i -> OrderItemResponse.builder()
+                            .itemId(i.getSk().replaceFirst("ITEM#", ""))
+                            .productId(i.getProductId())
+                            .variantId(i.getVariantId())
+                            .productName(i.getProductName())
+                            .quantity(i.getQuantity())
+                            .unitPrice(i.getUnitPrice())
+                            .itemTotal(i.getItemTotal())
+                            .build())
+                    .collect(Collectors.toList());
+
+            OrderResponse order = OrderResponse.builder()
+                    .orderId(m.getOrderId())
+                    .orderPk(m.getPk())
+                    .userId(m.getUserId())
+                    .orderStatus(m.getOrderStatus())
+                    .items(itemResponses)
+                    .subtotal(m.getSubtotal())
+                    .shippingAmount(m.getShippingAmount())
+                    .discountAmount(m.getDiscountAmount())
+                    .totalAmount(m.getTotalAmount())
+                    .shippingAddress(mapToShippingAddress(m.getShippingAddress()))
+                    .paymentMethod(m.getPaymentMethod())
+                    .paymentStatus(m.getPaymentStatus())
+                    .assignedTo(m.getAssignedTo())
+                    .createdAt(m.getCreatedAt())
+                    .updatedAt(m.getUpdatedAt())
+                    .build();
+
+            recalcOrderAmounts(order);
+            resp.add(order);
+        }
+        
+        // Sort by createdAt descending (newest first)
+        resp.sort((a, b) -> {
+            Long timeA = a.getCreatedAt() != null ? a.getCreatedAt() : 0L;
+            Long timeB = b.getCreatedAt() != null ? b.getCreatedAt() : 0L;
+            return timeB.compareTo(timeA);
+        });
+        
         return resp;
     }
 
@@ -72,7 +167,7 @@ public class OrderService {
                         .shippingAmount(m.getShippingAmount())
                         .discountAmount(m.getDiscountAmount())
                         .totalAmount(m.getTotalAmount())
-                        .shippingAddress(m.getShippingAddress())
+                        .shippingAddress(mapToShippingAddress(m.getShippingAddress()))
                         .paymentMethod(m.getPaymentMethod())
                         .paymentStatus(m.getPaymentStatus())
                         .assignedTo(m.getAssignedTo())
@@ -117,7 +212,7 @@ public class OrderService {
                 .shippingAmount(meta.getShippingAmount())
                 .discountAmount(meta.getDiscountAmount())
                 .totalAmount(meta.getTotalAmount())
-                .shippingAddress(meta.getShippingAddress())
+                .shippingAddress(mapToShippingAddress(meta.getShippingAddress()))
                 .paymentMethod(meta.getPaymentMethod())
                 .paymentStatus(meta.getPaymentStatus())
                 .assignedTo(meta.getAssignedTo())

@@ -10,7 +10,7 @@ public class CreateOrderRequest {
     private String orderStatus; // PENDING, CONFIRMED, PROCESSING, SHIPPED, DELIVERED, CANCELLED
     private double totalAmount;
     private Double shippingAmount;
-    private Map<String, String> shippingAddress;
+    private ShippingAddress shippingAddress; // Changed to use ShippingAddress DTO
     private String paymentMethod;
     private String couponCode;
 }

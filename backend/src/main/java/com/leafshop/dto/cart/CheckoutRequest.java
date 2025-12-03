@@ -1,5 +1,6 @@
 package com.leafshop.dto.cart;
 
+import com.leafshop.dto.order.ShippingAddress;
 import lombok.Data;
 import java.util.Map;
 
@@ -7,7 +8,7 @@ import java.util.Map;
 public class CheckoutRequest {
     private String userId;
     private String sessionId;
-    private Map<String, String> shippingAddress;
+    private ShippingAddress shippingAddress; // Changed to use ShippingAddress DTO
     private String paymentMethod;
     private String couponCode;
 }

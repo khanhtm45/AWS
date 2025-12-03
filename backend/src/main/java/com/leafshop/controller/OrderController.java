@@ -25,7 +25,11 @@ public class OrderController {
     // (Removed) Use POST /api/orders to create orders from cart
 
     @GetMapping
-    public ResponseEntity<List<OrderResponse>> getOrders(@RequestParam String userId) {
+    public ResponseEntity<List<OrderResponse>> getOrders(@RequestParam(required = false) String userId) {
+        if (userId == null || userId.isEmpty()) {
+            // Return all orders for admin/staff
+            return ResponseEntity.ok(orderService.getAllOrders());
+        }
         return ResponseEntity.ok(orderService.getOrdersForUser(userId));
     }
 
