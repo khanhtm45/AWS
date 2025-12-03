@@ -106,6 +106,8 @@ const DashboardPage = () => {
     totalSales: 0,
     totalPending: 0
   });
+  const [dashboardMonthFilter, setDashboardMonthFilter] = useState('all'); // Filter for dashboard orders widget
+  const [salesMonthFilter, setSalesMonthFilter] = useState('12'); // Filter for sales chart (default December)
   const customersPerPage = 10;
 
   // Warehouse management state
@@ -1351,15 +1353,40 @@ const DashboardPage = () => {
               <div className="chart-section">
                 <div className="chart-header">
                   <h3>Sales Details</h3>
-                  <select className="chart-filter">
-                    <option>October</option>
-                    <option>September</option>
-                    <option>August</option>
+                  <select 
+                    className="chart-filter"
+                    value={salesMonthFilter}
+                    onChange={(e) => setSalesMonthFilter(e.target.value)}
+                  >
+                    <option value="12">December</option>
+                    <option value="11">November</option>
+                    <option value="10">October</option>
+                    <option value="9">September</option>
+                    <option value="8">August</option>
                   </select>
                 </div>
                 <div className="chart-placeholder">
                   <div className="chart-info">
-                    <div className="chart-peak">84,3664.77</div>
+                    <div className="chart-peak">
+                      {(() => {
+                        // Calculate total sales for selected month
+                        const monthSales = orders
+                          .filter(order => {
+                            if (!order.orderDate) return false;
+                            const dateParts = order.orderDate.split('/');
+                            if (dateParts.length !== 3) return false;
+                            const month = parseInt(dateParts[1], 10);
+                            return month === parseInt(salesMonthFilter, 10);
+                          })
+                          .reduce((total, order) => {
+                            // Extract numeric value from price (remove 'đ' and convert)
+                            const priceStr = order.price || '0đ';
+                            const numericPrice = parseFloat(priceStr.replace(/[^0-9.-]/g, '').replace(/\./g, ''));
+                            return total + (isNaN(numericPrice) ? 0 : numericPrice);
+                          }, 0);
+                        return monthSales.toLocaleString('vi-VN') + 'đ';
+                      })()}
+                    </div>
                     <div className="chart-visual">
                       <svg width="100%" height="200" className="chart-svg">
                         <polyline
@@ -1379,10 +1406,16 @@ const DashboardPage = () => {
               <div className="orders-section">
                 <div className="orders-header">
                   <h3>Thông tin đặt hàng</h3>
-                  <select className="orders-filter">
-                    <option>Tháng 9</option>
-                    <option>Tháng 10</option>
-                    <option>Tháng 11</option>
+                  <select 
+                    className="orders-filter"
+                    value={dashboardMonthFilter}
+                    onChange={(e) => setDashboardMonthFilter(e.target.value)}
+                  >
+                    <option value="all">Tất cả</option>
+                    <option value="9">Tháng 9</option>
+                    <option value="10">Tháng 10</option>
+                    <option value="11">Tháng 11</option>
+                    <option value="12">Tháng 12</option>
                   </select>
                 </div>
 
@@ -1390,21 +1423,34 @@ const DashboardPage = () => {
                   <div className="table-header">
                     <div>Địa chỉ</div>
                     <div>Họ và Tên</div>
+                    <div>Ngày giờ đặt</div>
                     <div>Giá tiền</div>
                     <div>Trạng Thái</div>
                   </div>
 
-                  {orders.slice(0, 5).map(order => (
+                  {orders
+                    .filter(order => {
+                      if (dashboardMonthFilter === 'all') return true;
+                      // Parse orderDate (format: "3/12/2025" or "03/12/2025")
+                      if (!order.orderDate) return false;
+                      const dateParts = order.orderDate.split('/');
+                      if (dateParts.length !== 3) return false;
+                      const month = parseInt(dateParts[1], 10); // month is the middle part
+                      return month === parseInt(dashboardMonthFilter, 10);
+                    })
+                    .slice(0, 5)
+                    .map(order => (
                     <div key={order.orderId || order.id} className="table-row">
                       <div>{order.address || 'N/A'}</div>
                       <div>{order.customerName || order.name || 'N/A'}</div>
+                      <div>{order.orderDate || 'N/A'}</div>
                       <div className="price">{order.price || 'N/A'}</div>
                       <div>
                         <span
                           className={`status ${
                             order.statusText === 'Đang giao'
                               ? 'delivering'
-                              : order.statusText === 'Đã giao'
+                              : order.statusText === 'Đá giao'
                               ? 'delivered'
                               : 'processing'
                           }`}
