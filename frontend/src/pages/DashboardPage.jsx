@@ -37,6 +37,8 @@ const DashboardPage = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const ordersPerPage = 10;
+  const [showOrderDetailModal, setShowOrderDetailModal] = useState(false);
+  const [selectedOrderDetail, setSelectedOrderDetail] = useState(null);
 
   // User management state (admin only)
   const [users, setUsers] = useState([]);
@@ -96,6 +98,14 @@ const DashboardPage = () => {
   const [customerSearchTerm, setCustomerSearchTerm] = useState('');
   const [customerContactFilter, setCustomerContactFilter] = useState('');
   const [currentCustomerPage, setCurrentCustomerPage] = useState(1);
+
+  // Dashboard stats state
+  const [dashboardStats, setDashboardStats] = useState({
+    totalUsers: 0,
+    totalOrders: 0,
+    totalSales: 0,
+    totalPending: 0
+  });
   const customersPerPage = 10;
 
   // Warehouse management state
@@ -221,21 +231,21 @@ const DashboardPage = () => {
       try {
         const headers = { 'Content-Type': 'application/json' };
         if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
-        const res = await fetch(`${API_BASE}/api/users`, { headers });
+        const res = await fetch(`${API_BASE}/api/staff/customers`, { headers });
         if (!res.ok) {
-          console.warn('Users API returned non-ok status', res.status);
-          throw new Error('Users API error');
+          console.warn('Customers API returned non-ok status', res.status);
+          throw new Error('Customers API error');
         }
         const data = await res.json();
         const mapped = (data || []).map(u => ({
-          id: u.id || u.userId || u.email,
-          name: u.name || u.fullName || u.username || u.email,
+          id: u.userId || u.id || u.email,
+          name: `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email || 'N/A',
           email: u.email || '',
-          phone: u.phone || u.mobile || '',
-          joinDate: u.joinDate || u.createdAt || '',
+          phone: u.phone || '',
+          joinDate: u.registrationDate ? new Date(u.registrationDate).toLocaleDateString('vi-VN') : 'N/A',
           status: u.status || 'active',
-          totalOrders: u.totalOrders || u.ordersCount || 0,
-          totalSpent: u.totalSpent || u.spent || '0đ',
+          totalOrders: u.totalOrders || 0,
+          totalSpent: u.totalSpent ? `${u.totalSpent.toLocaleString('vi-VN')}đ` : '0đ',
           avatar: u.avatarUrl || u.avatar || '/api/placeholder/40/40'
         }));
 
@@ -297,8 +307,51 @@ const DashboardPage = () => {
     loadProductsData();
     loadCategoriesData(); // <-- GỌI API CATEGORY
     loadCustomersData(); // <-- Load customers
+    loadDashboardStats(); // <-- Load dashboard statistics
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
+
+  // ======================= DASHBOARD STATS =======================
+  const loadDashboardStats = async () => {
+    try {
+      // Load all customers to count
+      const usersRes = await fetch(`${API_BASE}/api/staff/customers`, {
+        headers: { 'Content-Type': 'application/json', ...(accessToken && { Authorization: `Bearer ${accessToken}` }) }
+      });
+      const usersData = usersRes.ok ? await usersRes.json() : [];
+      const totalUsers = (usersData || []).length;
+
+      // Load all orders to calculate stats
+      const ordersRes = await fetch(`${API_BASE}/api/orders`, {
+        headers: { 'Content-Type': 'application/json', ...(accessToken && { Authorization: `Bearer ${accessToken}` }) }
+      });
+      const ordersData = ordersRes.ok ? await ordersRes.json() : [];
+      const totalOrders = (ordersData || []).length;
+
+      // Calculate total sales and pending orders
+      let totalSales = 0;
+      let totalPending = 0;
+      (ordersData || []).forEach(order => {
+        const total = order.totalAmount || order.totalPrice || 0;
+        totalSales += total;
+        
+        const status = order.orderStatus || order.status || '';
+        if (status === 'PENDING' || status === 'PROCESSING') {
+          totalPending++;
+        }
+      });
+
+      setDashboardStats({
+        totalUsers,
+        totalOrders,
+        totalSales,
+        totalPending
+      });
+    } catch (error) {
+      console.error('Error loading dashboard stats:', error);
+      // Keep default values on error
+    }
+  };
 
   const handleLogout = () => {
     try {
@@ -374,17 +427,19 @@ const DashboardPage = () => {
           fullName: '', username: '', password: '', confirmPassword: '', email: '', phone: '', role: 'staff'
         });
 
-        // Refresh users list if current user is admin
+        // Refresh customers list if current user is admin
         try {
           if (user && user.role === 'admin') {
-            const ures = await fetch(`${API_BASE}/api/users`);
+            const ures = await fetch(`${API_BASE}/api/staff/customers`, {
+              headers: { 'Content-Type': 'application/json', ...(accessToken && { Authorization: `Bearer ${accessToken}` }) }
+            });
             if (ures.ok) {
               const udata = await ures.json();
               const mapped = (udata || []).map(u => ({
-                id: u.id || u.userId || u.email,
-                name: u.name || u.fullName || u.username || u.email,
+                id: u.userId || u.id || u.email,
+                name: `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email || 'N/A',
                 email: u.email || '',
-                phone: u.phone || u.mobile || '',
+                phone: u.phone || '',
                 joinDate: u.joinDate || u.createdAt || '',
                 status: u.status || 'active',
                 totalOrders: u.totalOrders || u.ordersCount || 0,
@@ -1091,13 +1146,14 @@ const DashboardPage = () => {
       }
 
       console.log('[DashboardPage] Fetching customers from API...');
-      const response = await fetch(`${API_BASE}/api/staff/customers`, {
+      const response = await fetch(`${API_BASE}/api/staff/customers?t=${Date.now()}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
           'Accept': 'application/json'
-        }
+        },
+        cache: 'no-cache'
       });
 
       if (!response.ok) {
@@ -1152,36 +1208,36 @@ const DashboardPage = () => {
     }
   };
 
-  const dashboardStats = [
+  const dashboardStatsDisplay = [
     {
       title: 'Total User',
-      value: '40,689',
-      change: '8.5% Up from yesterday',
-      changeType: 'positive',
+      value: dashboardStats.totalUsers.toLocaleString(),
+      change: '',
+      changeType: 'neutral',
       icon: '👥',
       color: 'blue'
     },
     {
       title: 'Total Order',
-      value: '10,293',
-      change: '1.3% Up from past week',
-      changeType: 'positive',
+      value: dashboardStats.totalOrders.toLocaleString(),
+      change: '',
+      changeType: 'neutral',
       icon: '📦',
       color: 'orange'
     },
     {
       title: 'Total Sales',
-      value: '$89,000',
-      change: '4.3% Down from yesterday',
-      changeType: 'negative',
+      value: dashboardStats.totalSales.toLocaleString() + 'đ',
+      change: '',
+      changeType: 'neutral',
       icon: '💰',
       color: 'green'
     },
     {
       title: 'Total Pending',
-      value: '2,040',
-      change: '1.8% Up from yesterday',
-      changeType: 'positive',
+      value: dashboardStats.totalPending.toLocaleString(),
+      change: '',
+      changeType: 'neutral',
       icon: '⏳',
       color: 'pink'
     }
@@ -1272,16 +1328,18 @@ const DashboardPage = () => {
 
               {/* Stats Cards */}
               <div className="stats-grid">
-                {dashboardStats.map((stat, index) => (
+                {dashboardStatsDisplay.map((stat, index) => (
                   <div key={index} className={`stat-card ${stat.color}`}>
                     <div className="stat-header">
                       <span className="stat-title">{stat.title}</span>
                       <span className="stat-icon">{stat.icon}</span>
                     </div>
                     <div className="stat-value">{stat.value}</div>
-                    <div className={`stat-change ${stat.changeType}`}>
-                      {stat.changeType === 'positive' ? '↗' : '↘'} {stat.change}
-                    </div>
+                    {stat.change && (
+                      <div className={`stat-change ${stat.changeType}`}>
+                        {stat.changeType === 'positive' ? '↗' : stat.changeType === 'negative' ? '↘' : ''} {stat.change}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -1327,37 +1385,39 @@ const DashboardPage = () => {
 
                 <div className="orders-table">
                   <div className="table-header">
-                    <div>Tên Sản Phẩm</div>
                     <div>Địa chỉ</div>
                     <div>Họ và Tên</div>
                     <div>Giá tiền</div>
                     <div>Trạng Thái</div>
                   </div>
 
-                  {orderData.map(order => (
-                    <div key={order.id} className="table-row">
-                      <div className="product-info">
-                        <div className="product-image" />
-                        <span>{order.productName}</span>
-                      </div>
-                      <div>{order.location}</div>
-                      <div>{order.customer}</div>
-                      <div className="price">{order.price}</div>
+                  {orders.slice(0, 5).map(order => (
+                    <div key={order.orderId || order.id} className="table-row">
+                      <div>{order.address || 'N/A'}</div>
+                      <div>{order.customerName || order.name || 'N/A'}</div>
+                      <div className="price">{order.price || 'N/A'}</div>
                       <div>
                         <span
                           className={`status ${
-                            order.status === 'Đang giao'
+                            order.statusText === 'Đang giao'
                               ? 'delivering'
-                              : order.status === 'Đã giao'
+                              : order.statusText === 'Đã giao'
                               ? 'delivered'
                               : 'processing'
                           }`}
                         >
-                          {order.status}
+                          {order.statusText || order.status}
                         </span>
                       </div>
                     </div>
                   ))}
+                  {orders.length === 0 && (
+                    <div className="table-row">
+                      <div colSpan="4" style={{textAlign: 'center', padding: '20px'}}>
+                        Chưa có đơn hàng nào
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </>
@@ -1575,7 +1635,6 @@ const DashboardPage = () => {
                   <thead>
                     <tr>
                       <th>ID</th>
-                      <th>Tên Sản Phẩm</th>
                       <th>Tên Người đặt</th>
                       <th>Thời gian</th>
                       <th>Giá Tiền</th>
@@ -1584,49 +1643,54 @@ const DashboardPage = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {currentOrders.map(order => (
-                      <tr key={order.id}>
-                        <td className="order-id">{order.id}</td>
-                        <td className="product-name">{order.productName}</td>
-                        <td className="customer-name">{order.customerName}</td>
-                        <td className="order-date">{order.orderDate}</td>
-                        <td className="order-price">{order.price}</td>
-                        <td>
-                          <span
-                            className="status-badge"
-                            style={{ backgroundColor: getStatusColor(order.status) }}
-                          >
-                            {order.statusText}
-                          </span>
-                        </td>
-                        <td>
-                          <button
-                            className="detail-btn"
-                            onClick={() => {}}
-                            title="Xem chi tiết"
-                          >
-                            <svg
-                              width="16"
-                              height="16"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              xmlns="http://www.w3.org/2000/svg"
-                            >
-                              <path
-                                d="M3 17.25V21H6.75L17.81 9.94L14.06 6.19L3 17.25Z"
-                                fill="currentColor"
-                              />
-                            </svg>
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                    {currentOrders.length === 0 && (
-                      <tr>
-                        <td colSpan="7" style={{ textAlign: 'center', padding: '1rem' }}>
+                    {currentOrders.length === 0 ? (
+                      <tr key="no-orders">
+                        <td colSpan="6" style={{ textAlign: 'center', padding: '1rem' }}>
                           Không có đơn hàng nào
                         </td>
                       </tr>
+                    ) : (
+                      currentOrders.map((order, index) => (
+                        <tr key={order.id || `order-${index}`}>
+                          <td className="order-id">{order.id}</td>
+                          <td className="customer-name">{order.customerName}</td>
+                          <td className="order-date">{order.orderDate}</td>
+                          <td className="order-price">{order.price}</td>
+                          <td>
+                            <span
+                              className="status-badge"
+                              style={{ backgroundColor: getStatusColor(order.status) }}
+                            >
+                              {order.statusText}
+                            </span>
+                          </td>
+                          <td>
+                            <button
+                              className="detail-btn"
+                              onClick={() => {
+                                console.log('📋 Order detail:', order);
+                                console.log('📦 Items:', order.originalData?.items);
+                                setSelectedOrderDetail(order);
+                                setShowOrderDetailModal(true);
+                              }}
+                              title="Xem chi tiết"
+                            >
+                              <svg
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"
+                                  fill="currentColor"
+                                />
+                              </svg>
+                            </button>
+                          </td>
+                        </tr>
+                      ))
                     )}
                   </tbody>
                 </table>
@@ -1651,6 +1715,157 @@ const DashboardPage = () => {
                   Trang sau
                 </button>
               </div>
+
+              {/* Order Detail Modal */}
+              {showOrderDetailModal && selectedOrderDetail && (
+                <div className="modal-overlay" onClick={() => setShowOrderDetailModal(false)}>
+                  <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '800px' }}>
+                    <div className="modal-header">
+                      <h2>Chi tiết đơn hàng #{selectedOrderDetail.id}</h2>
+                      <button
+                        className="modal-close-btn"
+                        onClick={() => setShowOrderDetailModal(false)}
+                      >
+                        ×
+                      </button>
+                    </div>
+                    <div className="modal-body" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+                      {/* Customer Information */}
+                      <div style={{ marginBottom: '24px' }}>
+                        <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', color: '#1f2937' }}>Thông tin khách hàng</h3>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px' }}>
+                          <div>
+                            <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Tên khách hàng</div>
+                            <div style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>{selectedOrderDetail.customerName}</div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Số điện thoại</div>
+                            <div style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>{selectedOrderDetail.phone || 'Chưa có'}</div>
+                          </div>
+                          <div style={{ gridColumn: '1 / -1' }}>
+                            <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Địa chỉ giao hàng</div>
+                            <div style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>{selectedOrderDetail.address || 'Chưa có'}</div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Order Information */}
+                      <div style={{ marginBottom: '24px' }}>
+                        <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', color: '#1f2937' }}>Thông tin đơn hàng</h3>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px' }}>
+                          <div>
+                            <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Mã đơn hàng</div>
+                            <div style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>{selectedOrderDetail.id}</div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Ngày đặt</div>
+                            <div style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>{selectedOrderDetail.orderDate}</div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Trạng thái</div>
+                            <div>
+                              <span
+                                className="status-badge"
+                                style={{ backgroundColor: getStatusColor(selectedOrderDetail.status), fontSize: '12px', padding: '4px 12px' }}
+                              >
+                                {selectedOrderDetail.statusText}
+                              </span>
+                            </div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Tổng tiền</div>
+                            <div style={{ fontSize: '18px', fontWeight: '600', color: '#059669' }}>{selectedOrderDetail.price}</div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Items List */}
+                      {selectedOrderDetail.originalData?.items && selectedOrderDetail.originalData.items.length > 0 ? (
+                        <div style={{ marginBottom: '24px' }}>
+                          <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', color: '#1f2937' }}>Sản phẩm</h3>
+                          <div style={{ border: '1px solid #e5e7eb', borderRadius: '8px', overflow: 'hidden' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                              <thead style={{ backgroundColor: '#f9fafb' }}>
+                                <tr>
+                                  <th style={{ padding: '12px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Sản phẩm</th>
+                                  <th style={{ padding: '12px', textAlign: 'center', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Số lượng</th>
+                                  <th style={{ padding: '12px', textAlign: 'right', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Đơn giá</th>
+                                  <th style={{ padding: '12px', textAlign: 'right', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Thành tiền</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {selectedOrderDetail.originalData.items.map((item, idx) => {
+                                  // Try to find product name from products list by productId
+                                  let displayName = item.productName || item.name;
+                                  
+                                  if (!displayName && item.productId) {
+                                    const product = products.find(p => p.id === item.productId);
+                                    displayName = product?.name;
+                                  }
+                                  
+                                  displayName = displayName || selectedOrderDetail.productName || `Sản phẩm (${item.productId || ''})`;
+                                  
+                                  return (
+                                    <tr key={idx} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                                      <td style={{ padding: '12px', fontSize: '14px', color: '#1f2937' }}>{displayName}</td>
+                                      <td style={{ padding: '12px', textAlign: 'center', fontSize: '14px', color: '#1f2937' }}>{item.quantity || 0}</td>
+                                      <td style={{ padding: '12px', textAlign: 'right', fontSize: '14px', color: '#1f2937' }}>{(item.unitPrice || 0).toLocaleString()}đ</td>
+                                      <td style={{ padding: '12px', textAlign: 'right', fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>{(item.itemTotal || 0).toLocaleString()}đ</td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      ) : selectedOrderDetail.productName ? (
+                        <div style={{ marginBottom: '24px' }}>
+                          <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', color: '#1f2937' }}>Sản phẩm</h3>
+                          <div style={{ padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <div>
+                                <div style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937', marginBottom: '4px' }}>{selectedOrderDetail.productName}</div>
+                                <div style={{ fontSize: '12px', color: '#6b7280' }}>Số lượng: {selectedOrderDetail.quantity || 1}</div>
+                              </div>
+                              <div style={{ fontSize: '16px', fontWeight: '600', color: '#059669' }}>{selectedOrderDetail.price}</div>
+                            </div>
+                          </div>
+                        </div>
+                      ) : null}
+
+                      {/* Payment Summary */}
+                      <div style={{ padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                          <span style={{ fontSize: '14px', color: '#6b7280' }}>Tạm tính:</span>
+                          <span style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>
+                            {selectedOrderDetail.originalData?.subtotal ? selectedOrderDetail.originalData.subtotal.toLocaleString() + 'đ' : selectedOrderDetail.price}
+                          </span>
+                        </div>
+                        {selectedOrderDetail.originalData?.shippingAmount > 0 && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                            <span style={{ fontSize: '14px', color: '#6b7280' }}>Phí vận chuyển:</span>
+                            <span style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>
+                              {selectedOrderDetail.originalData.shippingAmount.toLocaleString()}đ
+                            </span>
+                          </div>
+                        )}
+                        {selectedOrderDetail.originalData?.discountAmount > 0 && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                            <span style={{ fontSize: '14px', color: '#6b7280' }}>Giảm giá:</span>
+                            <span style={{ fontSize: '14px', fontWeight: '500', color: '#dc2626' }}>
+                              -{selectedOrderDetail.originalData.discountAmount.toLocaleString()}đ
+                            </span>
+                          </div>
+                        )}
+                        <div style={{ borderTop: '1px solid #e5e7eb', marginTop: '12px', paddingTop: '12px', display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937' }}>Tổng cộng:</span>
+                          <span style={{ fontSize: '18px', fontWeight: '700', color: '#059669' }}>{selectedOrderDetail.price}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
           {/* SẢN PHẨM */}
@@ -1738,66 +1953,67 @@ const DashboardPage = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {currentWarehouseProducts.map(product => (
-                          <tr key={product.id}>
-                            <td className="warehouse-sku">{product.id}</td>
-                            <td>
-                              <div className="warehouse-product-info">
-                                <img 
-                                  src={product.image || '/api/placeholder/60/60'} 
-                                  alt={product.name}
-                                  className="warehouse-product-image"
-                                />
-                                <div className="warehouse-product-details">
-                                  <div className="warehouse-product-name">{product.name}</div>
-                                  <div className="warehouse-product-variant">{product.category}</div>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="warehouse-price">{product.price?.toLocaleString() || 0}</td>
-                            <td className="warehouse-stock">
-                              {product.quantity > 0 ? (
-                                <span className="stock-available">{product.quantity}</span>
-                              ) : (
-                                <span className="stock-out">0</span>
-                              )}
-                            </td>
-                            <td className="warehouse-total-value">
-                              {((product.price || 0) * (product.quantity || 0)).toLocaleString()}
-                            </td>
-                            <td>
-                              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                                <button
-                                  className="product-page-view-btn"
-                                  onClick={() => handleViewProduct(product)}
-                                  title="Xem chi tiết"
-                                >
-                                  👁️
-                                </button>
-                                <button
-                                  className="product-page-edit-btn"
-                                  onClick={() => handleEditProduct(product)}
-                                  title="Sửa"
-                                >
-                                  ✏️
-                                </button>
-                                <button
-                                  className="product-page-delete-btn"
-                                  onClick={() => handleDeleteProduct(product.id, product.name)}
-                                  title="Xóa"
-                                >
-                                  🗑️
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                        {currentWarehouseProducts.length === 0 && (
-                          <tr>
+                        {currentWarehouseProducts.length === 0 ? (
+                          <tr key="no-products">
                             <td colSpan="6" style={{ textAlign: 'center', padding: '2rem' }}>
                               Không có sản phẩm trong kho
                             </td>
                           </tr>
+                        ) : (
+                          currentWarehouseProducts.map((product, index) => (
+                            <tr key={product.id || `product-${index}`}>
+                              <td className="warehouse-sku">{product.id}</td>
+                              <td>
+                                <div className="warehouse-product-info">
+                                  <img 
+                                    src={product.image || '/api/placeholder/60/60'} 
+                                    alt={product.name}
+                                    className="warehouse-product-image"
+                                  />
+                                  <div className="warehouse-product-details">
+                                    <div className="warehouse-product-name">{product.name}</div>
+                                    <div className="warehouse-product-variant">{product.category}</div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="warehouse-price">{product.price?.toLocaleString() || 0}</td>
+                              <td className="warehouse-stock">
+                                {product.quantity > 0 ? (
+                                  <span className="stock-available">{product.quantity}</span>
+                                ) : (
+                                  <span className="stock-out">0</span>
+                                )}
+                              </td>
+                              <td className="warehouse-total-value">
+                                {((product.price || 0) * (product.quantity || 0)).toLocaleString()}
+                              </td>
+                              <td>
+                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                                  <button
+                                    className="product-page-view-btn"
+                                    onClick={() => handleViewProduct(product)}
+                                    title="Xem chi tiết"
+                                  >
+                                    👁️
+                                  </button>
+                                  <button
+                                    className="product-page-edit-btn"
+                                    onClick={() => handleEditProduct(product)}
+                                    title="Sửa"
+                                  >
+                                    ✏️
+                                  </button>
+                                  <button
+                                    className="product-page-delete-btn"
+                                    onClick={() => handleDeleteProduct(product.id, product.name)}
+                                    title="Xóa"
+                                  >
+                                    🗑️
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))
                         )}
                       </tbody>
                     </table>
@@ -1908,9 +2124,15 @@ const DashboardPage = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {currentCategories.map(cat => {
-                        return (
-                          <tr key={cat.categoryId}>
+                      {currentCategories.length === 0 ? (
+                        <tr key="no-categories">
+                          <td colSpan="3" style={{ textAlign: 'center', padding: '2rem', color: '#6c757d' }}>
+                            Không có danh mục
+                          </td>
+                        </tr>
+                      ) : (
+                        currentCategories.map((cat, index) => (
+                          <tr key={cat.categoryId || `category-${index}`}>
                             <td>{cat.categoryId}</td>
                             <td>{cat.categoryName}</td>
                             <td>
@@ -1932,14 +2154,7 @@ const DashboardPage = () => {
                               </div>
                             </td>
                           </tr>
-                        );
-                      })}
-                      {currentCategories.length === 0 && (
-                        <tr>
-                          <td colSpan="3" style={{ textAlign: 'center', padding: '2rem', color: '#6c757d' }}>
-                            Không có danh mục
-                          </td>
-                        </tr>
+                        ))
                       )}
                     </tbody>
                   </table>
@@ -2009,7 +2224,16 @@ const DashboardPage = () => {
             <div className="users-tab-container">
               <div className="users-tab-header">
                 <h1>Quản lý người dùng</h1>
-                <div className="users-count">Tổng: {customers.length}</div>
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                  <div className="users-count">Tổng: {customers.length}</div>
+                  <button 
+                    onClick={() => loadCustomersData()} 
+                    style={{ padding: '0.5rem 1rem', cursor: 'pointer', borderRadius: '4px' }}
+                    title="Tải lại danh sách"
+                  >
+                    🔄 Tải lại
+                  </button>
+                </div>
               </div>
 
               <div className="users-tab-filters">
@@ -2053,50 +2277,51 @@ const DashboardPage = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {currentCustomers.map(u => (
-                      <tr key={u.id}>
-                        <td>
-                          <span className="user-name">{u.name}</span>
-                        </td>
-                        <td className="user-email">{u.email}</td>
-                        <td className="join-date">{u.registrationDate}</td>
-                        <td className="total-orders">{u.totalOrders}</td>
-                        <td className="total-spent">{u.totalSpent}</td>
-                        <td>
-                          <span
-                            className={`status-badge ${
-                              u.status === 'active' ? 'active-status' : 'banned-status'
-                            }`}
-                          >
-                            {u.status}
-                          </span>
-                        </td>
-                        <td>
-                          <div className="action-buttons">
-                            <button
-                              className="view-orders-btn"
-                              onClick={() => viewCustomerOrders(u.id, u.name)}
-                              title="Xem đơn hàng"
-                            >
-                              📦
-                            </button>
-                            <button
-                              className={`ban-btn ${u.status === 'active' ? 'ban' : 'unban'}`}
-                              onClick={() => toggleCustomerStatus(u.id)}
-                              title={u.status === 'active' ? 'Ban' : 'Unban'}
-                            >
-                              {u.status === 'active' ? '🚫' : '✅'}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                    {currentCustomers.length === 0 && (
-                      <tr>
+                    {currentCustomers.length === 0 ? (
+                      <tr key="no-customers">
                         <td colSpan="7" style={{ textAlign: 'center', padding: '1rem' }}>
                           Không có người dùng
                         </td>
                       </tr>
+                    ) : (
+                      currentCustomers.map((u, index) => (
+                        <tr key={u.id || `customer-${index}`}>
+                          <td>
+                            <span className="user-name">{u.name}</span>
+                          </td>
+                          <td className="user-email">{u.email}</td>
+                          <td className="join-date">{u.registrationDate}</td>
+                          <td className="total-orders">{u.totalOrders}</td>
+                          <td className="total-spent">{u.totalSpent}</td>
+                          <td>
+                            <span
+                              className={`status-badge ${
+                                u.status === 'active' ? 'active-status' : 'banned-status'
+                              }`}
+                            >
+                              {u.status}
+                            </span>
+                          </td>
+                          <td>
+                            <div className="action-buttons">
+                              <button
+                                className="view-orders-btn"
+                                onClick={() => viewCustomerOrders(u.id, u.name)}
+                                title="Xem đơn hàng"
+                              >
+                                📦
+                              </button>
+                              <button
+                                className={`ban-btn ${u.status === 'active' ? 'ban' : 'unban'}`}
+                                onClick={() => toggleCustomerStatus(u.id)}
+                                title={u.status === 'active' ? 'Ban' : 'Unban'}
+                              >
+                                {u.status === 'active' ? '🚫' : '✅'}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
                     )}
                   </tbody>
                 </table>

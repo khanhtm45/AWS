@@ -84,6 +84,11 @@ public class OrderService {
         List<OrderResponse> resp = new ArrayList<>();
 
         for (OrderTable m : allOrdersMeta) {
+            // Skip CART records - only process real orders
+            if (m.getPk() == null || m.getPk().startsWith("CART#") || m.getOrderId() == null) {
+                continue;
+            }
+            
             // Get items for this order
             String pk = m.getPk();
             List<OrderTable> items = orderTableRepository.findOrderItemsByPk(pk);
