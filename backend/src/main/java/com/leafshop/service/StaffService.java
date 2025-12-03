@@ -192,6 +192,8 @@ public class StaffService {
                     .paymentMethod(order.getPaymentMethod())
                     .paymentStatus(order.getPaymentStatus())
                     .assignedTo(order.getAssignedTo())
+                    .createdAt(order.getCreatedAt())
+                    .updatedAt(order.getUpdatedAt())
                     .items(orderRepository.findOrderItemsByPk(order.getPk()).stream()
                             .map(item -> OrderItemResponse.builder()
                                     .itemId(item.getSk())

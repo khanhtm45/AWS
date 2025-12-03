@@ -176,6 +176,8 @@ public class OrderService {
                         .paymentMethod(m.getPaymentMethod())
                         .paymentStatus(m.getPaymentStatus())
                         .assignedTo(m.getAssignedTo())
+                        .createdAt(m.getCreatedAt())
+                        .updatedAt(m.getUpdatedAt())
                         .build();
 
                 recalcOrderAmounts(order); // ensure totals are correct
