@@ -18,8 +18,10 @@ public class OrderResponse {
     private Double shippingAmount;
     private Double discountAmount;
     private Double totalAmount;
-    private Map<String, String> shippingAddress;
+    private ShippingAddress shippingAddress; // Changed to use ShippingAddress DTO
     private String paymentMethod;
     private String paymentStatus;
     private String assignedTo;
+    private Long createdAt;
+    private Long updatedAt;
 }

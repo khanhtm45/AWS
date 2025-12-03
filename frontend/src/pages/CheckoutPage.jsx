@@ -225,64 +225,35 @@ function CheckoutPage() {
 
         const token = accessToken || localStorage.getItem('accessToken');
 
-        let res;
-        // If user is logged in, use OrderService endpoint which creates orders from user's cart
-        if (userId) {
-          const createOrderReq = {
-            userId: userId,
-            cartId: serverCart ? serverCart.cartId : null,
-            shippingAddress: {
-              firstName: formData.firstName,
-              lastName: formData.lastName,
-              address: formData.address,
-              province: formData.province,
-              postalCode: formData.postalCode,
-              phone: formData.phone,
-              country: formData.country,
-              email: formData.email
-            },
-            paymentMethod: formData.paymentMethod,
-            couponCode: formData.couponCode || null
-          };
+        // Build checkout request (same structure for both logged in and guest users)
+        const checkoutReq = {
+          userId: userId || null,
+          sessionId: !userId ? sessionId : null,
+          shippingAddress: {
+            fullName: `${formData.firstName} ${formData.lastName}`.trim(),
+            phoneNumber: formData.phone,
+            addressLine1: formData.address,
+            addressLine2: '',
+            ward: '',
+            district: '',
+            city: formData.province,
+            postalCode: formData.postalCode,
+            country: formData.country,
+            notes: formData.email ? `Email: ${formData.email}` : ''
+          },
+          paymentMethod: formData.paymentMethod,
+          couponCode: formData.couponCode || null
+        };
 
-          console.log('[CheckoutPage] sending createOrder request', createOrderReq);
-          res = await fetch(`${API_BASE}/api/cart/check`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-            },
-            body: JSON.stringify(createOrderReq)
-          });
-        } else {
-          // Guest checkout: call cart/checkout with sessionId
-          const checkoutReq = {
-            userId: null,
-            sessionId: sessionId,
-            shippingAddress: {
-              firstName: formData.firstName,
-              lastName: formData.lastName,
-              address: formData.address,
-              province: formData.province,
-              postalCode: formData.postalCode,
-              phone: formData.phone,
-              country: formData.country,
-              email: formData.email
-            },
-            paymentMethod: formData.paymentMethod,
-            couponCode: formData.couponCode || null
-          };
-
-          console.log('[CheckoutPage] sending checkout request (guest)', checkoutReq);
-          res = await fetch(`${API_BASE}/api/cart/checkout`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-            },
-            body: JSON.stringify(checkoutReq)
-          });
-        }
+        console.log('[CheckoutPage] sending checkout request', checkoutReq);
+        const res = await fetch(`${API_BASE}/api/cart/checkout`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify(checkoutReq)
+        });
 
         if (!res.ok) {
           const txt = await res.text();

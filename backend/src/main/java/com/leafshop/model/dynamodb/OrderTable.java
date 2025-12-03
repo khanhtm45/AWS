@@ -37,7 +37,7 @@ public class OrderTable {
     private Double taxAmount;
     private Double shippingAmount;
     private Double discountAmount;
-    private Map<String, String> shippingAddress;
+    private Map<String, String> shippingAddress; // Changed to String for DynamoDB compatibility
     private String notes;
 
     // ORDER ITEM fields
