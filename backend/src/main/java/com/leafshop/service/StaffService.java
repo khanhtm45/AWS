@@ -80,11 +80,12 @@ public class StaffService {
                     
                     System.out.println("✅ [getAllCustomers] Processing customer: " + userId);
                     
-                    // Get orders for this user
-                    String orderPkPrefix = "USER#" + userId + "#ORDER#";
+                    // Get orders for this user using email (orders are keyed by email, not UUID)
+                    String userEmail = accountRecord.getEmail();
+                    String orderPkPrefix = "USER#" + userEmail + "#ORDER#";
                     System.out.println("🔍 [getAllCustomers] Searching orders with prefix: " + orderPkPrefix);
                     List<OrderTable> orders = orderRepository.findByPkStartingWith(orderPkPrefix);
-                    System.out.println("📦 [getAllCustomers] Found " + orders.size() + " order records for user: " + userId);
+                    System.out.println("📦 [getAllCustomers] Found " + orders.size() + " order records for user: " + userEmail);
                     
                     // Filter only META orders
                     List<OrderTable> metaOrders = orders.stream()
