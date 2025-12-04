@@ -39,6 +39,10 @@ const DashboardPage = () => {
   const ordersPerPage = 10;
   const [showOrderDetailModal, setShowOrderDetailModal] = useState(false);
   const [selectedOrderDetail, setSelectedOrderDetail] = useState(null);
+  const [showEditStatusModal, setShowEditStatusModal] = useState(false);
+  const [editingOrder, setEditingOrder] = useState(null);
+  const [newStatus, setNewStatus] = useState('');
+  const [statusNote, setStatusNote] = useState('');
 
   // User management state (admin only)
   const [users, setUsers] = useState([]);
@@ -192,11 +196,9 @@ const DashboardPage = () => {
             'PENDING': { text: 'Chờ Xử Lý', value: 'pending' },
             'CONFIRMED': { text: 'Đã Xác Nhận', value: 'confirmed' },
             'PROCESSING': { text: 'Đang Xử Lý', value: 'processing' },
-            'SHIPPING': { text: 'Đang Giao', value: 'shipping' },
-            'DELIVERED': { text: 'Đã Giao', value: 'completed' },
-            'COMPLETED': { text: 'Hoàn Thành', value: 'completed' },
-            'CANCELLED': { text: 'Đã Hủy', value: 'cancelled' },
-            'RETURNED': { text: 'Đã Trả', value: 'returned' }
+            'SHIPPED': { text: 'Đang Giao', value: 'shipped' },
+            'DELIVERED': { text: 'Đã Giao', value: 'delivered' },
+            'CANCELLED': { text: 'Đã Hủy', value: 'cancelled' }
           };
           
           const statusInfo = statusMap[o.orderStatus] || { text: o.orderStatus || 'Chờ Xử Lý', value: 'pending' };
@@ -364,6 +366,121 @@ const DashboardPage = () => {
     // Ensure staff-specific key is removed and redirect
     try { localStorage.removeItem('staffAdminUser'); } catch (e) {}
     navigate('/staff-admin-login');
+  };
+
+  // ======================= HANDLE UPDATE ORDER STATUS =======================
+  const handleUpdateOrderStatus = async (e) => {
+    e.preventDefault();
+    
+    if (!editingOrder || !newStatus) {
+      alert('Vui lòng chọn trạng thái mới');
+      return;
+    }
+
+    // Get userId from order data
+    const userId = editingOrder.originalData?.userId || editingOrder.originalData?.customerId || user?.userId;
+    
+    if (!userId) {
+      alert('Không tìm thấy thông tin userId. Vui lòng thử lại.');
+      return;
+    }
+
+    try {
+      // Add userId as query parameter
+      const url = `${API_BASE}/api/orders/${editingOrder.id}/status?userId=${userId}`;
+      const payload = {
+        status: newStatus,
+        note: statusNote || ''
+      };
+
+      const res = await fetch(url, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Cập nhật trạng thái thất bại');
+      }
+
+      alert('Cập nhật trạng thái đơn hàng thành công!');
+      
+      // Reload orders
+      const ordersRes = await fetch(`${API_BASE}/api/orders`, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
+      if (ordersRes.ok) {
+        const data = await ordersRes.json();
+        const mapped = (data || []).map(o => {
+          const timestamp = o.createdAt || o.orderDate || o.date;
+          const parsedDate = timestamp ? new Date(timestamp) : null;
+          const formattedDate = parsedDate && !isNaN(parsedDate.getTime())
+            ? `${parsedDate.getDate()}/${parsedDate.getMonth() + 1}/${parsedDate.getFullYear()}`
+            : '';
+
+          const priceNum = o.totalAmount || o.total || o.amount || 0;
+          const productName = o.items && o.items.length > 0 
+            ? o.items[0].productName 
+            : o.productName || 'Không rõ';
+          const customerName = o.shippingAddress?.fullName || o.customerName || 'Khách hàng';
+          const address = o.shippingAddress 
+            ? [
+                o.shippingAddress.addressLine1,
+                o.shippingAddress.addressLine2,
+                o.shippingAddress.ward,
+                o.shippingAddress.district,
+                o.shippingAddress.city
+              ].filter(Boolean).join(', ')
+            : '';
+          const phone = o.shippingAddress?.phoneNumber || o.phone || '';
+          const quantity = o.items 
+            ? o.items.reduce((sum, item) => sum + (item.quantity || 0), 0) 
+            : 0;
+          
+          const statusMap = {
+            'PENDING': { text: 'Chờ Xử Lý', value: 'pending' },
+            'CONFIRMED': { text: 'Đã Xác Nhận', value: 'confirmed' },
+            'PROCESSING': { text: 'Đang Xử Lý', value: 'processing' },
+            'SHIPPED': { text: 'Đang Giao', value: 'shipped' },
+            'DELIVERED': { text: 'Đã Giao', value: 'delivered' },
+            'CANCELLED': { text: 'Đã Hủy', value: 'cancelled' }
+          };
+          
+          const backendStatus = o.orderStatus || o.status || 'PENDING';
+          const statusInfo = statusMap[backendStatus] || { text: backendStatus, value: 'pending' };
+
+          return {
+            id: o.orderId || o.id,
+            customerName,
+            orderDate: formattedDate,
+            price: priceNum.toLocaleString() + 'đ',
+            status: statusInfo.value,
+            statusText: statusInfo.text,
+            productName,
+            address,
+            phone,
+            quantity,
+            originalData: o
+          };
+        });
+        setOrders(mapped);
+      }
+      
+      // Close modal and reset form
+      setShowEditStatusModal(false);
+      setEditingOrder(null);
+      setNewStatus('');
+      setStatusNote('');
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      alert('Lỗi: ' + error.message);
+    }
   };
 
   // ======================= STAFF CREATION =======================
@@ -1056,16 +1173,20 @@ const DashboardPage = () => {
   // ======================= HELPERS =======================
   const getStatusColor = (status) => {
     switch (status) {
-      case 'completed':
-        return '#10B981';
-      case 'processing':
-        return '#F59E0B';
-      case 'shipping':
-        return '#3B82F6';
-      case 'pending':
-        return '#EF4444';
+      case 'PENDING':
+        return '#ffa500'; // Orange
+      case 'CONFIRMED':
+        return '#4CAF50'; // Green
+      case 'PROCESSING':
+        return '#2196F3'; // Blue
+      case 'SHIPPED':
+        return '#9C27B0'; // Purple
+      case 'DELIVERED':
+        return '#4CAF50'; // Green
+      case 'CANCELLED':
+        return '#f44336'; // Red
       default:
-        return '#6B7280';
+        return '#6B7280'; // Gray
     }
   };
 
@@ -1130,13 +1251,95 @@ const DashboardPage = () => {
     setShowUserOrdersModal(true);
   };
 
-  const viewCustomerOrders = (customerId, customerName) => {
-    const customerOrders = orders.filter(order =>
-      order.customerName.toLowerCase().includes(customerName.toLowerCase().split(' ')[0])
-    );
-    setSelectedUserOrders(customerOrders);
-    setSelectedUserName(customerName);
-    setShowUserOrdersModal(true);
+  const viewCustomerOrders = async (customerId, customerName) => {
+    try {
+      const token = accessToken || localStorage.getItem('accessToken');
+      if (!token) {
+        console.error('[viewCustomerOrders] No access token found');
+        alert('Vui lòng đăng nhập lại');
+        return;
+      }
+
+      console.log(`[viewCustomerOrders] Fetching orders for userId: ${customerId}`);
+      
+      const response = await fetch(`${API_BASE}/api/orders?userId=${customerId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        console.error('[viewCustomerOrders] Failed to fetch orders:', response.status);
+        throw new Error(`Failed to fetch orders: ${response.status}`);
+      }
+
+      const ordersData = await response.json();
+      console.log('[viewCustomerOrders] Raw response:', ordersData);
+      console.log('[viewCustomerOrders] Response type:', typeof ordersData);
+      console.log('[viewCustomerOrders] Is Array?', Array.isArray(ordersData));
+      console.log('[viewCustomerOrders] Length:', ordersData?.length);
+
+      // Handle both array and object with data property
+      let ordersList = [];
+      if (Array.isArray(ordersData)) {
+        ordersList = ordersData;
+      } else if (ordersData && ordersData.data && Array.isArray(ordersData.data)) {
+        ordersList = ordersData.data;
+      } else if (ordersData && ordersData.orders && Array.isArray(ordersData.orders)) {
+        ordersList = ordersData.orders;
+      }
+
+      console.log('[viewCustomerOrders] Orders list to transform:', ordersList);
+
+      if (!ordersList || ordersList.length === 0) {
+        console.log('[viewCustomerOrders] No orders found for this user');
+        setSelectedUserOrders([]);
+        setSelectedUserName(customerName);
+        setShowUserOrdersModal(true);
+        return;
+      }
+
+      // Transform API data to match component structure
+      const transformedOrders = ordersList.map(order => {
+        console.log('[viewCustomerOrders] Transforming order:', order);
+        return {
+          id: order.orderId || order.id,
+          productName: order.items?.map(item => item.productName || item.name).join(', ') || 'N/A',
+          orderDate: order.orderDate ? new Date(order.orderDate).toLocaleDateString('vi-VN') : 'N/A',
+          price: order.totalAmount ? `${order.totalAmount.toLocaleString('vi-VN')}đ` : 'N/A',
+          status: order.orderStatus || order.status || 'PENDING',
+          statusText: getStatusText(order.orderStatus || order.status),
+          customerName: `${order.firstName || ''} ${order.lastName || ''}`.trim(),
+          address: order.shippingAddress || 'N/A',
+          phone: order.phone || 'N/A',
+          originalData: order
+        };
+      });
+
+      console.log('[viewCustomerOrders] Transformed orders:', transformedOrders);
+      setSelectedUserOrders(transformedOrders);
+      setSelectedUserName(customerName);
+      setShowUserOrdersModal(true);
+    } catch (error) {
+      console.error('[viewCustomerOrders] Error fetching orders:', error);
+      alert('Không thể tải đơn hàng của người dùng. Vui lòng thử lại.');
+    }
+  };
+
+  // Helper function to get status text
+  const getStatusText = (status) => {
+    const statusMap = {
+      'PENDING': 'Chờ Xử Lý',
+      'CONFIRMED': 'Đã Xác Nhận',
+      'PROCESSING': 'Đang Xử Lý',
+      'SHIPPED': 'Đang Giao',
+      'DELIVERED': 'Đã Giao',
+      'CANCELLED': 'Đã Hủy'
+    };
+    return statusMap[status] || status;
   };
 
   // Dashboard stats
@@ -1634,10 +1837,11 @@ const DashboardPage = () => {
                     >
                       <option value="all">Tất cả</option>
                       <option value="pending">Chờ Xử Lý</option>
-                      <option value="confirmed">Đã xác nhận</option>
-                      <option value="shipping">Đang Giao</option>
-                      <option value="completed">Hoàn Thành</option>
-                      <option value="cancelled">Đã hủy</option>
+                      <option value="confirmed">Đã Xác Nhận</option>
+                      <option value="processing">Đang Xử Lý</option>
+                      <option value="shipped">Đang Giao</option>
+                      <option value="delivered">Đã Giao</option>
+                      <option value="cancelled">Đã Hủy</option>
                     </select>
                   </div>
 
@@ -1683,25 +1887,23 @@ const DashboardPage = () => {
                 <table className="orders-tab-table">
                   <thead>
                     <tr>
-                      <th>ID</th>
                       <th>Tên Người đặt</th>
                       <th>Thời gian</th>
                       <th>Giá Tiền</th>
                       <th>Trạng Thái</th>
-                      <th>Chi tiết</th>
+                      <th style={{ textAlign: 'center' }}>Chi tiết</th>
                     </tr>
                   </thead>
                   <tbody>
                     {currentOrders.length === 0 ? (
                       <tr key="no-orders">
-                        <td colSpan="6" style={{ textAlign: 'center', padding: '1rem' }}>
+                        <td colSpan="5" style={{ textAlign: 'center', padding: '1rem' }}>
                           Không có đơn hàng nào
                         </td>
                       </tr>
                     ) : (
                       currentOrders.map((order, index) => (
                         <tr key={order.id || `order-${index}`}>
-                          <td className="order-id">{order.id}</td>
                           <td className="customer-name">{order.customerName}</td>
                           <td className="order-date">{order.orderDate}</td>
                           <td className="order-price">{order.price}</td>
@@ -1714,29 +1916,78 @@ const DashboardPage = () => {
                             </span>
                           </td>
                           <td>
-                            <button
-                              className="detail-btn"
-                              onClick={() => {
-                                console.log('📋 Order detail:', order);
-                                console.log('📦 Items:', order.originalData?.items);
-                                setSelectedOrderDetail(order);
-                                setShowOrderDetailModal(true);
-                              }}
-                              title="Xem chi tiết"
-                            >
-                              <svg
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                xmlns="http://www.w3.org/2000/svg"
+                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>
+                              <button
+                                className="detail-btn"
+                                onClick={() => {
+                                  console.log('📋 Order detail:', order);
+                                  console.log('📦 Items:', order.originalData?.items);
+                                  setSelectedOrderDetail(order);
+                                  setShowOrderDetailModal(true);
+                                }}
+                                title="Xem chi tiết"
+                                style={{
+                                  backgroundColor: '#17a2b8',
+                                  border: 'none',
+                                  borderRadius: '6px',
+                                  padding: '8px 12px',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  transition: 'all 0.2s ease',
+                                  color: 'white'
+                                }}
                               >
-                                <path
-                                  d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"
-                                  fill="currentColor"
-                                />
-                              </svg>
-                            </button>
+                                <svg
+                                  width="16"
+                                  height="16"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                >
+                                  <path
+                                    d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"
+                                    fill="white"
+                                  />
+                                </svg>
+                              </button>
+                              <button
+                                className="detail-btn"
+                                onClick={() => {
+                                  setEditingOrder(order);
+                                  setNewStatus(order.originalData?.orderStatus || 'PENDING');
+                                  setStatusNote('');
+                                  setShowEditStatusModal(true);
+                                }}
+                                title="Sửa trạng thái"
+                                style={{
+                                  backgroundColor: '#f59e0b',
+                                  border: 'none',
+                                  borderRadius: '6px',
+                                  padding: '8px 12px',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  transition: 'all 0.2s ease',
+                                  color: 'white'
+                                }}
+                              >
+                                <svg
+                                  width="16"
+                                  height="16"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                >
+                                  <path
+                                    d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"
+                                    fill="white"
+                                  />
+                                </svg>
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))
@@ -1765,152 +2016,106 @@ const DashboardPage = () => {
                 </button>
               </div>
 
-              {/* Order Detail Modal */}
-              {showOrderDetailModal && selectedOrderDetail && (
-                <div className="modal-overlay" onClick={() => setShowOrderDetailModal(false)}>
-                  <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '800px' }}>
+              {/* Edit Status Modal */}
+              {showEditStatusModal && editingOrder && (
+                <div className="modal-overlay" onClick={() => setShowEditStatusModal(false)}>
+                  <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
                     <div className="modal-header">
-                      <h2>Chi tiết đơn hàng #{selectedOrderDetail.id}</h2>
+                      <h2>Cập nhật trạng thái đơn hàng #{editingOrder.id}</h2>
                       <button
                         className="modal-close-btn"
-                        onClick={() => setShowOrderDetailModal(false)}
+                        onClick={() => setShowEditStatusModal(false)}
                       >
                         ×
                       </button>
                     </div>
-                    <div className="modal-body" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
-                      {/* Customer Information */}
-                      <div style={{ marginBottom: '24px' }}>
-                        <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', color: '#1f2937' }}>Thông tin khách hàng</h3>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px' }}>
-                          <div>
-                            <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Tên khách hàng</div>
-                            <div style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>{selectedOrderDetail.customerName}</div>
-                          </div>
-                          <div>
-                            <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Số điện thoại</div>
-                            <div style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>{selectedOrderDetail.phone || 'Chưa có'}</div>
-                          </div>
-                          <div style={{ gridColumn: '1 / -1' }}>
-                            <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Địa chỉ giao hàng</div>
-                            <div style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>{selectedOrderDetail.address || 'Chưa có'}</div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Order Information */}
-                      <div style={{ marginBottom: '24px' }}>
-                        <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', color: '#1f2937' }}>Thông tin đơn hàng</h3>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px' }}>
-                          <div>
-                            <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Mã đơn hàng</div>
-                            <div style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>{selectedOrderDetail.id}</div>
-                          </div>
-                          <div>
-                            <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Ngày đặt</div>
-                            <div style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>{selectedOrderDetail.orderDate}</div>
-                          </div>
-                          <div>
-                            <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Trạng thái</div>
-                            <div>
-                              <span
-                                className="status-badge"
-                                style={{ backgroundColor: getStatusColor(selectedOrderDetail.status), fontSize: '12px', padding: '4px 12px' }}
-                              >
-                                {selectedOrderDetail.statusText}
-                              </span>
-                            </div>
-                          </div>
-                          <div>
-                            <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Tổng tiền</div>
-                            <div style={{ fontSize: '18px', fontWeight: '600', color: '#059669' }}>{selectedOrderDetail.price}</div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Items List */}
-                      {selectedOrderDetail.originalData?.items && selectedOrderDetail.originalData.items.length > 0 ? (
-                        <div style={{ marginBottom: '24px' }}>
-                          <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', color: '#1f2937' }}>Sản phẩm</h3>
-                          <div style={{ border: '1px solid #e5e7eb', borderRadius: '8px', overflow: 'hidden' }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                              <thead style={{ backgroundColor: '#f9fafb' }}>
-                                <tr>
-                                  <th style={{ padding: '12px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Sản phẩm</th>
-                                  <th style={{ padding: '12px', textAlign: 'center', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Số lượng</th>
-                                  <th style={{ padding: '12px', textAlign: 'right', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Đơn giá</th>
-                                  <th style={{ padding: '12px', textAlign: 'right', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Thành tiền</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {selectedOrderDetail.originalData.items.map((item, idx) => {
-                                  // Try to find product name from products list by productId
-                                  let displayName = item.productName || item.name;
-                                  
-                                  if (!displayName && item.productId) {
-                                    const product = products.find(p => p.id === item.productId);
-                                    displayName = product?.name;
-                                  }
-                                  
-                                  displayName = displayName || selectedOrderDetail.productName || `Sản phẩm (${item.productId || ''})`;
-                                  
-                                  return (
-                                    <tr key={idx} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                                      <td style={{ padding: '12px', fontSize: '14px', color: '#1f2937' }}>{displayName}</td>
-                                      <td style={{ padding: '12px', textAlign: 'center', fontSize: '14px', color: '#1f2937' }}>{item.quantity || 0}</td>
-                                      <td style={{ padding: '12px', textAlign: 'right', fontSize: '14px', color: '#1f2937' }}>{(item.unitPrice || 0).toLocaleString()}đ</td>
-                                      <td style={{ padding: '12px', textAlign: 'right', fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>{(item.itemTotal || 0).toLocaleString()}đ</td>
-                                    </tr>
-                                  );
-                                })}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                      ) : selectedOrderDetail.productName ? (
-                        <div style={{ marginBottom: '24px' }}>
-                          <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', color: '#1f2937' }}>Sản phẩm</h3>
-                          <div style={{ padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <div>
-                                <div style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937', marginBottom: '4px' }}>{selectedOrderDetail.productName}</div>
-                                <div style={{ fontSize: '12px', color: '#6b7280' }}>Số lượng: {selectedOrderDetail.quantity || 1}</div>
-                              </div>
-                              <div style={{ fontSize: '16px', fontWeight: '600', color: '#059669' }}>{selectedOrderDetail.price}</div>
-                            </div>
-                          </div>
-                        </div>
-                      ) : null}
-
-                      {/* Payment Summary */}
-                      <div style={{ padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                          <span style={{ fontSize: '14px', color: '#6b7280' }}>Tạm tính:</span>
-                          <span style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>
-                            {selectedOrderDetail.originalData?.subtotal ? selectedOrderDetail.originalData.subtotal.toLocaleString() + 'đ' : selectedOrderDetail.price}
-                          </span>
-                        </div>
-                        {selectedOrderDetail.originalData?.shippingAmount > 0 && (
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                            <span style={{ fontSize: '14px', color: '#6b7280' }}>Phí vận chuyển:</span>
-                            <span style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>
-                              {selectedOrderDetail.originalData.shippingAmount.toLocaleString()}đ
+                    <div className="modal-body">
+                      <form onSubmit={handleUpdateOrderStatus}>
+                        <div className="form-group" style={{ marginBottom: '20px' }}>
+                          <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>Trạng thái hiện tại</label>
+                          <div style={{ padding: '12px', backgroundColor: '#f3f4f6', borderRadius: '8px', marginBottom: '16px' }}>
+                            <span
+                              className="status-badge"
+                              style={{ backgroundColor: getStatusColor(editingOrder.status) }}
+                            >
+                              {editingOrder.statusText}
                             </span>
                           </div>
-                        )}
-                        {selectedOrderDetail.originalData?.discountAmount > 0 && (
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                            <span style={{ fontSize: '14px', color: '#6b7280' }}>Giảm giá:</span>
-                            <span style={{ fontSize: '14px', fontWeight: '500', color: '#dc2626' }}>
-                              -{selectedOrderDetail.originalData.discountAmount.toLocaleString()}đ
-                            </span>
-                          </div>
-                        )}
-                        <div style={{ borderTop: '1px solid #e5e7eb', marginTop: '12px', paddingTop: '12px', display: 'flex', justifyContent: 'space-between' }}>
-                          <span style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937' }}>Tổng cộng:</span>
-                          <span style={{ fontSize: '18px', fontWeight: '700', color: '#059669' }}>{selectedOrderDetail.price}</span>
+                          
+                          <label htmlFor="newStatus" style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>Trạng thái mới *</label>
+                          <select
+                            id="newStatus"
+                            value={newStatus}
+                            onChange={(e) => setNewStatus(e.target.value)}
+                            required
+                            style={{
+                              width: '100%',
+                              padding: '12px',
+                              borderRadius: '8px',
+                              border: '1px solid #d1d5db',
+                              fontSize: '14px',
+                              marginBottom: '16px'
+                            }}
+                          >
+                            <option value="PENDING">Chờ Xử Lý</option>
+                            <option value="CONFIRMED">Đã Xác Nhận</option>
+                            <option value="PROCESSING">Đang Xử Lý</option>
+                            <option value="SHIPPED">Đang Giao</option>
+                            <option value="DELIVERED">Đã Giao</option>
+                            <option value="CANCELLED">Đã Hủy</option>
+                          </select>
+
+                          <label htmlFor="statusNote" style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>Ghi chú</label>
+                          <textarea
+                            id="statusNote"
+                            value={statusNote}
+                            onChange={(e) => setStatusNote(e.target.value)}
+                            placeholder="Nhập ghi chú (tùy chọn)..."
+                            rows="4"
+                            style={{
+                              width: '100%',
+                              padding: '12px',
+                              borderRadius: '8px',
+                              border: '1px solid #d1d5db',
+                              fontSize: '14px',
+                              resize: 'vertical'
+                            }}
+                          />
                         </div>
-                      </div>
+
+                        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                          <button
+                            type="button"
+                            onClick={() => setShowEditStatusModal(false)}
+                            style={{
+                              padding: '10px 20px',
+                              borderRadius: '8px',
+                              border: '1px solid #d1d5db',
+                              backgroundColor: 'white',
+                              cursor: 'pointer',
+                              fontSize: '14px',
+                              fontWeight: '500'
+                            }}
+                          >
+                            Hủy
+                          </button>
+                          <button
+                            type="submit"
+                            style={{
+                              padding: '10px 20px',
+                              borderRadius: '8px',
+                              border: 'none',
+                              backgroundColor: '#3b82f6',
+                              color: 'white',
+                              cursor: 'pointer',
+                              fontSize: '14px',
+                              fontWeight: '500'
+                            }}
+                          >
+                            Cập nhật
+                          </button>
+                        </div>
+                      </form>
                     </div>
                   </div>
                 </div>
@@ -2355,7 +2560,7 @@ const DashboardPage = () => {
                             <div className="action-buttons">
                               <button
                                 className="view-orders-btn"
-                                onClick={() => viewCustomerOrders(u.id, u.name)}
+                                onClick={() => viewCustomerOrders(u.email, u.name)}
                                 title="Xem đơn hàng"
                               >
                                 📦
@@ -2418,19 +2623,66 @@ const DashboardPage = () => {
                         <table className="user-orders-table">
                           <thead>
                             <tr>
-                              <th>ID</th>
-                              <th>Sản phẩm</th>
-                              <th>Ngày</th>
-                              <th>Giá</th>
+                              <th>Mã đơn</th>
+                              <th>Trạng thái</th>
+                              <th style={{ textAlign: 'center' }}>Chi tiết</th>
                             </tr>
                           </thead>
                           <tbody>
                             {selectedUserOrders.map(o => (
                               <tr key={o.id}>
                                 <td>{o.id}</td>
-                                <td>{o.productName}</td>
-                                <td>{o.orderDate}</td>
-                                <td>{o.price}</td>
+                                <td>
+                                  <span
+                                    className="status-badge"
+                                    style={{ 
+                                      backgroundColor: getStatusColor(o.status),
+                                      fontSize: '12px',
+                                      padding: '4px 8px'
+                                    }}
+                                  >
+                                    {o.statusText}
+                                  </span>
+                                </td>
+                                <td style={{ textAlign: 'center' }}>
+                                  <button
+                                    className="detail-btn"
+                                    onClick={() => {
+                                      console.log('📋 Viewing order detail:', o);
+                                      setSelectedOrderDetail(o);
+                                      setShowUserOrdersModal(false);
+                                      setTimeout(() => {
+                                        setShowOrderDetailModal(true);
+                                      }, 100);
+                                    }}
+                                    title="Xem chi tiết"
+                                    style={{
+                                      backgroundColor: '#17a2b8',
+                                      border: 'none',
+                                      borderRadius: '6px',
+                                      padding: '8px 12px',
+                                      cursor: 'pointer',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      transition: 'all 0.2s ease',
+                                      color: 'white'
+                                    }}
+                                  >
+                                    <svg
+                                      width="16"
+                                      height="16"
+                                      viewBox="0 0 24 24"
+                                      fill="none"
+                                      xmlns="http://www.w3.org/2000/svg"
+                                    >
+                                      <path
+                                        d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"
+                                        fill="white"
+                                      />
+                                    </svg>
+                                  </button>
+                                </td>
                               </tr>
                             ))}
                           </tbody>
@@ -2481,6 +2733,160 @@ const DashboardPage = () => {
           }}
           productId={viewingProductId}
         />
+
+        {/* Order Detail Modal - Shared across all tabs */}
+        {showOrderDetailModal && selectedOrderDetail && (
+          <div className="modal-overlay" onClick={() => setShowOrderDetailModal(false)}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '800px' }}>
+              <div className="modal-header">
+                <h2>Chi tiết đơn hàng #{selectedOrderDetail.id}</h2>
+                <button
+                  className="modal-close-btn"
+                  onClick={() => setShowOrderDetailModal(false)}
+                >
+                  ×
+                </button>
+              </div>
+              <div className="modal-body" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+                {/* Customer Information */}
+                <div style={{ marginBottom: '24px' }}>
+                  <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', color: '#1f2937' }}>Thông tin khách hàng</h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px' }}>
+                    <div>
+                      <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Tên khách hàng</div>
+                      <div style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>{selectedOrderDetail.customerName}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Số điện thoại</div>
+                      <div style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>{selectedOrderDetail.phone || 'Chưa có'}</div>
+                    </div>
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Địa chỉ giao hàng</div>
+                      <div style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>
+                        {selectedOrderDetail.originalData?.shippingAddress ? (
+                          <>
+                            {selectedOrderDetail.originalData.shippingAddress.fullName && (
+                              <div>{selectedOrderDetail.originalData.shippingAddress.fullName}</div>
+                            )}
+                            {selectedOrderDetail.originalData.shippingAddress.phoneNumber && (
+                              <div>{selectedOrderDetail.originalData.shippingAddress.phoneNumber}</div>
+                            )}
+                            <div>
+                              {[
+                                selectedOrderDetail.originalData.shippingAddress.addressLine1,
+                                selectedOrderDetail.originalData.shippingAddress.addressLine2,
+                                selectedOrderDetail.originalData.shippingAddress.ward,
+                                selectedOrderDetail.originalData.shippingAddress.district,
+                                selectedOrderDetail.originalData.shippingAddress.city,
+                                selectedOrderDetail.originalData.shippingAddress.postalCode
+                              ].filter(Boolean).join(', ')}
+                            </div>
+                            {selectedOrderDetail.originalData.shippingAddress.notes && (
+                              <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
+                                Ghi chú: {selectedOrderDetail.originalData.shippingAddress.notes}
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          selectedOrderDetail.address || 'Chưa có'
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Order Information */}
+                <div style={{ marginBottom: '24px' }}>
+                  <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', color: '#1f2937' }}>Thông tin đơn hàng</h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px' }}>
+                    <div>
+                      <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Mã đơn hàng</div>
+                      <div style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>{selectedOrderDetail.id}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Ngày đặt</div>
+                      <div style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>{selectedOrderDetail.orderDate}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Trạng thái</div>
+                      <div>
+                        <span
+                          className="status-badge"
+                          style={{ backgroundColor: getStatusColor(selectedOrderDetail.status), fontSize: '12px', padding: '4px 12px' }}
+                        >
+                          {selectedOrderDetail.statusText}
+                        </span>
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Tổng tiền</div>
+                      <div style={{ fontSize: '18px', fontWeight: '600', color: '#059669' }}>{selectedOrderDetail.price}</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Items List */}
+                {selectedOrderDetail.originalData?.items && selectedOrderDetail.originalData.items.length > 0 && (
+                  <div style={{ marginBottom: '24px' }}>
+                    <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', color: '#1f2937' }}>Sản phẩm</h3>
+                    <div style={{ border: '1px solid #e5e7eb', borderRadius: '8px', overflow: 'hidden' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead style={{ backgroundColor: '#f9fafb' }}>
+                          <tr>
+                            <th style={{ padding: '12px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Sản phẩm</th>
+                            <th style={{ padding: '12px', textAlign: 'center', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Số lượng</th>
+                            <th style={{ padding: '12px', textAlign: 'right', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Đơn giá</th>
+                            <th style={{ padding: '12px', textAlign: 'right', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Thành tiền</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {selectedOrderDetail.originalData.items.map((item, idx) => (
+                            <tr key={idx} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                              <td style={{ padding: '12px', fontSize: '14px', color: '#1f2937' }}>{item.productName || 'N/A'}</td>
+                              <td style={{ padding: '12px', textAlign: 'center', fontSize: '14px', color: '#1f2937' }}>{item.quantity || 0}</td>
+                              <td style={{ padding: '12px', textAlign: 'right', fontSize: '14px', color: '#1f2937' }}>{(item.unitPrice || 0).toLocaleString()}đ</td>
+                              <td style={{ padding: '12px', textAlign: 'right', fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>{(item.itemTotal || 0).toLocaleString()}đ</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* Summary */}
+                <div style={{ padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '14px', color: '#6b7280' }}>Tạm tính:</span>
+                    <span style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>
+                      {selectedOrderDetail.originalData?.subtotal ? selectedOrderDetail.originalData.subtotal.toLocaleString() + 'đ' : selectedOrderDetail.price}
+                    </span>
+                  </div>
+                  {selectedOrderDetail.originalData?.shippingAmount > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '14px', color: '#6b7280' }}>Phí vận chuyển:</span>
+                      <span style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>
+                        {selectedOrderDetail.originalData.shippingAmount.toLocaleString()}đ
+                      </span>
+                    </div>
+                  )}
+                  {selectedOrderDetail.originalData?.discountAmount > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '14px', color: '#6b7280' }}>Giảm giá:</span>
+                      <span style={{ fontSize: '14px', fontWeight: '500', color: '#dc2626' }}>
+                        -{selectedOrderDetail.originalData.discountAmount.toLocaleString()}đ
+                      </span>
+                    </div>
+                  )}
+                  <div style={{ borderTop: '1px solid #e5e7eb', marginTop: '12px', paddingTop: '12px', display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937' }}>Tổng cộng:</span>
+                    <span style={{ fontSize: '18px', fontWeight: '700', color: '#059669' }}>{selectedOrderDetail.price}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
