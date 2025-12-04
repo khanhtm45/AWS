@@ -14,6 +14,9 @@ const ProductsPage = () => {
   const [appliedPriceRange, setAppliedPriceRange] = useState([0, 10000]);
   const [tempPriceRange, setTempPriceRange] = useState([0, 10000]);
 
+  // State cho search
+  const [searchQuery, setSearchQuery] = useState('');
+
   // Helper function để lấy presigned URL từ S3 key
   const getPresignedUrl = async (s3KeyOrUrl) => {
     if (!s3KeyOrUrl) return '/LEAF.png';
@@ -147,16 +150,21 @@ const ProductsPage = () => {
     }
   };
 
-  // Lọc sản phẩm theo category (ngay lập tức) và giá (sau khi áp dụng)
+  // Lọc sản phẩm theo category (ngay lập tức), giá (sau khi áp dụng), và search query
   const filteredProducts = products.filter(product => {
-    if (selectedCategories.includes('all')) return true;
+    // Lọc theo category
+    const categoryMatch = selectedCategories.includes('all') || 
+      selectedCategories.some(selectedCat => product.category === selectedCat);
     
-    // Kiểm tra xem product có thuộc bất kỳ category nào được chọn không
-    return selectedCategories.some(selectedCat => {
-      return product.category === selectedCat;
-    });
-  }).filter(product => {
-    return product.price >= appliedPriceRange[0] * 1000 && product.price <= appliedPriceRange[1] * 1000;
+    // Lọc theo giá
+    const priceMatch = product.price >= appliedPriceRange[0] * 1000 && 
+      product.price <= appliedPriceRange[1] * 1000;
+    
+    // Lọc theo search query (tìm trong tên sản phẩm)
+    const searchMatch = searchQuery.trim() === '' || 
+      product.name.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    return categoryMatch && priceMatch && searchMatch;
   });
 
   // Lấy danh sách categories từ products
@@ -191,6 +199,7 @@ const ProductsPage = () => {
     setSelectedCategories(['all']);
     setTempPriceRange([0, 10000]);
     setAppliedPriceRange([0, 10000]);
+    setSearchQuery('');
   };
 
   const formatPrice = (price) => {
@@ -266,7 +275,12 @@ const ProductsPage = () => {
             <h1>Đồ Nam</h1>
             <div className="search-container">
               <div className="search-box-compact">
-                <input type="text" placeholder="Search" />
+                <input 
+                  type="text" 
+                  placeholder="Search" 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
                 <button className="search-btn-compact">🔍</button>
               </div>
             </div>
