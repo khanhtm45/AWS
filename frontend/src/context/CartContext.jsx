@@ -47,19 +47,84 @@ export const CartProvider = ({ children }) => {
     localStorage.setItem('cart', JSON.stringify(cartItems));
   }, [cartItems]);
 
-  // Helper: map server CartResponse -> frontend cart item shape
-  const mapServerCartToFrontend = (serverCart) => {
+  // Helper: get presigned URL for S3 key or return URL as-is
+  const getPresignedUrl = async (s3KeyOrUrl) => {
+    if (!s3KeyOrUrl) return '/LEAF.png';
+    if (s3KeyOrUrl.startsWith('http')) return s3KeyOrUrl;
+    try {
+      const apiUrl = `${API_BASE}/api/s3/download-url?s3Key=${encodeURIComponent(s3KeyOrUrl)}&expirationMinutes=60`;
+      const response = await fetch(apiUrl);
+      if (!response.ok) return '/LEAF.png';
+      const data = await response.json();
+      return data.presignedUrl || data.url || data.downloadUrl || '/LEAF.png';
+    } catch (error) {
+      console.error('Error getting presigned URL:', error);
+      return '/LEAF.png';
+    }
+  };
+
+  // Helper: map server CartResponse -> frontend cart item shape with full product data
+  const mapServerCartToFrontend = async (serverCart) => {
     if (!serverCart || !Array.isArray(serverCart.items)) return [];
-    return serverCart.items.map(it => ({
-      cartItemId: it.getItemId ? it.getItemId() : it.itemId || it.itemId,
-      id: it.getProductId ? it.getProductId() : it.productId,
-      quantity: it.getQuantity ? it.getQuantity() : it.quantity || 1,
-      price: it.getUnitPrice ? it.getUnitPrice() : it.unitPrice || 0,
-      // UI fields that may be absent from server; keep placeholders
-      name: it.getProductName ? it.getProductName() : it.productName || '',
-      image: '/LEAF.png',
-      selectedSize: it.getSize ? it.getSize() : it.size || '',
-      selectedColor: it.getColor ? it.getColor() : it.color || ''
+    
+    // Fetch all products to get names and images
+    const productIds = [...new Set(serverCart.items.map(it => 
+      it.getProductId ? it.getProductId() : it.productId
+    ))];
+    
+    const productsMap = {};
+    try {
+      const productsRes = await fetch(`${API_BASE}/api/products`);
+      if (productsRes.ok) {
+        const allProducts = await productsRes.json();
+        allProducts.forEach(p => {
+          productsMap[p.productId] = p;
+        });
+      }
+    } catch (e) {
+      console.debug('Failed to fetch products for cart enrichment', e);
+    }
+
+    // Map each cart item with enriched product data
+    return await Promise.all(serverCart.items.map(async (it) => {
+      const productId = it.getProductId ? it.getProductId() : it.productId;
+      const product = productsMap[productId];
+      
+      let productName = it.getProductName ? it.getProductName() : it.productName || '';
+      let imageUrl = '/LEAF.png';
+      
+      if (product) {
+        productName = product.productName || product.name || productName;
+        
+        // Fetch media for this product
+        try {
+          const mediaRes = await fetch(`${API_BASE}/api/products/${productId}/media`);
+          if (mediaRes.ok) {
+            const mediaData = await mediaRes.json();
+            let primaryImage = mediaData.find(m => m.isPrimary === true);
+            if (!primaryImage && mediaData.length > 0) {
+              const sortedMedia = mediaData.sort((a, b) => (a.mediaOrder || 0) - (b.mediaOrder || 0));
+              primaryImage = sortedMedia[0];
+            }
+            if (primaryImage && primaryImage.s3Key) {
+              imageUrl = await getPresignedUrl(primaryImage.s3Key);
+            }
+          }
+        } catch (e) {
+          console.debug(`Failed to fetch media for product ${productId}`, e);
+        }
+      }
+      
+      return {
+        cartItemId: it.getItemId ? it.getItemId() : it.itemId || it.itemId,
+        id: productId,
+        quantity: it.getQuantity ? it.getQuantity() : it.quantity || 1,
+        price: it.getUnitPrice ? it.getUnitPrice() : it.unitPrice || 0,
+        name: productName,
+        image: imageUrl,
+        selectedSize: it.getSize ? it.getSize() : it.size || '',
+        selectedColor: it.getColor ? it.getColor() : it.color || ''
+      };
     }));
   };
 
@@ -75,7 +140,7 @@ export const CartProvider = ({ children }) => {
         const res = await fetch(`${API_BASE}/api/cart?${params.toString()}`);
         if (res.ok) {
           const serverCart = await res.json();
-          const mapped = mapServerCartToFrontend(serverCart);
+          const mapped = await mapServerCartToFrontend(serverCart);
           if (mapped.length > 0) setCartItems(mapped);
         }
       } catch (e) {
@@ -110,7 +175,7 @@ export const CartProvider = ({ children }) => {
         });
         if (res.ok) {
           const serverCart = await res.json();
-          const mapped = mapServerCartToFrontend(serverCart);
+          const mapped = await mapServerCartToFrontend(serverCart);
           setCartItems(mapped);
           return;
         }
@@ -152,7 +217,7 @@ export const CartProvider = ({ children }) => {
         });
         if (res.ok) {
           const serverCart = await res.json();
-          const mapped = mapServerCartToFrontend(serverCart);
+          const mapped = await mapServerCartToFrontend(serverCart);
           setCartItems(mapped);
           return;
         }
@@ -182,7 +247,7 @@ export const CartProvider = ({ children }) => {
         });
         if (res.ok) {
           const serverCart = await res.json();
-          const mapped = mapServerCartToFrontend(serverCart);
+          const mapped = await mapServerCartToFrontend(serverCart);
           setCartItems(mapped);
           return;
         }
