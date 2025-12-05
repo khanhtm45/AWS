@@ -78,7 +78,12 @@ function CartPage() {
                 {cartItems.map((item) => (
                   <div key={item.cartItemId} className="cart-item">
                     <div className="item-product">
-                      <img src={item.image} alt={item.name} className="item-image" />
+                      <img 
+                        src={item.image || '/LEAF.png'} 
+                        alt={item.name} 
+                        className="item-image"
+                        onError={(e) => { e.target.src = '/LEAF.png'; }}
+                      />
                       <div className="item-details">
                         <h3 
                           className="item-name" 
@@ -86,9 +91,13 @@ function CartPage() {
                         >
                           {item.name}
                         </h3>
-                        <p className="item-price">{item.price}</p>
-                        <p className="item-attribute">Color: {item.selectedColor === 'white' ? 'Trắng' : 'Đen'}</p>
-                        <p className="item-attribute">Size: {item.selectedSize}</p>
+                        <p className="item-price">{typeof item.price === 'number' ? `${item.price.toLocaleString('vi-VN')} ₫` : item.price}</p>
+                        {item.selectedColor && item.selectedColor !== 'N/A' && (
+                          <p className="item-attribute">Color: {item.selectedColor}</p>
+                        )}
+                        {item.selectedSize && item.selectedSize !== 'N/A' && (
+                          <p className="item-attribute">Size: {item.selectedSize}</p>
+                        )}
                       </div>
                     </div>
 
