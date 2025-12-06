@@ -42,7 +42,7 @@ const LoginPage = () => {
     (async () => {
       try {
         const emailToSend = email.trim().toLowerCase();
-        const res = await fetch(`${API_BASE}/api/auth/request-login-otp`, {
+        const res = await fetch(`${API_BASE}/api/auth/send-otp`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: emailToSend })
@@ -62,7 +62,7 @@ const LoginPage = () => {
     setMessage('');
     try {
       const emailToSend = email.trim().toLowerCase();
-      const res = await fetch(`${API_BASE}/api/auth/verify-login-otp`, {
+      const res = await fetch(`${API_BASE}/api/auth/verify-otp-login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: emailToSend, otp })
@@ -210,6 +210,14 @@ const LoginPage = () => {
               </div>
               <button type="submit" className="continue-btn">
                 {txtVerifyAndLogin}
+              </button>
+              <button 
+                type="button" 
+                onClick={() => { setStep('request'); setOtp(''); setMessage(''); }}
+                style={{ marginTop: 10, background: 'transparent', color: '#666', border: '1px solid #ddd' }}
+                className="continue-btn"
+              >
+                Gửi lại OTP
               </button>
             </form>
           )}
