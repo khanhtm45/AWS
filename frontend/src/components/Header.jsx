@@ -2,6 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
+import { useTranslatedText } from '../hooks/useTranslation';
+import LanguageSwitcher from './LanguageSwitcher';
 import './Header.css';
 
 export default function Header() {
@@ -9,8 +12,18 @@ export default function Header() {
   const { getCartCount } = useCart();
   const cartCount = getCartCount();
   const { user, logout } = useAuth();
+  const { currentLanguage } = useLanguage();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const userMenuRef = useRef(null);
+  
+  // AWS Translate cho các text
+  const loginText = useTranslatedText('Đăng nhập');
+  const homeText = useTranslatedText('Trang chủ');
+  const productsText = useTranslatedText('Sản phẩm');
+  const profileText = useTranslatedText('Hồ sơ');
+  const cartText = useTranslatedText('Giỏ hàng');
+  const ordersText = useTranslatedText('Đơn hàng');
+  const logoutText = useTranslatedText('Đăng xuất');
 
   const handleLogout = () => {
     setShowUserMenu(false);
@@ -25,7 +38,7 @@ export default function Header() {
           className="login-btn"
           onClick={() => navigate('/login')}
         >
-          Login
+          {loginText}
         </button>
       );
     }
@@ -55,14 +68,14 @@ export default function Header() {
         {showUserMenu && (
           <div className="user-dropdown">
             <button className="user-dropdown-item" onClick={() => { setShowUserMenu(false); navigate('/profile'); }}>
-              Hồ sơ người dùng
+              {profileText}
             </button>
             <button className="user-dropdown-item" onClick={() => { setShowUserMenu(false); navigate('/orders'); }}>
-              Đơn hàng
+              {ordersText}
             </button>
             <div className="user-dropdown-divider" />
             <button className="user-dropdown-item logout" onClick={handleLogout}>
-              Đăng xuất
+              {logoutText}
             </button>
           </div>
         )}
@@ -101,33 +114,34 @@ export default function Header() {
             className="nav-link"
             onClick={() => navigate('/')}
           >
-            Trang chủ
+            {homeText}
           </button>
           <button
             className="nav-link"
             onClick={() => navigate('/products')}
           >
-            Sản phẩm
+            {productsText}
           </button>
           <button
             className="nav-link"
             onClick={() => navigate('/profile')}
           >
-            Hồ sơ
+            {profileText}
           </button>
           <button
             className="nav-link cart-link"
             onClick={() => navigate('/cart')}
           >
-            Giỏ hàng
+            {cartText}
             {cartCount > 0 && (
               <span className="cart-badge">{cartCount}</span>
             )}
           </button>
         </nav>
 
-        {/* Right actions: login or user */}
+        {/* Right actions: language switcher, login or user */}
         <div className="header-actions">
+          <LanguageSwitcher />
           {renderUser()}
         </div>
       </div>

@@ -42,10 +42,42 @@ export const CartProvider = ({ children }) => {
 
   const { user, accessToken } = useAuth();
 
+  // Clear sessionId when user logs in (convert guest cart to user cart)
+  useEffect(() => {
+    if (user && sessionId) {
+      console.log('[CartContext] User logged in, removing guest sessionId');
+      localStorage.removeItem('cartSessionId');
+      setSessionId(null);
+    }
+  }, [user, sessionId]);
+
   // Save cart to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem('cart', JSON.stringify(cartItems));
   }, [cartItems]);
+
+  // Auto-clear guest session on window close
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      // Clear guest session (cartSessionId) when browser closes
+      // Cart items are kept in localStorage for convenience
+      try {
+        // If user is not logged in (guest), clear session ID
+        if (!user) {
+          localStorage.removeItem('cartSessionId');
+          sessionStorage.clear();
+        }
+      } catch (e) {
+        console.error('Error clearing cart session:', e);
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [user]);
 
   // Helper: get presigned URL for S3 key or return URL as-is
   const getPresignedUrl = async (s3KeyOrUrl) => {
@@ -134,8 +166,12 @@ export const CartProvider = ({ children }) => {
       try {
         const userId = user && (user.id || user.userId || user.userID) ? String(user.id || user.userId || user.userID) : null;
         const params = new URLSearchParams();
-        if (userId) params.append('userId', userId);
-        if (sessionId) params.append('sessionId', sessionId);
+        // IMPORTANT: Use userId if logged in, only use sessionId for guests
+        if (userId) {
+          params.append('userId', userId);
+        } else if (sessionId) {
+          params.append('sessionId', sessionId);
+        }
 
         const res = await fetch(`${API_BASE}/api/cart?${params.toString()}`);
         if (res.ok) {
@@ -157,9 +193,10 @@ export const CartProvider = ({ children }) => {
     (async () => {
       try {
         const userId = user && (user.id || user.userId || user.userID) ? (user.id || user.userId || user.userID) : null;
+        // IMPORTANT: Use userId if logged in, only use sessionId for guests
         const body = {
-          userId: userId,
-          sessionId: sessionId,
+          userId: userId || null,
+          sessionId: (!userId && sessionId) ? sessionId : null,
           productId: product.id,
           variantId: product.variantId || null,
           quantity: product.quantity || 1,
@@ -207,8 +244,12 @@ export const CartProvider = ({ children }) => {
       try {
         const userId = user && (user.id || user.userId || user.userID) ? (user.id || user.userId || user.userID) : null;
         const params = new URLSearchParams();
-        if (userId) params.append('userId', String(userId));
-        if (sessionId) params.append('sessionId', sessionId);
+        // IMPORTANT: Use userId if logged in, only use sessionId for guests
+        if (userId) {
+          params.append('userId', String(userId));
+        } else if (sessionId) {
+          params.append('sessionId', sessionId);
+        }
         const headers = {};
         if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
         const res = await fetch(`${API_BASE}/api/cart/items/${encodeURIComponent(cartItemId)}?${params.toString()}`, {
@@ -236,8 +277,12 @@ export const CartProvider = ({ children }) => {
       try {
         const userId = user && (user.id || user.userId || user.userID) ? (user.id || user.userId || user.userID) : null;
         const params = new URLSearchParams();
-        if (userId) params.append('userId', String(userId));
-        if (sessionId) params.append('sessionId', sessionId);
+        // IMPORTANT: Use userId if logged in, only use sessionId for guests
+        if (userId) {
+          params.append('userId', String(userId));
+        } else if (sessionId) {
+          params.append('sessionId', sessionId);
+        }
         params.append('quantity', String(newQuantity));
         const headers = {};
         if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;

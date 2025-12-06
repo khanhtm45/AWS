@@ -92,6 +92,33 @@ export const AuthProvider = ({ children }) => {
     });
   };
 
+  // Auto-clear session on window close (when user closes tab/browser)
+  React.useEffect(() => {
+    const handleBeforeUnload = () => {
+      // Clear session data when browser/tab closes
+      // sessionStorage will be auto-cleared by browser
+      // We can optionally clear localStorage too if needed
+      try {
+        // Option 1: Clear everything (uncomment if needed)
+        // localStorage.clear();
+        
+        // Option 2: Clear specific items only
+        sessionStorage.clear();
+        
+        // Option 3: Mark session as ended (keep data for next visit)
+        // sessionStorage.setItem('sessionEnded', 'true');
+      } catch (e) {
+        console.error('Error clearing session:', e);
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
+
   const value = {
     user,
     isLoading,

@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWS Translate Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 30px;
+            font-size: 2em;
+        }
+
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .test-section h2 {
+            color: #333;
+            font-size: 1.2em;
+            margin-bottom: 15px;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 600;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.3s;
+            width: 100%;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border: 2px solid #667eea;
+            min-height: 60px;
+        }
+
+        .result h3 {
+            color: #667eea;
+            font-size: 1em;
+            margin-bottom: 10px;
+        }
+
+        .result p {
+            color: #333;
+            line-height: 1.6;
+            font-size: 16px;
+        }
+
+        .result.error {
+            border-color: #f5576c;
+            background: #fff5f7;
+        }
+
+        .result.error h3 {
+            color: #f5576c;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .status {
+            text-align: center;
+            padding: 15px;
+            background: #e8f5e9;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            color: #2e7d32;
+            font-weight: 600;
+        }
+
+        .status.error {
+            background: #ffebee;
+            color: #c62828;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌐 AWS Translate Test</h1>
+        
+        <div id="status" class="status" style="display: none;"></div>
+
+        <!-- Test 1: Basic Translation -->
+        <div class="test-section">
+            <h2>1. Basic Translation</h2>
+            <div class="input-group">
+                <label for="text1">Text to translate:</label>
+                <textarea id="text1" placeholder="Enter text...">Xin chào, đây là cửa hàng Leaf Shop</textarea>
+            </div>
+            <div class="input-group">
+                <label for="sourceLang1">Source Language:</label>
+                <select id="sourceLang1">
+                    <option value="auto">Auto-detect</option>
+                    <option value="vi" selected>Vietnamese (vi)</option>
+                    <option value="en">English (en)</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label for="targetLang1">Target Language:</label>
+                <select id="targetLang1">
+                    <option value="vi">Vietnamese (vi)</option>
+                    <option value="en" selected>English (en)</option>
+                </select>
+            </div>
+            <button onclick="testBasicTranslation()">Translate</button>
+            <div id="result1" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Test 2: Vietnamese to English -->
+        <div class="test-section">
+            <h2>2. Vietnamese → English</h2>
+            <div class="input-group">
+                <label for="text2">Vietnamese text:</label>
+                <textarea id="text2" placeholder="Nhập văn bản tiếng Việt...">Chúng tôi bán các sản phẩm thời trang chất lượng cao</textarea>
+            </div>
+            <button onclick="testViToEn()">Translate to English</button>
+            <div id="result2" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Test 3: English to Vietnamese -->
+        <div class="test-section">
+            <h2>3. English → Vietnamese</h2>
+            <div class="input-group">
+                <label for="text3">English text:</label>
+                <textarea id="text3" placeholder="Enter English text...">We sell high quality fashion products</textarea>
+            </div>
+            <button onclick="testEnToVi()">Translate to Vietnamese</button>
+            <div id="result3" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Test 4: Health Check -->
+        <div class="test-section">
+            <h2>4. Service Health Check</h2>
+            <button onclick="testHealthCheck()">Check Service Status</button>
+            <div id="result4" class="result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8080/api/translate';
+
+        function showLoading(resultId) {
+            const resultDiv = document.getElementById(resultId);
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result';
+            resultDiv.innerHTML = '<h3>Translating<span class="loading"></span></h3>';
+        }
+
+        function showResult(resultId, title, content, isError = false) {
+            const resultDiv = document.getElementById(resultId);
+            resultDiv.style.display = 'block';
+            resultDiv.className = isError ? 'result error' : 'result';
+            resultDiv.innerHTML = `
+                <h3>${title}</h3>
+                <p>${content}</p>
+            `;
+        }
+
+        function showStatus(message, isError = false) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.style.display = 'block';
+            statusDiv.className = isError ? 'status error' : 'status';
+            statusDiv.textContent = message;
+            
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 3000);
+        }
+
+        async function testBasicTranslation() {
+            const text = document.getElementById('text1').value;
+            const sourceLang = document.getElementById('sourceLang1').value;
+            const targetLang = document.getElementById('targetLang1').value;
+
+            if (!text) {
+                showStatus('Please enter text to translate', true);
+                return;
+            }
+
+            showLoading('result1');
+
+            try {
+                const response = await fetch(API_BASE_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        text: text,
+                        sourceLanguage: sourceLang,
+                        targetLanguage: targetLang
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                showResult('result1', 'Translation Result:', data.translatedText);
+                showStatus('✓ Translation successful!');
+            } catch (error) {
+                showResult('result1', 'Error:', error.message, true);
+                showStatus('✗ Translation failed', true);
+                console.error('Translation error:', error);
+            }
+        }
+
+        async function testViToEn() {
+            const text = document.getElementById('text2').value;
+
+            if (!text) {
+                showStatus('Please enter Vietnamese text', true);
+                return;
+            }
+
+            showLoading('result2');
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/vi-to-en`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(text)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                showResult('result2', 'English Translation:', data.translatedText);
+                showStatus('✓ Translation successful!');
+            } catch (error) {
+                showResult('result2', 'Error:', error.message, true);
+                showStatus('✗ Translation failed', true);
+                console.error('Translation error:', error);
+            }
+        }
+
+        async function testEnToVi() {
+            const text = document.getElementById('text3').value;
+
+            if (!text) {
+                showStatus('Please enter English text', true);
+                return;
+            }
+
+            showLoading('result3');
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/en-to-vi`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(text)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                showResult('result3', 'Bản dịch tiếng Việt:', data.translatedText);
+                showStatus('✓ Translation successful!');
+            } catch (error) {
+                showResult('result3', 'Error:', error.message, true);
+                showStatus('✗ Translation failed', true);
+                console.error('Translation error:', error);
+            }
+        }
+
+        async function testHealthCheck() {
+            showLoading('result4');
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/health`, {
+                    method: 'GET',
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const text = await response.text();
+                showResult('result4', 'Service Status:', text);
+                showStatus('✓ Service is healthy!');
+            } catch (error) {
+                showResult('result4', 'Error:', error.message, true);
+                showStatus('✗ Service is not available', true);
+                console.error('Health check error:', error);
+            }
+        }
+
+        // Auto health check on load
+        window.addEventListener('load', () => {
+            testHealthCheck();
+        });
+    </script>
+</body>
+</html>

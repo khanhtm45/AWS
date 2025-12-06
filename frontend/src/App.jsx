@@ -19,8 +19,10 @@ import StaffAdminLoginPage from './pages/StaffAdminLoginPage';
 import ProfilePage from './pages/ProfilePage';
 import DashboardPage from './pages/DashboardPage';
 import OrdersPage from './pages/OrdersPage';
+import PaymentReturnPage from './pages/PaymentReturnPage';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
+import { LanguageProvider } from './context/LanguageContext';
 import ChatBox from './components/ChatBox';
 
 function AppContent() {
@@ -42,6 +44,7 @@ function AppContent() {
           <Route path="/product/:id" element={<ProductDetailPage />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/payment-return" element={<PaymentReturnPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/orders" element={<OrdersPage />} />
           <Route path="/bao-hanh" element={<WarrantyPage />} />
@@ -64,9 +67,11 @@ function App() {
   return (
     <AuthProvider>
       <CartProvider>
-        <Router>
-          <AppContent />
-        </Router>
+        <LanguageProvider>
+          <Router>
+            <AppContent />
+          </Router>
+        </LanguageProvider>
       </CartProvider>
     </AuthProvider>
   );

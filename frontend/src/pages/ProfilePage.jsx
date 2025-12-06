@@ -3,8 +3,52 @@ import PolicyModals from '../components/PolicyModals';
 import ContactModal from '../components/ContactModal';
 import './ProfilePage.css';
 import { useAuth } from '../context/AuthContext';
+import { useTranslatedText } from '../hooks/useTranslation';
 
 export default function ProfilePage() {
+  // Translation hooks
+  const txtProfile = useTranslatedText('Hồ sơ');
+  const txtEmail = useTranslatedText('Email');
+  const txtAddress = useTranslatedText('Địa chỉ');
+  const txtAdd = useTranslatedText('Thêm');
+  const txtNoAddress = useTranslatedText('Chưa thêm địa chỉ nào');
+  const txtFullName = useTranslatedText('Họ tên');
+  const txtDefault = useTranslatedText('Mặc định');
+  const txtAddressDetail = useTranslatedText('Địa chỉ');
+  const txtCity = useTranslatedText('Thành phố');
+  const txtPhone = useTranslatedText('Số điện thoại');
+  const txtCountry = useTranslatedText('Quốc gia');
+  const txtRefundPolicy = useTranslatedText('Chính sách hoàn tiền');
+  const txtShipping = useTranslatedText('Vận chuyển');
+  const txtPrivacyPolicy = useTranslatedText('Chính sách quyền riêng tư');
+  const txtTermsOfService = useTranslatedText('Điều khoản dịch vụ');
+  const txtContactInfo = useTranslatedText('Thông tin liên hệ');
+  const txtEditProfile = useTranslatedText('Chỉnh sửa hồ sơ');
+  const txtFirstName = useTranslatedText('Tên');
+  const txtLastName = useTranslatedText('Họ');
+  const txtEmailHint = useTranslatedText('Email này được sử dụng để đăng nhập và cập nhật đơn hàng của bạn.');
+  const txtCancel = useTranslatedText('Hủy');
+  const txtSave = useTranslatedText('Lưu');
+  const txtVerifyEmailChange = useTranslatedText('Xác thực thay đổi email');
+  const txtOtpSent = useTranslatedText('Chúng tôi đã gửi mã OTP tới email');
+  const txtEnterOtpCode = useTranslatedText('Vui lòng nhập mã để xác thực thay đổi email.');
+  const txtOtpCode = useTranslatedText('Mã OTP');
+  const txtConfirm = useTranslatedText('Xác nhận');
+  const txtAddAddress = useTranslatedText('Thêm địa chỉ');
+  const txtEditAddress = useTranslatedText('Chỉnh sửa địa chỉ');
+  const txtDefaultAddress = useTranslatedText('Đây là địa chỉ mặc định của tôi');
+  const txtCountryRegion = useTranslatedText('Quốc gia/Khu vực');
+  const txtPostalCode = useTranslatedText('Mã bưu chính');
+  const txtUpdateSuccess = useTranslatedText('Cập nhật hồ sơ thành công.');
+  const txtUpdateFailed = useTranslatedText('Lỗi khi cập nhật hồ sơ');
+  const txtNoToken = useTranslatedText('Không tìm thấy access token. Vui lòng đăng nhập trước khi cập nhật hồ sơ.');
+  const txtEnterOtp = useTranslatedText('Vui lòng nhập mã OTP');
+  const txtLoginRequired = useTranslatedText('Yêu cầu đăng nhập để thay đổi email.');
+  const txtOtpVerifyFailed = useTranslatedText('Xác thực OTP thất bại');
+  const txtUpdateEmailSuccess = useTranslatedText('Cập nhật hồ sơ và email thành công.');
+  const txtOtpError = useTranslatedText('Lỗi khi xác thực OTP');
+  const txtCannotSendOtp = useTranslatedText('Không thể gửi OTP đến email mới. Vui lòng thử lại.');
+  
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [showPolicyModal, setShowPolicyModal] = useState(false);
@@ -12,7 +56,7 @@ export default function ProfilePage() {
   const [showShippingModal, setShowShippingModal] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
-  const [editingAddress, setEditingAddress] = useState(null); // Địa chỉ đang được chỉnh sửa
+  const [editingAddress, setEditingAddress] = useState(null);
   
   const { user, updateUser, accessToken } = useAuth();
 
@@ -331,7 +375,7 @@ export default function ProfilePage() {
           setShowEmailOtpModal(true);
         } catch (err) {
           console.error('Failed to request OTP for email change', err);
-          setMessage('Không thể gửi OTP đến email mới. Vui lòng thử lại.');
+          setMessage(txtCannotSendOtp);
         }
       })();
       return;
@@ -342,7 +386,7 @@ export default function ProfilePage() {
       try {
         const token = accessToken || ((typeof window !== 'undefined' && localStorage.getItem('accessToken')) || '');
         if (!token) {
-          setMessage('Không tìm thấy access token. Vui lòng đăng nhập trước khi cập nhật hồ sơ.');
+          setMessage(txtNoToken);
           return;
         }
         const res = await fetch(`${API_BASE}/api/user/profile`, {
@@ -376,7 +420,7 @@ export default function ProfilePage() {
           setLastName(newProfile.lastName);
           setUserEmail(newProfile.email);
         }
-        setMessage('Cập nhật hồ sơ thành công.');
+        setMessage(txtUpdateSuccess);
       } catch (err) {
         console.error('Update profile error:', err);
         setMessage('Lỗi khi cập nhật hồ sơ: ' + (err.message || err));
@@ -388,13 +432,13 @@ export default function ProfilePage() {
 
   const handleConfirmEmailOtp = async () => {
     if (!pendingNewEmail || !emailOtp) {
-      setMessage('Vui lòng nhập mã OTP');
+      setMessage(txtEnterOtp);
       return;
     }
     try {
       const token = accessToken || ((typeof window !== 'undefined' && localStorage.getItem('accessToken')) || '');
       if (!token) {
-        setMessage('Yêu cầu đăng nhập để thay đổi email.');
+        setMessage(txtLoginRequired);
         return;
       }
       const res = await fetch(`${API_BASE}/api/customer/profile/confirm-email-change`, {
@@ -425,7 +469,7 @@ export default function ProfilePage() {
       if (updateRes.ok) {
         setFirstName(editForm.firstName);
         setLastName(editForm.lastName);
-        setMessage('Cập nhật hồ sơ và email thành công.');
+        setMessage(txtUpdateEmailSuccess);
         try { if (typeof updateUser === 'function') updateUser({ firstName: editForm.firstName, lastName: editForm.lastName, email: pendingNewEmail }); } catch (e) {}
       } else {
         const t = await updateRes.text();
@@ -440,7 +484,7 @@ export default function ProfilePage() {
   return (
     <div className="profile-page">
       <div className="profile-container">
-        <h1 className="profile-title">Hồ sơ</h1>
+        <h1 className="profile-title">{txtProfile}</h1>
 
         {/* Personal Information Section */}
         <div className="profile-section">
@@ -455,7 +499,7 @@ export default function ProfilePage() {
             </button>
           </div>
           <div className="info-item">
-            <label className="info-label">Email</label>
+            <label className="info-label">{txtEmail}</label>
             <p className="info-value">{userEmail}</p>
           </div>
         </div>
@@ -463,19 +507,19 @@ export default function ProfilePage() {
         {/* Address Section */}
         <div className="profile-section">
           <div className="section-header">
-            <h2 className="section-title">Địa chỉ</h2>
+            <h2 className="section-title">{txtAddress}</h2>
             <button 
               className="add-btn"
               onClick={() => setShowAddressModal(true)}
             >
-              + Thêm
+              + {txtAdd}
             </button>
           </div>
           
           {addresses.length === 0 ? (
             <div className="empty-state">
               <span className="info-icon">ℹ️</span>
-              <p className="empty-message">Chưa thêm địa chỉ nào</p>
+              <p className="empty-message">{txtNoAddress}</p>
             </div>
           ) : (
             <div className="address-list">
@@ -483,13 +527,13 @@ export default function ProfilePage() {
                 <div key={addr.id} className="address-item">
                   <div className="address-content">
                     <div className="address-header">
-                      <p className="address-name">Họ tên: {addr.firstName} {addr.lastName}</p>
-                      {addr.isDefault && <span className="default-badge">Mặc định</span>}
+                      <p className="address-name">{txtFullName}: {addr.firstName} {addr.lastName}</p>
+                      {addr.isDefault && <span className="default-badge">{txtDefault}</span>}
                     </div>
-                    <p className="address-detail">Địa chỉ: {addr.address}</p>
-                    <p className="address-detail">Thành phố: {addr.city} {addr.postalCode}</p>
-                    <p className="address-detail">Số điện thoại: {addr.phone}</p>
-                    <p className="address-detail address-country">Quốc gia: {addr.country}</p>
+                    <p className="address-detail">{txtAddressDetail}: {addr.address}</p>
+                    <p className="address-detail">{txtCity}: {addr.city} {addr.postalCode}</p>
+                    <p className="address-detail">{txtPhone}: {addr.phone}</p>
+                    <p className="address-detail address-country">{txtCountry}: {addr.country}</p>
                   </div>
                   <button 
                     className="edit-btn address-edit-btn"
@@ -507,11 +551,11 @@ export default function ProfilePage() {
 
       {/* Footer Links */}
       <div className="profile-footer">
-        <button type="button" onClick={() => setShowPolicyModal(true)} className="footer-link">Chính sách hoàn tiền</button>
-        <button type="button" onClick={() => setShowShippingModal(true)} className="footer-link">Vận chuyển</button>
-        <button type="button" onClick={() => setShowPrivacyModal(true)} className="footer-link">Chính sách quyền riêng tư</button>
-        <button type="button" onClick={() => setShowPaymentTermsModal(true)} className="footer-link">Điều khoản dịch vụ</button>
-        <button type="button" onClick={() => setShowContactModal(true)} className="footer-link">Thông tin liên hệ</button>
+        <button type="button" onClick={() => setShowPolicyModal(true)} className="footer-link">{txtRefundPolicy}</button>
+        <button type="button" onClick={() => setShowShippingModal(true)} className="footer-link">{txtShipping}</button>
+        <button type="button" onClick={() => setShowPrivacyModal(true)} className="footer-link">{txtPrivacyPolicy}</button>
+        <button type="button" onClick={() => setShowPaymentTermsModal(true)} className="footer-link">{txtTermsOfService}</button>
+        <button type="button" onClick={() => setShowContactModal(true)} className="footer-link">{txtContactInfo}</button>
       </div>
 
       {/* Edit Profile Modal */}
@@ -519,7 +563,7 @@ export default function ProfilePage() {
         <div className="modal-overlay" onClick={() => setShowEditProfileModal(false)}>
           <div className="modal-content edit-profile-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2 className="modal-title">Chỉnh sửa hồ sơ</h2>
+              <h2 className="modal-title">{txtEditProfile}</h2>
               <button 
                 className="modal-close"
                 onClick={() => setShowEditProfileModal(false)}
@@ -531,7 +575,7 @@ export default function ProfilePage() {
             <div className="modal-body">
               <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label">Tên</label>
+                  <label className="form-label">{txtFirstName}</label>
                   <input
                     type="text"
                     className="form-input"
@@ -540,7 +584,7 @@ export default function ProfilePage() {
                   />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Họ</label>
+                  <label className="form-label">{txtLastName}</label>
                   <input
                     type="text"
                     className="form-input"
@@ -551,14 +595,14 @@ export default function ProfilePage() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Email</label>
+                <label className="form-label">{txtEmail}</label>
                 <input
                   type="email"
                   className="form-input"
                   value={editForm.email}
                   onChange={(e) => setEditForm({...editForm, email: e.target.value})}
                 />
-                <p className="form-hint">Email này được sử dụng để đăng nhập và cập nhật đơn hàng của bạn.</p>
+                <p className="form-hint">{txtEmailHint}</p>
               </div>
 
               {/* Phone number and national ID removed per requirement */}
@@ -575,13 +619,13 @@ export default function ProfilePage() {
                 className="btn-cancel"
                 onClick={() => setShowEditProfileModal(false)}
               >
-                Hủy
+                {txtCancel}
               </button>
               <button 
                 className="btn-save"
                 onClick={handleSaveProfile}
               >
-                Lưu
+                {txtSave}
               </button>
             </div>
           </div>
@@ -593,20 +637,20 @@ export default function ProfilePage() {
         <div className="modal-overlay" onClick={() => setShowEmailOtpModal(false)}>
           <div className="modal-content email-otp-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2 className="modal-title">Xác thực thay đổi email</h2>
+              <h2 className="modal-title">{txtVerifyEmailChange}</h2>
               <button className="modal-close" onClick={() => setShowEmailOtpModal(false)}>✕</button>
             </div>
             <div className="modal-body">
-              <p>Chúng tôi đã gửi mã OTP tới email <b>{pendingNewEmail}</b>. Vui lòng nhập mã để xác thực thay đổi email.</p>
+              <p>{txtOtpSent} <b>{pendingNewEmail}</b>. {txtEnterOtpCode}</p>
               <div className="form-group">
-                <label className="form-label">Mã OTP</label>
+                <label className="form-label">{txtOtpCode}</label>
                 <input type="text" className="form-input" value={emailOtp} onChange={(e) => setEmailOtp(e.target.value)} />
               </div>
               {message && <div style={{ marginTop: 12, color: 'red' }}>{message}</div>}
             </div>
             <div className="modal-footer">
-              <button className="btn-cancel" onClick={() => setShowEmailOtpModal(false)}>Hủy</button>
-              <button className="btn-save" onClick={handleConfirmEmailOtp}>Xác nhận</button>
+              <button className="btn-cancel" onClick={() => setShowEmailOtpModal(false)}>{txtCancel}</button>
+              <button className="btn-save" onClick={handleConfirmEmailOtp}>{txtConfirm}</button>
             </div>
           </div>
         </div>
@@ -617,7 +661,7 @@ export default function ProfilePage() {
         <div className="modal-overlay" onClick={handleCloseAddressModal}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2 className="modal-title">{editingAddress ? 'Chỉnh sửa địa chỉ' : 'Thêm địa chỉ'}</h2>
+              <h2 className="modal-title">{editingAddress ? txtEditAddress : txtAddAddress}</h2>
               <button 
                 className="modal-close"
                 onClick={handleCloseAddressModal}
@@ -634,12 +678,12 @@ export default function ProfilePage() {
                     checked={addressForm.isDefault}
                     onChange={(e) => setAddressForm({...addressForm, isDefault: e.target.checked})}
                   />
-                  <span>Đây là địa chỉ mặc định của tôi</span>
+                  <span>{txtDefaultAddress}</span>
                 </label>
               </div>
 
               <div className="form-group">
-                <label className="form-label">Quốc gia/Khu vực</label>
+                <label className="form-label">{txtCountryRegion}</label>
                 <select
                   className="form-input"
                   value={addressForm.country}
@@ -675,21 +719,21 @@ export default function ProfilePage() {
 
               <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label">Tên</label>
+                  <label className="form-label">{txtFirstName}</label>
                   <input
                     type="text"
                     className="form-input"
-                    placeholder="Tên"
+                    placeholder={txtFirstName}
                     value={addressForm.firstName}
                     onChange={(e) => setAddressForm({...addressForm, firstName: e.target.value})}
                   />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Họ</label>
+                  <label className="form-label">{txtLastName}</label>
                   <input
                     type="text"
                     className="form-input"
-                    placeholder="Họ"
+                    placeholder={txtLastName}
                     value={addressForm.lastName}
                     onChange={(e) => setAddressForm({...addressForm, lastName: e.target.value})}
                   />
@@ -697,11 +741,11 @@ export default function ProfilePage() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Địa chỉ</label>
+                <label className="form-label">{txtAddressDetail}</label>
                 <input
                   type="text"
                   className="form-input"
-                  placeholder="Địa chỉ"
+                  placeholder={txtAddressDetail}
                   value={addressForm.address}
                   onChange={(e) => setAddressForm({...addressForm, address: e.target.value})}
                 />
@@ -709,21 +753,21 @@ export default function ProfilePage() {
 
               <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label">Thành phố</label>
+                  <label className="form-label">{txtCity}</label>
                   <input
                     type="text"
                     className="form-input"
-                    placeholder="Thành phố"
+                    placeholder={txtCity}
                     value={addressForm.city}
                     onChange={(e) => setAddressForm({...addressForm, city: e.target.value})}
                   />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Mã bưu chính</label>
+                  <label className="form-label">{txtPostalCode}</label>
                   <input
                     type="text"
                     className="form-input"
-                    placeholder="Mã bưu chính"
+                    placeholder={txtPostalCode}
                     value={addressForm.postalCode}
                     onChange={(e) => setAddressForm({...addressForm, postalCode: e.target.value})}
                   />
@@ -731,7 +775,7 @@ export default function ProfilePage() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Điện thoại</label>
+                <label className="form-label">{txtPhone}</label>
                 <div className="phone-input-group">
                   <select className="country-code">
                     <option value="+84">🇻🇳 +84</option>
@@ -741,7 +785,7 @@ export default function ProfilePage() {
                   <input
                     type="tel"
                     className="form-input phone-input"
-                    placeholder="Số điện thoại"
+                    placeholder={txtPhone}
                     value={addressForm.phone}
                     onChange={(e) => setAddressForm({...addressForm, phone: e.target.value})}
                   />
@@ -754,13 +798,13 @@ export default function ProfilePage() {
                 className="btn-cancel"
                 onClick={handleCloseAddressModal}
               >
-                Hủy
+                {txtCancel}
               </button>
               <button 
                 className="btn-save"
                 onClick={handleAddAddress}
               >
-                Lưu
+                {txtSave}
               </button>
             </div>
           </div>

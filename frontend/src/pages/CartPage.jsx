@@ -2,11 +2,28 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import './CartPage.css';
+import { useTranslatedText } from '../hooks/useTranslation';
 
 function CartPage() {
   const navigate = useNavigate();
   const { cartItems, removeFromCart, updateQuantity, getCartTotal } = useCart();
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  
+  // Translation hooks
+  const cartTitleText = useTranslatedText('Giỏ hàng của bạn');
+  const continueShoppingText = useTranslatedText('Tiếp tục mua sắm');
+  const emptyCartText = useTranslatedText('Giỏ hàng của bạn đang trống');
+  const productText = useTranslatedText('SẢN PHẨM');
+  const quantityText = useTranslatedText('SỐ LƯỢNG');
+  const totalText = useTranslatedText('TỔNG');
+  const colorText = useTranslatedText('Color');
+  const sizeText = useTranslatedText('Size');
+  const removeProductText = useTranslatedText('Xóa sản phẩm');
+  const estimatedTotalText = useTranslatedText('Tổng số tiền ước tính');
+  const termsText = useTranslatedText('Tôi đã đọc và đồng ý điều kiện giao dịch Website.');
+  const placeOrderText = useTranslatedText('Đặt hàng miễn phí ship');
+  const agreeTermsAlertText = useTranslatedText('Vui lòng đồng ý với điều kiện giao dịch');
+  const emptyCartAlertText = useTranslatedText('Giỏ hàng trống');
 
   // Scroll to top when component mounts
   useEffect(() => {
@@ -15,11 +32,11 @@ function CartPage() {
 
   const handleCheckout = () => {
     if (!agreedToTerms) {
-      alert('Vui lòng đồng ý với điều kiện giao dịch');
+      alert(agreeTermsAlertText);
       return;
     }
     if (cartItems.length === 0) {
-      alert('Giỏ hàng trống');
+      alert(emptyCartAlertText);
       return;
     }
     // Chuyển đến trang thanh toán
@@ -52,26 +69,26 @@ function CartPage() {
     <div className="cart-page">
       <div className="cart-container">
         <div className="cart-header-section">
-          <h1>Giỏ hàng của bạn</h1>
+          <h1>{cartTitleText}</h1>
           <button className="continue-shopping" onClick={() => navigate('/')}>
-            Tiếp tục mua sắm
+            {continueShoppingText}
           </button>
         </div>
 
         {cartItems.length === 0 ? (
           <div className="empty-cart">
-            <p>Giỏ hàng của bạn đang trống</p>
+            <p>{emptyCartText}</p>
             <button className="continue-shopping-btn" onClick={() => navigate('/')}>
-              Tiếp tục mua sắm
+              {continueShoppingText}
             </button>
           </div>
         ) : (
           <>
             <div className="cart-table">
               <div className="cart-table-header">
-                <div className="header-product">SẢN PHẨM</div>
-                <div className="header-quantity">SỐ LƯỢNG</div>
-                <div className="header-total">TỔNG</div>
+                <div className="header-product">{productText}</div>
+                <div className="header-quantity">{quantityText}</div>
+                <div className="header-total">{totalText}</div>
               </div>
 
               <div className="cart-items">
@@ -85,18 +102,13 @@ function CartPage() {
                         onError={(e) => { e.target.src = '/LEAF.png'; }}
                       />
                       <div className="item-details">
-                        <h3 
-                          className="item-name" 
-                          onClick={() => navigate(`/product/${item.id}`)}
-                        >
-                          {item.name}
-                        </h3>
+                        <CartItemName itemName={item.name} itemId={item.id} navigate={navigate} />
                         <p className="item-price">{typeof item.price === 'number' ? `${item.price.toLocaleString('vi-VN')} ₫` : item.price}</p>
                         {item.selectedColor && item.selectedColor !== 'N/A' && (
-                          <p className="item-attribute">Color: {item.selectedColor}</p>
+                          <p className="item-attribute">{colorText}: {item.selectedColor}</p>
                         )}
                         {item.selectedSize && item.selectedSize !== 'N/A' && (
-                          <p className="item-attribute">Size: {item.selectedSize}</p>
+                          <p className="item-attribute">{sizeText}: {item.selectedSize}</p>
                         )}
                       </div>
                     </div>
@@ -126,7 +138,7 @@ function CartPage() {
                       <button 
                         className="remove-btn"
                         onClick={() => removeFromCart(item.cartItemId)}
-                        title="Xóa sản phẩm"
+                        title={removeProductText}
                       >
                         🗑
                       </button>
@@ -143,7 +155,7 @@ function CartPage() {
             <div className="cart-footer">
               <div className="cart-summary">
                 <div className="summary-row">
-                  <span className="summary-label">Tổng số tiền ước tính</span>
+                  <span className="summary-label">{estimatedTotalText}</span>
                   <span className="summary-value">{getCartTotal().toLocaleString('vi-VN')} VND</span>
                 </div>
                 
@@ -155,7 +167,7 @@ function CartPage() {
                     onChange={(e) => setAgreedToTerms(e.target.checked)}
                   />
                   <label htmlFor="terms">
-                    Tôi đã đọc và đồng ý điều kiện giao dịch Website.
+                    {termsText}
                   </label>
                 </div>
 
@@ -164,7 +176,7 @@ function CartPage() {
                   onClick={handleCheckout}
                   disabled={!agreedToTerms}
                 >
-                  Đặt hàng miễn phí ship
+                  {placeOrderText}
                 </button>
               </div>
             </div>
@@ -174,5 +186,18 @@ function CartPage() {
     </div>
   );
 }
+
+// Component to translate cart item name
+const CartItemName = ({ itemName, itemId, navigate }) => {
+  const translatedName = useTranslatedText(itemName);
+  return (
+    <h3 
+      className="item-name" 
+      onClick={() => navigate(`/product/${itemId}`)}
+    >
+      {translatedName}
+    </h3>
+  );
+};
 
 export default CartPage;

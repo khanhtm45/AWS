@@ -1,12 +1,31 @@
 package com.leafshop.service.impl;
 
+/**
+ * Payment Service Implementation
+ * 
+ * VNPay Response Codes:
+ * - 00: Success
+ * - 24: User cancelled transaction
+ * - 99: Unknown error / Transaction failed
+ * - Other codes: Various failure reasons
+ * 
+ * Payment Status Mapping:
+ * - PENDING: Payment initiated, awaiting confirmation
+ * - PAID: Payment successful
+ * - CANCELLED: User cancelled payment
+ * - FAILED: Payment failed due to error
+ */
+
 import com.leafshop.dto.payment.InitiatePaymentRequest;
 import com.leafshop.dto.payment.PaymentResponse;
 import com.leafshop.dto.payment.RefundRequest;
 import com.leafshop.dto.payment.WebhookRequest;
 import com.leafshop.model.dynamodb.PaymentTable;
+import com.leafshop.model.dynamodb.OrderTable;
 import com.leafshop.repository.PaymentTableRepository;
+import com.leafshop.repository.OrderTableRepository;
 import com.leafshop.service.PaymentService;
+import com.leafshop.service.VNPayService;
 import com.stripe.Stripe;
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.exception.StripeException;
@@ -37,24 +56,14 @@ import java.util.TreeMap;
 public class PaymentServiceImpl implements PaymentService {
 
     private final PaymentTableRepository paymentRepo;
+    private final OrderTableRepository orderRepo;
+    private final VNPayService vnPayService;
 
     @Value("${stripe.api.key:}")
     private String stripeApiKey;
 
     @Value("${stripe.webhook.secret:}")
     private String stripeWebhookSecret;
-
-    @Value("${vnpay.secret:}")
-    private String vnpaySecret;
-
-    @Value("${vnpay.baseUrl:https://pay.vnpay.vn/vpcpay.html}")
-    private String vnpayBaseUrl;
-
-    @Value("${momo.secret:}")
-    private String momoSecret;
-
-    @Value("${momo.baseUrl:https://test-payment.momo.vn/gw_payment/transactionProcessor}")
-    private String momoBaseUrl;
 
     @PostConstruct
     public void init() {
@@ -117,67 +126,17 @@ public class PaymentServiceImpl implements PaymentService {
                     .build();
             }
         } else if ("VNPAY".equalsIgnoreCase(req.getProvider())) {
-            // Build VNPAY payment URL (basic implementation)
+            // Use VNPayService to create payment URL
             try {
-                Map<String, String> params = new TreeMap<>();
-                params.put("vnp_Version", "2.1.0");
-                params.put("vnp_Command", "pay");
-                params.put("vnp_TmnCode", ""); // optional: merchant code
-                params.put("vnp_Amount", String.valueOf(Math.round(req.getAmount()))); // VND in smallest unit
-                params.put("vnp_CurrCode", req.getCurrency() != null ? req.getCurrency() : "VND");
-                params.put("vnp_TxnRef", paymentId);
-                params.put("vnp_OrderInfo", "Order " + req.getOrderId());
-                params.put("vnp_ReturnUrl", req.getReturnUrl() != null ? req.getReturnUrl() : "");
-                params.put("vnp_CreateDate", String.valueOf(Instant.now().toEpochMilli()));
-
-                StringBuilder query = new StringBuilder();
-                StringBuilder signData = new StringBuilder();
-                boolean first = true;
-                for (Map.Entry<String, String> en : params.entrySet()) {
-                    if (!first) {
-                        query.append('&');
-                        signData.append('&');
-                    }
-                    first = false;
-                    query.append(URLEncoder.encode(en.getKey(), StandardCharsets.UTF_8)).append('=')
-                         .append(URLEncoder.encode(en.getValue(), StandardCharsets.UTF_8));
-                    signData.append(en.getKey()).append('=').append(en.getValue());
-                }
-                String hash = hmacSHA512(signData.toString(), vnpaySecret == null ? "" : vnpaySecret);
-                query.append("&vnp_SecureHash=").append(URLEncoder.encode(hash, StandardCharsets.UTF_8));
-                paymentUrl = vnpayBaseUrl + "?" + query.toString();
+                long amountInVND = Math.round(req.getAmount());
+                String orderInfo = "Thanh toan don hang " + req.getOrderId();
+                String ipAddr = "127.0.0.1"; // Should get from request context
+                paymentUrl = vnPayService.createPaymentUrl(amountInVND, orderInfo, req.getOrderId(), ipAddr);
+                providerTxId = paymentId; // Store paymentId as reference
+                p.setProviderTransactionId(providerTxId);
             } catch (Exception ex) {
                 // ignore and continue with no paymentUrl
-            }
-        } else if ("MOMO".equalsIgnoreCase(req.getProvider())) {
-            // Build MOMO payment URL (basic implementation)
-            try {
-                Map<String, String> params = new TreeMap<>();
-                params.put("partnerCode", "");
-                params.put("accessKey", "");
-                params.put("amount", String.valueOf(Math.round(req.getAmount())));
-                params.put("orderId", req.getOrderId() != null ? req.getOrderId() : paymentId);
-                params.put("orderInfo", "Order " + req.getOrderId());
-                params.put("returnUrl", req.getReturnUrl() != null ? req.getReturnUrl() : "");
-                params.put("notifyUrl", "");
-                params.put("extraData", "");
-
-                StringBuilder query = new StringBuilder();
-                StringBuilder raw = new StringBuilder();
-                boolean first = true;
-                for (Map.Entry<String, String> en : params.entrySet()) {
-                    if (!first) query.append('&');
-                    first = false;
-                    query.append(URLEncoder.encode(en.getKey(), StandardCharsets.UTF_8)).append('=')
-                         .append(URLEncoder.encode(en.getValue(), StandardCharsets.UTF_8));
-                    if (raw.length() > 0) raw.append('&');
-                    raw.append(en.getKey()).append('=').append(en.getValue());
-                }
-                String signature = hmacSHA256(raw.toString(), momoSecret == null ? "" : momoSecret);
-                query.append("&signature=").append(URLEncoder.encode(signature, StandardCharsets.UTF_8));
-                paymentUrl = momoBaseUrl + "?" + query.toString();
-            } catch (Exception ex) {
-                // ignore
+                ex.printStackTrace();
             }
         }
 
@@ -221,6 +180,22 @@ public class PaymentServiceImpl implements PaymentService {
         Map<String, String> payload = webhookRequest.getPayload();
         String paymentId = payload != null ? payload.get("paymentId") : null;
         String providerTx = payload != null ? payload.get("providerTransactionId") : null;
+        
+        // VNPay specific: vnp_TxnRef contains orderId (may have _timestamp suffix)
+        String vnpTxnRef = payload != null ? payload.get("vnp_TxnRef") : null;
+        String orderId = vnpTxnRef;
+        
+        // Extract orderId from vnp_TxnRef (remove _timestamp if present)
+        // Format: orderId_timestamp (e.g., 87907458-849d-46e2-96a6-3ef9f4a2dd0c_1765026748703)
+        if (orderId != null && orderId.contains("_")) {
+            orderId = orderId.substring(0, orderId.lastIndexOf("_"));
+            System.out.println("[PaymentService] Extracted orderId from vnp_TxnRef: " + vnpTxnRef + " → " + orderId);
+        }
+        
+        System.out.println("[PaymentService] === WEBHOOK RECEIVED ===");
+        System.out.println("[PaymentService] Provider: " + webhookRequest.getProvider());
+        System.out.println("[PaymentService] PaymentId: " + paymentId + ", OrderId: " + orderId + ", ProviderTx: " + providerTx);
+        System.out.println("[PaymentService] Response Code: " + payload.get("vnp_ResponseCode"));
 
         Optional<PaymentTable> opt = Optional.empty();
         if (paymentId != null) {
@@ -230,41 +205,55 @@ public class PaymentServiceImpl implements PaymentService {
         if (opt.isEmpty() && providerTx != null) {
             opt = paymentRepo.findByProviderTransactionId(providerTx);
         }
+        
+        // Try to find by orderId (VNPay uses vnp_TxnRef as orderId)
+        if (opt.isEmpty() && orderId != null) {
+            System.out.println("[PaymentService] Searching by orderId: " + orderId);
+            opt = paymentRepo.findByOrderId(orderId);
+            System.out.println("[PaymentService] Search result: " + (opt.isPresent() ? "FOUND" : "NOT FOUND"));
+        }
 
         if (opt.isEmpty()) {
+            System.err.println("[PaymentService] ❌ Payment NOT FOUND! paymentId=" + paymentId + ", orderId=" + orderId);
             return PaymentResponse.builder().status("UNKNOWN").build();
         }
 
         PaymentTable p = opt.get();
+        System.out.println("[PaymentService] ✅ Payment FOUND: " + p.getPaymentId() + ", current status: " + p.getStatus());
 
-        // Provider specific status mapping and optional signature verification
+        // Provider specific status mapping
         String provider = webhookRequest.getProvider();
         String providerStatus = payload.getOrDefault("status", payload.getOrDefault("result", ""));
         boolean verified = true;
-        // Basic verification using configured secrets if signature present
-        String sig = payload.get("signature");
-        if (sig != null) {
-            try {
-                if ("VNPAY".equalsIgnoreCase(provider) && vnpaySecret != null && !vnpaySecret.isEmpty()) {
-                    // verify vnp_SecureHash or signature field
-                    String data = payload.getOrDefault("data", "");
-                    String calc = hmacSHA512(data, vnpaySecret);
-                    verified = sig.equals(calc);
-                } else if ("MOMO".equalsIgnoreCase(provider) && momoSecret != null && !momoSecret.isEmpty()) {
-                    String data = payload.getOrDefault("data", "");
-                    String calc = hmacSHA256(data, momoSecret);
-                    verified = sig.equals(calc);
-                }
-            } catch (Exception e) {
-                verified = false;
-            }
+        
+        // Use provider-specific services for signature verification
+        if ("VNPAY".equalsIgnoreCase(provider)) {
+            verified = vnPayService.verifyCallback(payload);
+            providerStatus = payload.getOrDefault("vnp_ResponseCode", providerStatus);
         }
 
         if (!verified) {
             p.setStatus("FAILED");
         } else {
-            if (providerStatus != null && (providerStatus.equalsIgnoreCase("SUCCESS") || providerStatus.equalsIgnoreCase("PAID") || providerStatus.equals("00"))) {
-                p.setStatus("PAID");
+            // Map provider status codes to internal status
+            if (providerStatus != null) {
+                // Success codes
+                if (providerStatus.equalsIgnoreCase("SUCCESS") || 
+                    providerStatus.equalsIgnoreCase("PAID") || 
+                    providerStatus.equals("00") || 
+                    providerStatus.equals("0")) {
+                    p.setStatus("PAID");
+                }
+                // Cancelled codes (VNPay: 24 = user cancelled, MoMo: 1006 = user cancelled)
+                else if (providerStatus.equals("24") || 
+                         providerStatus.equals("1006") ||
+                         providerStatus.equals("99")) { // VNPay error code 99
+                    p.setStatus("CANCELLED");
+                }
+                // All other codes = failed
+                else {
+                    p.setStatus("FAILED");
+                }
             } else {
                 p.setStatus("FAILED");
             }
@@ -273,6 +262,17 @@ public class PaymentServiceImpl implements PaymentService {
         if (providerTx != null) p.setProviderTransactionId(providerTx);
         p.setUpdatedAt(Instant.now().toEpochMilli());
         paymentRepo.save(p);
+        
+        System.out.println("[PaymentService] ✅ Payment status updated to: " + p.getStatus());
+
+        // Update order status and paymentStatus in OrderTable based on payment result
+        if ("PAID".equals(p.getStatus())) {
+            System.out.println("[PaymentService] Updating order " + p.getOrderId() + " paymentStatus to PAID");
+            updateOrderPaymentStatus(p.getOrderId(), "PAID");
+        } else if ("CANCELLED".equals(p.getStatus()) || "FAILED".equals(p.getStatus())) {
+            System.out.println("[PaymentService] Updating order " + p.getOrderId() + " status to CANCELLED");
+            updateOrderStatus(p.getOrderId(), "CANCELLED");
+        }
 
         return PaymentResponse.builder()
             .paymentId(p.getPaymentId())
@@ -408,6 +408,71 @@ public class PaymentServiceImpl implements PaymentService {
             .provider(p.getProvider())
             .status(p.getStatus())
             .build();
+    }
+
+    /**
+     * Helper method to update order paymentStatus when payment succeeds
+     */
+    private void updateOrderPaymentStatus(String orderId, String paymentStatus) {
+        if (orderId == null || orderId.isEmpty()) {
+            return;
+        }
+        
+        try {
+            // Search for order by orderId attribute (regardless of PK structure)
+            Optional<OrderTable> orderMetaOpt = orderRepo.findByOrderId(orderId);
+            
+            if (orderMetaOpt.isPresent()) {
+                OrderTable orderMeta = orderMetaOpt.get();
+                
+                // Only update paymentStatus, keep orderStatus unchanged (should be PENDING)
+                orderMeta.setPaymentStatus(paymentStatus);
+                orderMeta.setUpdatedAt(Instant.now().toEpochMilli());
+                orderRepo.save(orderMeta);
+                
+                System.out.println("[PaymentService] ✅ Updated order " + orderId + " paymentStatus to " + paymentStatus + " (orderStatus: " + orderMeta.getOrderStatus() + ")");
+            } else {
+                System.err.println("[PaymentService] ❌ Order not found with orderId: " + orderId);
+            }
+        } catch (Exception e) {
+            System.err.println("[PaymentService] ❌ Error updating order payment status: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Helper method to update order status when payment fails/cancels
+     */
+    private void updateOrderStatus(String orderId, String newStatus) {
+        if (orderId == null || orderId.isEmpty()) {
+            return;
+        }
+        
+        try {
+            // Search for order by orderId attribute (regardless of PK structure)
+            Optional<OrderTable> orderMetaOpt = orderRepo.findByOrderId(orderId);
+            
+            if (orderMetaOpt.isPresent()) {
+                OrderTable orderMeta = orderMetaOpt.get();
+                
+                // Update both orderStatus and paymentStatus
+                orderMeta.setOrderStatus(newStatus);
+                
+                // Map order status to payment status
+                String paymentStatus = newStatus.equals("CANCELLED") ? "FAILED" : newStatus;
+                orderMeta.setPaymentStatus(paymentStatus);
+                
+                orderMeta.setUpdatedAt(Instant.now().toEpochMilli());
+                orderRepo.save(orderMeta);
+                
+                System.out.println("[PaymentService] ✅ Updated order " + orderId + " - orderStatus: " + newStatus + ", paymentStatus: " + paymentStatus);
+            } else {
+                System.err.println("[PaymentService] ❌ Order not found with orderId: " + orderId);
+            }
+        } catch (Exception e) {
+            System.err.println("[PaymentService] ❌ Error updating order status: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     @Override

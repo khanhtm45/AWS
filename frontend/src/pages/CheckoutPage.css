@@ -209,6 +209,41 @@
   color: #111;
 }
 
+.payment-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.payment-description {
+  font-size: 12px;
+  color: #666;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+.payment-logo {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+
+.vnpay-logo {
+  background: linear-gradient(135deg, #0066cc 0%, #0052a3 100%);
+  color: white;
+  box-shadow: 0 2px 4px rgba(0, 102, 204, 0.3);
+}
+
+.momo-logo {
+  background: linear-gradient(135deg, #a50064 0%, #d82d8b 100%);
+  color: white;
+  box-shadow: 0 2px 4px rgba(165, 0, 100, 0.3);
+}
+
 .payment-icons {
   display: flex;
   gap: 8px;
