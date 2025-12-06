@@ -1,16 +1,64 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import InvoiceModal from '../components/InvoiceModal';
+import { useTranslatedText } from '../hooks/useTranslation';
 import './OrdersPage.css';
 
 const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:8080';
 
+const OrderItemName = ({ itemName }) => {
+  const translatedName = useTranslatedText(itemName);
+  return <>{translatedName}</>;
+};
+
+const OrderStatus = ({ status }) => {
+  const statusTextMap = {
+    'PENDING': 'Chờ Xử Lý',
+    'CONFIRMED': 'Đã Xác Nhận',
+    'PROCESSING': 'Đang Xử Lý',
+    'SHIPPING': 'Đang Giao',
+    'DELIVERED': 'Đã Giao',
+    'COMPLETED': 'Hoàn Thành',
+    'CANCELLED': 'Đã Hủy',
+    'RETURNED': 'Đã Trả'
+  };
+  const text = statusTextMap[status] || status;
+  const translatedText = useTranslatedText(text);
+  return <>{translatedText}</>;
+};
+
 const OrdersPage = () => {
   const navigate = useNavigate();
   const { user, accessToken } = useAuth();
+  
+  const txtMyOrders = useTranslatedText('Đơn Hàng Của Tôi');
+  const txtLoading = useTranslatedText('Đang tải...');
+  const txtError = useTranslatedText('Lỗi');
+  const txtBackBtn = useTranslatedText('Quay lại');
+  const txtNoOrders = useTranslatedText('Bạn chưa có đơn hàng nào');
+  const txtShopNow = useTranslatedText('Mua sắm ngay');
+  const txtOrderCode = useTranslatedText('Mã đơn');
+  const txtOrderDateTime = useTranslatedText('Ngày giờ đặt');
+  const txtProducts = useTranslatedText('Sản phẩm');
+  const txtNoProductInfo = useTranslatedText('Không có thông tin sản phẩm');
+  const txtShippingAddress = useTranslatedText('Địa chỉ giao hàng');
+  const txtPaymentMethod = useTranslatedText('Phương thức thanh toán');
+  const txtTotal = useTranslatedText('Tổng tiền');
+  const txtExportInvoice = useTranslatedText('Xuất hóa đơn');
+  const txtPending = useTranslatedText('Chờ Xử Lý');
+  const txtConfirmed = useTranslatedText('Đã Xác Nhận');
+  const txtProcessing = useTranslatedText('Đang Xử Lý');
+  const txtShipping = useTranslatedText('Đang Giao');
+  const txtDelivered = useTranslatedText('Đã Giao');
+  const txtCompleted = useTranslatedText('Hoàn Thành');
+  const txtCancelled = useTranslatedText('Đã Hủy');
+  const txtReturned = useTranslatedText('Đã Trả');
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [invoiceModalOpen, setInvoiceModalOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
 
   useEffect(() => {
     if (!user) {
@@ -77,14 +125,14 @@ const OrdersPage = () => {
         // Transform data
         const transformedOrders = enrichedOrders.map(order => {
           const statusMap = {
-            'PENDING': { text: 'Chờ Xử Lý', color: '#ffa500' },
-            'CONFIRMED': { text: 'Đã Xác Nhận', color: '#4CAF50' },
-            'PROCESSING': { text: 'Đang Xử Lý', color: '#2196F3' },
-            'SHIPPING': { text: 'Đang Giao', color: '#9C27B0' },
-            'DELIVERED': { text: 'Đã Giao', color: '#4CAF50' },
-            'COMPLETED': { text: 'Hoàn Thành', color: '#4CAF50' },
-            'CANCELLED': { text: 'Đã Hủy', color: '#f44336' },
-            'RETURNED': { text: 'Đã Trả', color: '#ff9800' }
+            'PENDING': { text: order.orderStatus, color: '#ffa500' },
+            'CONFIRMED': { text: order.orderStatus, color: '#4CAF50' },
+            'PROCESSING': { text: order.orderStatus, color: '#2196F3' },
+            'SHIPPING': { text: order.orderStatus, color: '#9C27B0' },
+            'DELIVERED': { text: order.orderStatus, color: '#4CAF50' },
+            'COMPLETED': { text: order.orderStatus, color: '#4CAF50' },
+            'CANCELLED': { text: order.orderStatus, color: '#f44336' },
+            'RETURNED': { text: order.orderStatus, color: '#ff9800' }
           };
 
           const statusInfo = statusMap[order.orderStatus] || { text: order.orderStatus, color: '#757575' };
@@ -100,6 +148,7 @@ const OrdersPage = () => {
 
           return {
             id: order.orderId,
+            userId: order.userId,
             orderDate: order.createdAt ? new Date(order.createdAt).toLocaleDateString('vi-VN') : 'N/A',
             orderDateTime: formattedDateTime,
             totalAmount: order.totalAmount || 0,
@@ -108,7 +157,13 @@ const OrdersPage = () => {
             statusColor: statusInfo.color,
             items: order.items || [],
             shippingAddress: order.shippingAddress || {},
-            paymentMethod: order.paymentMethod || 'N/A'
+            paymentMethod: order.paymentMethod || 'N/A',
+            paymentStatus: order.paymentStatus || 'PENDING',
+            subtotal: order.subtotal || order.totalAmount || 0,
+            shippingAmount: order.shippingAmount || 0,
+            discountAmount: order.discountAmount || 0,
+            createdAt: order.createdAt,
+            orderStatus: order.orderStatus
           };
         });
 
@@ -129,8 +184,8 @@ const OrdersPage = () => {
     return (
       <div className="orders-page">
         <div className="orders-container">
-          <h1>Đơn Hàng Của Tôi</h1>
-          <p style={{ textAlign: 'center', padding: '2rem' }}>Đang tải...</p>
+          <h1>{txtMyOrders}</h1>
+          <p style={{ textAlign: 'center', padding: '2rem' }}>{txtLoading}</p>
         </div>
       </div>
     );
@@ -140,9 +195,9 @@ const OrdersPage = () => {
     return (
       <div className="orders-page">
         <div className="orders-container">
-          <h1>Đơn Hàng Của Tôi</h1>
+          <h1>{txtMyOrders}</h1>
           <p style={{ textAlign: 'center', padding: '2rem', color: 'red' }}>
-            Lỗi: {error}
+            {txtError}: {error}
           </p>
         </div>
       </div>
@@ -153,17 +208,17 @@ const OrdersPage = () => {
     <div className="orders-page">
       <div className="orders-container">
         <div className="orders-header">
-          <h1>Đơn Hàng Của Tôi</h1>
+          <h1>{txtMyOrders}</h1>
           <button className="back-btn" onClick={() => navigate(-1)}>
-            ← Quay lại
+            ← {txtBackBtn}
           </button>
         </div>
 
         {orders.length === 0 ? (
           <div className="no-orders">
-            <p>Bạn chưa có đơn hàng nào</p>
+            <p>{txtNoOrders}</p>
             <button className="shop-now-btn" onClick={() => navigate('/products')}>
-              Mua sắm ngay
+              {txtShopNow}
             </button>
           </div>
         ) : (
@@ -172,41 +227,41 @@ const OrdersPage = () => {
               <div key={order.id} className="order-card">
                 <div className="order-card-header">
                   <div className="order-id">
-                    <strong>Mã đơn:</strong> {order.id}
+                    <strong>{txtOrderCode}:</strong> {order.id}
                   </div>
                   <div className="order-date">
-                    <strong>Ngày giờ đặt:</strong> {order.orderDateTime}
+                    <strong>{txtOrderDateTime}:</strong> {order.orderDateTime}
                   </div>
                   <div className="order-status">
                     <span
                       className="status-badge"
                       style={{ backgroundColor: order.statusColor }}
                     >
-                      {order.statusText}
+                      <OrderStatus status={order.status} />
                     </span>
                   </div>
                 </div>
 
                 <div className="order-card-body">
                   <div className="order-items">
-                    <strong>Sản phẩm:</strong>
+                    <strong>{txtProducts}:</strong>
                     {order.items && order.items.length > 0 ? (
                       <ul>
                         {order.items.map((item, idx) => (
                           <li key={idx}>
-                            {item.productName || item.productId}
+                            <OrderItemName itemName={item.productName || item.productId} />
                             {item.categoryName && <span style={{ color: '#888', fontSize: '0.9em' }}> ({item.categoryName})</span>}
                             {' '}- SL: {item.quantity || 1}
                           </li>
                         ))}
                       </ul>
                     ) : (
-                      <p>Không có thông tin sản phẩm</p>
+                      <p>{txtNoProductInfo}</p>
                     )}
                   </div>
 
                   <div className="order-address">
-                    <strong>Địa chỉ giao hàng:</strong>
+                    <strong>{txtShippingAddress}:</strong>
                     <p>
                       {order.shippingAddress.fullName && `${order.shippingAddress.fullName}, `}
                       {order.shippingAddress.addressLine1}
@@ -215,23 +270,43 @@ const OrdersPage = () => {
                   </div>
 
                   <div className="order-payment">
-                    <strong>Phương thức thanh toán:</strong> {order.paymentMethod}
+                    <strong>{txtPaymentMethod}:</strong> {order.paymentMethod}
                   </div>
                 </div>
 
                 <div className="order-card-footer">
                   <div className="order-total">
-                    <strong>Tổng tiền:</strong>{' '}
+                    <strong>{txtTotal}:</strong>{' '}
                     <span className="total-amount">
                       {order.totalAmount.toLocaleString('vi-VN')}đ
                     </span>
                   </div>
+                  <button
+                    className="invoice-btn"
+                    onClick={() => {
+                      console.log('Opening invoice for order:', order);
+                      console.log('Order ID:', order.orderId);
+                      setSelectedOrder(order);
+                      setInvoiceModalOpen(true);
+                    }}
+                  >
+                    📄 {txtExportInvoice}
+                  </button>
                 </div>
               </div>
             ))}
           </div>
         )}
       </div>
+
+      <InvoiceModal
+        isOpen={invoiceModalOpen}
+        onClose={() => {
+          setInvoiceModalOpen(false);
+          setSelectedOrder(null);
+        }}
+        order={selectedOrder}
+      />
     </div>
   );
 };

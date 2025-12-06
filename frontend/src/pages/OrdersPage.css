@@ -162,7 +162,10 @@
   background: #f9f9f9;
   border-top: 1px solid #e0e0e0;
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
 }
 
 .order-total {
@@ -178,6 +181,28 @@
   color: #4CAF50;
   font-weight: 700;
   font-size: 1.3rem;
+}
+
+.invoice-btn {
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #2d5016 0%, #3d6b1f 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+}
+
+.invoice-btn:hover {
+  background: linear-gradient(135deg, #3d6b1f 0%, #2d5016 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(45, 80, 22, 0.3);
 }
 
 /* Responsive */
@@ -207,5 +232,15 @@
 
   .total-amount {
     font-size: 1.1rem;
+  }
+
+  .order-card-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .invoice-btn {
+    width: 100%;
+    justify-content: center;
   }
 }

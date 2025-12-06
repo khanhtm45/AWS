@@ -35,6 +35,18 @@ public class PaymentTableRepository {
         return Optional.empty();
     }
 
+    public Optional<PaymentTable> findByOrderId(String orderId) {
+        // Scan for payment with matching orderId
+        // This is inefficient but works without GSI
+        try {
+            return paymentTable().scan().items().stream()
+                .filter(p -> orderId.equals(p.getOrderId()))
+                .findFirst();
+        } catch (Exception e) {
+            return Optional.empty();
+        }
+    }
+
     public void deleteByPaymentId(String paymentId) {
         Key key = Key.builder().partitionValue("PAYMENT#" + paymentId).sortValue("META").build();
         paymentTable().deleteItem(key);

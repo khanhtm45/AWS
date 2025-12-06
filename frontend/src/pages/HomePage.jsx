@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTranslatedText } from '../hooks/useTranslation';
 import './HomePage.css';
 import ChatBox from '../components/ChatBox';
+import ProductCard from '../components/ProductCard';
 
 function HomePage() {
   const navigate = useNavigate();
@@ -11,6 +13,21 @@ function HomePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showTopMenu, setShowTopMenu] = useState(false);
+  
+  // AWS Translate cho các text
+  const profileText = useTranslatedText('Hồ sơ người dùng');
+  const ordersText = useTranslatedText('Đơn hàng');
+  const loginText = useTranslatedText('Đăng nhập');
+  const guestOrdersText = useTranslatedText('Đơn hàng (đăng nhập để xem)');
+  const comboText = useTranslatedText('Combo Đặc Biệt');
+  const shirtText = useTranslatedText('Áo');
+  const pantsText = useTranslatedText('Quần');
+  const viewAllText = useTranslatedText('Xem Tất Cả');
+  const viewAllComboText = useTranslatedText('Xem Tất Cả Combo');
+  const inStockText = useTranslatedText('Còn');
+  const outOfStockText = useTranslatedText('Hết hàng');
+  const loadingText = useTranslatedText('Đang tải...');
+  const errorText = useTranslatedText('Không thể tải danh sách sản phẩm');
 
   // Helper function để lấy presigned URL từ S3 key - cải thiện dựa trên test tool
   const getPresignedUrl = async (s3KeyOrUrl) => {
@@ -243,19 +260,19 @@ function HomePage() {
             {user ? (
               <>
                 <button className="home-top-item" onClick={() => { setShowTopMenu(false); navigate('/profile'); }}>
-                  Hồ sơ người dùng
+                  {profileText}
                 </button>
                 <button className="home-top-item" onClick={() => { setShowTopMenu(false); navigate('/orders'); }}>
-                  Đơn hàng
+                  {ordersText}
                 </button>
               </>
             ) : (
               <>
                 <button className="home-top-item" onClick={() => { setShowTopMenu(false); navigate('/login'); }}>
-                  Đăng nhập
+                  {loginText}
                 </button>
                 <button className="home-top-item disabled" onClick={() => { /* do nothing for guest orders */ }}>
-                  Đơn hàng (đăng nhập để xem)
+                  {guestOrdersText}
                 </button>
               </>
             )}
@@ -284,93 +301,24 @@ function HomePage() {
       {/* Combo Section */}
       {comboProducts.length > 0 && (
       <section className="products-section combo-section">
-        <h2>🎁 Combo Đặc Biệt ({comboProducts.length})</h2>
+        <h2>🎁 {comboText} ({comboProducts.length})</h2>
         <div className="products-grid combo-grid">
             {comboProducts.map(combo => (
-              <div 
-                key={combo.id} 
-                className="product-card combo-card"
+              <ProductCard
+                key={combo.id}
+                product={combo}
                 onClick={() => navigate(`/product/${combo.id}`)}
-                style={{ position: 'relative', border: '2px solid #4CAF50', cursor: 'pointer' }}
-              >
-                {combo.quantity === 0 && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '0',
-                    left: '0',
-                    right: '0',
-                    bottom: '0',
-                    background: 'rgba(0, 0, 0, 0.6)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 2
-                  }}>
-                    <div style={{
-                      background: '#d32f2f',
-                      color: 'white',
-                      padding: '15px 30px',
-                      borderRadius: '8px',
-                      fontWeight: 'bold',
-                      fontSize: '24px',
-                      textTransform: 'uppercase',
-                      letterSpacing: '2px',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
-                    }}>
-                      SOLD OUT
-                    </div>
-                  </div>
-                )}
-                <div className="combo-badge" style={{
-                  position: 'absolute',
-                  top: '10px',
-                  right: '10px',
-                  background: '#4CAF50',
-                  color: 'white',
-                  padding: '5px 10px',
-                  borderRadius: '5px',
-                  fontWeight: 'bold',
-                  fontSize: '12px',
-                  zIndex: 1
-                }}>
-                  COMBO
-                </div>
-                <div className="product-image" style={{ height: '280px' }}>
-                  <img 
-                    src={combo.image} 
-                    alt={combo.name}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }}
-                    onError={(e) => { e.target.src = '/LEAF.png'; }}
-                  />
-                </div>
-                <div className="product-info">
-                  <h3 style={{ fontSize: '16px', marginBottom: '8px', minHeight: '48px' }}>
-                    {combo.name}
-                  </h3>
-                  <p className="product-price" style={{ 
-                    color: '#4CAF50',
-                    fontWeight: 'bold',
-                    fontSize: '18px',
-                    marginTop: '8px'
-                  }}>
-                    {combo.price}
-                  </p>
-                  <p className="product-stock" style={{ 
-                    marginTop: 6, 
-                    color: combo.quantity > 0 ? '#2a7a2a' : '#a00',
-                    fontSize: '14px'
-                  }}>
-                    {combo.quantity > 0 ? `Còn ${combo.quantity}` : 'Hết hàng'}
-                  </p>
-                </div>
-              </div>
+                badge="COMBO"
+                badgeColor="#4CAF50"
+                borderColor="#4CAF50"
+              />
             ))}
         </div>
         <button 
           className="view-all-btn"
           onClick={() => navigate('/products')}
         >
-          Xem Tất Cả Combo
+          {viewAllComboText}
         </button>
       </section>
       )}
@@ -378,95 +326,24 @@ function HomePage() {
       {/* Áo Nam Section */}
       {shirtProducts.length > 0 && (
       <section className="products-section shirt-section">
-        <h2>👕 Áo ({shirtProducts.length})</h2>
+        <h2>👕 {shirtText} ({shirtProducts.length})</h2>
         <div className="products-grid shirt-grid">
             {shirtProducts.map(product => (
-              <div 
-                key={product.id} 
-                className="product-card shirt-card"
+              <ProductCard
+                key={product.id}
+                product={product}
                 onClick={() => navigate(`/product/${product.id}`)}
-                style={{ position: 'relative', border: '2px solid #2196F3', cursor: 'pointer' }}
-              >
-                {product.quantity === 0 && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '0',
-                    left: '0',
-                    right: '0',
-                    bottom: '0',
-                    background: 'rgba(0, 0, 0, 0.6)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 2
-                  }}>
-                    <div style={{
-                      background: '#d32f2f',
-                      color: 'white',
-                      padding: '15px 30px',
-                      borderRadius: '8px',
-                      fontWeight: 'bold',
-                      fontSize: '24px',
-                      textTransform: 'uppercase',
-                      letterSpacing: '2px',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
-                    }}>
-                      SOLD OUT
-                    </div>
-                  </div>
-                )}
-                <div className="shirt-badge" style={{
-                  position: 'absolute',
-                  top: '10px',
-                  right: '10px',
-                  background: 'linear-gradient(135deg, #2196F3 0%, #1976D2 100%)',
-                  color: 'white',
-                  padding: '5px 10px',
-                  borderRadius: '5px',
-                  fontWeight: 'bold',
-                  fontSize: '12px',
-                  zIndex: 1
-                }}>
-                  ÁO
-                </div>
-                <div className="product-image" style={{ height: '280px' }}>
-                  <img 
-                    src={product.image} 
-                    alt={product.name}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }}
-                    onError={(e) => {
-                      e.target.src = '/LEAF.png';
-                    }}
-                  />
-                </div>
-                <div className="product-info">
-                  <h3 style={{ fontSize: '16px', marginBottom: '8px', minHeight: '48px' }}>
-                    {product.name}
-                  </h3>
-                  <p className="product-price" style={{ 
-                    color: '#2196F3',
-                    fontWeight: 'bold',
-                    fontSize: '18px',
-                    marginTop: '8px'
-                  }}>
-                    {product.price}
-                  </p>
-                  <p className="product-stock" style={{ 
-                    marginTop: 6, 
-                    color: product.quantity > 0 ? '#2a7a2a' : '#a00',
-                    fontSize: '14px'
-                  }}>
-                    {product.quantity > 0 ? `Còn ${product.quantity}` : 'Hết hàng'}
-                  </p>
-                </div>
-              </div>
+                badge="ÁO"
+                badgeColor="linear-gradient(135deg, #2196F3 0%, #1976D2 100%)"
+                borderColor="#2196F3"
+              />
             ))}
         </div>
         <button 
           className="view-all-btn" 
           onClick={() => navigate('/products')}
         >
-          Xem Tất Cả Áo
+          {viewAllText} {shirtText}
         </button>
       </section>
       )}
@@ -474,71 +351,24 @@ function HomePage() {
       {/* Quần Nam Section */}
       {pantsProducts.length > 0 && (
       <section className="products-section">
-        <h2>Quần({pantsProducts.length})</h2>
+        <h2>{pantsText} ({pantsProducts.length})</h2>
         <div className="products-grid">
             {pantsProducts.map(product => (
-              <div 
-                key={product.id} 
-                className="product-card"
+              <ProductCard
+                key={product.id}
+                product={product}
                 onClick={() => navigate(`/product/${product.id}`)}
-                style={{ position: 'relative' }}
-              >
-                {product.quantity === 0 && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '0',
-                    left: '0',
-                    right: '0',
-                    bottom: '0',
-                    background: 'rgba(0, 0, 0, 0.6)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 2
-                  }}>
-                    <div style={{
-                      background: '#d32f2f',
-                      color: 'white',
-                      padding: '15px 30px',
-                      borderRadius: '8px',
-                      fontWeight: 'bold',
-                      fontSize: '24px',
-                      textTransform: 'uppercase',
-                      letterSpacing: '2px',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
-                    }}>
-                      SOLD OUT
-                    </div>
-                  </div>
-                )}
-                <div className="product-image">
-                  <img 
-                    src={product.image} 
-                    alt={product.name}
-                    onError={(e) => {
-                      e.target.src = '/LEAF.png';
-                    }}
-                  />
-                </div>
-                <div className="product-info">
-                  <h3>{product.name}</h3>
-                  <p className="product-price">{product.price}</p>
-                  <p className="product-stock" style={{ 
-                    marginTop: 6, 
-                    color: product.quantity > 0 ? '#2a7a2a' : '#a00',
-                    fontSize: '14px'
-                  }}>
-                    {product.quantity > 0 ? `Còn ${product.quantity}` : 'Hết hàng'}
-                  </p>
-                </div>
-              </div>
+                badge="QUẦN"
+                badgeColor="linear-gradient(135deg, #FF9800 0%, #F57C00 100%)"
+                borderColor="#FF9800"
+              />
             ))}
         </div>
         <button 
-          className="view-all-btn"
+          className="view-all-btn" 
           onClick={() => navigate('/products')}
         >
-          Xem Tất Cả Quần
+          {viewAllText} {pantsText}
         </button>
       </section>
       )}

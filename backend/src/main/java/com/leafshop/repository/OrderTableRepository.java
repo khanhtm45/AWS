@@ -166,4 +166,23 @@ public class OrderTableRepository {
 			.stream()
 			.collect(Collectors.toList());
 	}
+
+	// Find order by orderId attribute (scan) - used for payment webhook
+	public Optional<OrderTable> findByOrderId(String orderId) {
+		Map<String, AttributeValue> eav = new HashMap<>();
+		eav.put(":orderId", AttributeValue.builder().s(orderId).build());
+		eav.put(":meta", AttributeValue.builder().s("META").build());
+		Expression filterExpression = Expression.builder()
+			.expression("orderId = :orderId AND SK = :meta")
+			.expressionValues(eav)
+			.build();
+
+		List<OrderTable> results = orderTable()
+			.scan(ScanEnhancedRequest.builder().filterExpression(filterExpression).build())
+			.items()
+			.stream()
+			.collect(Collectors.toList());
+		
+		return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
+	}
 }

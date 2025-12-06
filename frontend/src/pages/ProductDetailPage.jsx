@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import './ProductDetailPage.css';
+import { useTranslatedText } from '../hooks/useTranslation';
 
 // Helper function để lấy presigned URL từ S3 key
 const getPresignedUrl = async (s3KeyOrUrl) => {
@@ -82,6 +83,20 @@ function ProductDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { addToCart } = useCart();
+  
+  // Translation hooks
+  const loadingText = useTranslatedText('Đang tải...');
+  const inStockText = useTranslatedText('Còn');
+  const productsText = useTranslatedText('sản phẩm');
+  const outOfStockText = useTranslatedText('Hết hàng');
+  const freeShippingText = useTranslatedText('Miễn phí vận chuyển');
+  const sizeText = useTranslatedText('Size');
+  const selectSizeText = useTranslatedText('Chọn size');
+  const selectColorText = useTranslatedText('Chọn màu khác');
+  const addToCartText = useTranslatedText('Thêm vào giỏ hàng');
+  const productInfoText = useTranslatedText('Thông tin sản phẩm');
+  const productCodeText = useTranslatedText('Mã số');
+  const originText = useTranslatedText('Xuất xứ');
   
   // API Base URL
   const API_BASE = 'http://localhost:8080';
@@ -412,7 +427,7 @@ function ProductDetailPage() {
   const increaseQuantity = () => setQuantity(q => q + 1);
   const decreaseQuantity = () => setQuantity(q => (q > 1 ? q - 1 : 1));
 
-  if (isLoading || !product) return <div className="loading">Đang tải...</div>;
+  if (isLoading || !product) return <div className="loading">{loadingText}</div>;
 
   return (
     <div className="product-detail-page">
@@ -456,18 +471,18 @@ function ProductDetailPage() {
 
         {/* CỘT PHẢI: THÔNG TIN */}
         <div className="product-info">
-          <h1 className="product-title">{product.name}</h1>
+          <ProductTitle productName={product.name} />
           <div className="product-pricing">
             <span className="price">{displayPrice.toLocaleString('vi-VN')} VND</span>
-            <div className="stock" style={{ marginTop: 8, color: product?.quantity > 0 ? '#2a7a2a' : '#a00' }}>{product?.quantity > 0 ? `Còn ${product.quantity} sản phẩm` : 'Hết hàng'}</div>
+            <div className="stock" style={{ marginTop: 8, color: product?.quantity > 0 ? '#2a7a2a' : '#a00' }}>{product?.quantity > 0 ? `${inStockText} ${product.quantity} ${productsText}` : outOfStockText}</div>
           </div>
           <div className="shipping-info">
-            <span>{product.shippingInfo || "Miễn phí vận chuyển"}</span>
+            <span>{product.shippingInfo || freeShippingText}</span>
           </div>
 
           {/* Size */}
           <div className="size-selection">
-            <label className="size-label">Size: {selectedSize || 'Chọn size'}</label>
+            <label className="size-label">{sizeText}: {selectedSize || selectSizeText}</label>
             <div className="size-options">
               {displaySizes.map((size) => (
                 <button
@@ -483,7 +498,7 @@ function ProductDetailPage() {
 
           {/* Màu */}
           <div className="color-selection-section">
-            <label>Chọn màu khác</label>
+            <label>{selectColorText}</label>
             <div className="color-options">
               {uniqueColors.map((color) => (
                 <div
@@ -506,7 +521,7 @@ function ProductDetailPage() {
             <input type="number" value={quantity} readOnly className="quantity-input" />
             <button className="quantity-btn" onClick={increaseQuantity}>+</button>
           </div>
-          <button className="add-to-cart-btn" onClick={handleAddToCart} disabled={product?.quantity === 0}>{product?.quantity === 0 ? 'Hết hàng' : 'Thêm vào giỏ hàng'}</button>
+          <button className="add-to-cart-btn" onClick={handleAddToCart} disabled={product?.quantity === 0}>{product?.quantity === 0 ? outOfStockText : addToCartText}</button>
 
           {/* --- PHẦN THÔNG TIN SẢN PHẨM (ĐÚNG THIẾT KẾ) --- */}
           <div className="product-description">
@@ -517,7 +532,7 @@ function ProductDetailPage() {
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <span className="description-icon">👁</span>
-                <h3 style={{ margin: 0, fontSize: '16px' }}>Thông tin sản phẩm</h3>
+                <h3 style={{ margin: 0, fontSize: '16px' }}>{productInfoText}</h3>
               </div>
               <span className={`arrow ${showProductInfo ? 'open' : ''}`}>›</span>
             </div>
@@ -525,20 +540,18 @@ function ProductDetailPage() {
             {showProductInfo && descriptionData && (
               <div className="description-content" style={{ fontSize: '14px', lineHeight: '1.6', color: '#333' }}>
                 <div className="description-item" style={{ marginBottom: '10px' }}>
-                  <strong>Mã số:</strong> #{product.productId}
+                  <strong>{productCodeText}:</strong> #{product.productId}
                 </div>
                 <div className="description-item" style={{ marginBottom: '15px' }}>
-                  <p style={{ margin: 0 }}>{descriptionData.summary}</p>
+                  <DescriptionSummary summary={descriptionData.summary} />
                 </div>
                 <ul className="feature-list" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                   {descriptionData.details.map((detail, index) => (
-                    <li key={index} style={{ marginBottom: '5px' }}>
-                      <strong>{detail.label}:</strong> {detail.value}
-                    </li>
+                    <DescriptionDetail key={index} detail={detail} />
                   ))}
                 </ul>
                 <div className="origin" style={{ marginTop: '15px', fontStyle: 'italic', color: '#666' }}>
-                  Xuất xứ: {descriptionData.origin}
+                  {originText}: <OriginText origin={descriptionData.origin} />
                 </div>
               </div>
             )}
@@ -549,5 +562,34 @@ function ProductDetailPage() {
     </div>
   );
 }
+
+// Component to translate product title
+const ProductTitle = ({ productName }) => {
+  const translatedName = useTranslatedText(productName);
+  return <h1 className="product-title">{translatedName}</h1>;
+};
+
+// Component to translate description summary
+const DescriptionSummary = ({ summary }) => {
+  const translatedSummary = useTranslatedText(summary);
+  return <p style={{ margin: 0 }}>{translatedSummary}</p>;
+};
+
+// Component to translate description detail
+const DescriptionDetail = ({ detail }) => {
+  const translatedLabel = useTranslatedText(detail.label);
+  const translatedValue = useTranslatedText(detail.value);
+  return (
+    <li style={{ marginBottom: '5px' }}>
+      <strong>{translatedLabel}:</strong> {translatedValue}
+    </li>
+  );
+};
+
+// Component to translate origin
+const OriginText = ({ origin }) => {
+  const translatedOrigin = useTranslatedText(origin);
+  return <span>{translatedOrigin}</span>;
+};
 
 export default ProductDetailPage;

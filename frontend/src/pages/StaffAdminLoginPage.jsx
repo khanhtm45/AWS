@@ -2,9 +2,20 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './StaffAdminLoginPage.css';
 import { useAuth } from '../context/AuthContext';
+import { useTranslatedText } from '../hooks/useTranslation';
 
 function StaffAdminLoginPage() {
   const navigate = useNavigate();
+  
+  // Translation hooks
+  const txtTitle = useTranslatedText('Đăng nhập Staff/Admin');
+  const txtUsername = useTranslatedText('Tên đăng nhập');
+  const txtPassword = useTranslatedText('Mật khẩu');
+  const txtLogin = useTranslatedText('Đăng nhập');
+  const txtLoggingIn = useTranslatedText('Đang đăng nhập...');
+  const txtBackToCustomer = useTranslatedText('Quay lại trang khách hàng');
+  const txtLoginFailed = useTranslatedText('Login failed');
+  
   const [formData, setFormData] = useState({
     username: '',
     password: ''
@@ -40,7 +51,7 @@ function StaffAdminLoginPage() {
       });
       if (!res.ok) {
         const text = await res.text();
-        setError(text || 'Login failed');
+        setError(text || txtLoginFailed);
         setLoading(false);
         return;
       }

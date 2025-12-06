@@ -1,8 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import './ProductsPage.css';
+import { useTranslatedText } from '../hooks/useTranslation';
+import ProductCard from '../components/ProductCard';
 
 const ProductsPage = () => {
+  // Translation hooks
+  const menuText = useTranslatedText('Menu');
+  const priceText = useTranslatedText('Giá tiền');
+  const applyText = useTranslatedText('Áp dụng');
+  const menClothingText = useTranslatedText('Đồ Nam');
+  const searchText = useTranslatedText('Search');
+  const filteringText = useTranslatedText('Đang áp dụng filter:');
+  const clearFilterText = useTranslatedText('Xóa filter');
+  const loadingText = useTranslatedText('Đang tải sản phẩm...');
+  const noProductsText = useTranslatedText('Không tìm thấy sản phẩm nào.');
+  const allText = useTranslatedText('Tất cả');
+  const toText = useTranslatedText('đến');
+  const inStockText = useTranslatedText('Còn');
+  const productsText = useTranslatedText('sản phẩm');
+  const outOfStockText = useTranslatedText('Hết hàng');
+  
   // State cho products từ API
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -172,7 +190,7 @@ const ProductsPage = () => {
     const uniqueCategories = new Map();
     
     // Thêm "Tất cả" đầu tiên
-    uniqueCategories.set('all', { value: 'all', label: 'Tất cả', categoryName: 'Tất cả' });
+    uniqueCategories.set('all', { value: 'all', label: allText, categoryName: allText });
     
     // Lấy unique categories từ products
     products.forEach(product => {
@@ -216,25 +234,22 @@ const ProductsPage = () => {
         {/* Compact Sidebar */}
         <div className="compact-sidebar">
           <div className="sidebar-header">
-            <h3>Menu</h3>
+            <h3>{menuText}</h3>
           </div>
           
           <div className="filter-group-vertical">
             {categories.map(category => (
-              <label key={category.value} className="filter-checkbox-vertical">
-                <input
-                  type="checkbox"
-                  checked={selectedCategories.includes(category.value)}
-                  onChange={() => toggleCategory(category.value)}
-                />
-                <span className="checkmark"></span>
-                <span className="filter-label">{category.label}</span>
-              </label>
+              <CategoryCheckbox 
+                key={category.value} 
+                category={category}
+                isChecked={selectedCategories.includes(category.value)}
+                onToggle={() => toggleCategory(category.value)}
+              />
             ))}
           </div>
 
           <div className="sidebar-header">
-            <h3>Giá tiền</h3>
+            <h3>{priceText}</h3>
           </div>
           
           <div className="price-range-simple">
@@ -248,7 +263,7 @@ const ProductsPage = () => {
               />
               <span className="price-unit">₫</span>
             </div>
-            <span className="price-to">đến</span>
+            <span className="price-to">{toText}</span>
             <div className="price-inputs-simple">
               <input 
                 type="number" 
@@ -265,19 +280,19 @@ const ProductsPage = () => {
             className="apply-filters-btn"
             onClick={applyPriceFilter}
           >
-            Áp dụng
+            {applyText}
           </button>
         </div>
 
         {/* Main Content */}
         <div className="products-main">
           <div className="products-header-compact">
-            <h1>Đồ Nam</h1>
+            <h1>{menClothingText}</h1>
             <div className="search-container">
               <div className="search-box-compact">
                 <input 
                   type="text" 
-                  placeholder="Search" 
+                  placeholder={searchText} 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
@@ -289,14 +304,15 @@ const ProductsPage = () => {
           {/* Filter Status */}
           {(!selectedCategories.includes('all') || selectedCategories.length > 1 || appliedPriceRange[0] !== 0 || appliedPriceRange[1] !== 10000) && (
             <div className="filter-status">
-              <span>Đang áp dụng filter: </span>
+              <span>{filteringText} </span>
               {!selectedCategories.includes('all') && selectedCategories.length > 0 && (
                 <>
-                  {selectedCategories.map(catValue => (
-                    <span key={catValue} className="filter-tag">
-                      {categories.find(cat => cat.value === catValue)?.label}
-                    </span>
-                  ))}
+                  {selectedCategories.map(catValue => {
+                    const category = categories.find(cat => cat.value === catValue);
+                    return category ? (
+                      <FilterTag key={catValue} label={category.label} />
+                    ) : null;
+                  })}
                 </>
               )}
               {(appliedPriceRange[0] !== 0 || appliedPriceRange[1] !== 10000) && (
@@ -305,38 +321,26 @@ const ProductsPage = () => {
                 </span>
               )}
               <button className="reset-filter-btn" onClick={resetFilters}>
-                Xóa filter
+                {clearFilterText}
               </button>
             </div>
           )}
 
           <div className="products-grid">
             {loading ? (
-              <div className="loading-message">Đang tải sản phẩm...</div>
+              <div className="loading-message">{loadingText}</div>
             ) : filteredProducts.length > 0 ? (
               filteredProducts.map(product => (
-                <div key={product.id} className="product-card">
-                  <Link to={`/product/${product.id}`} className="product-link">
-                    <div className="product-image">
-                      <img 
-                        src={product.image} 
-                        alt={product.name}
-                        onError={(e) => {
-                          e.target.src = '/LEAF.png';
-                        }}
-                      />
-                    </div>
-                    <div className="product-info">
-                      <h3 className="product-name">{product.name}</h3>
-                      <p className="product-price">{formatPrice(product.price)}</p>
-                      <p className="product-stock">{product.quantity > 0 ? `Còn ${product.quantity} sản phẩm` : 'Hết hàng'}</p>
-                    </div>
-                  </Link>
-                </div>
+                <Link key={product.id} to={`/product/${product.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                  <ProductCard
+                    product={product}
+                    onClick={() => {}}
+                  />
+                </Link>
               ))
             ) : (
               <div className="no-products">
-                <p>Không tìm thấy sản phẩm nào.</p>
+                <p>{noProductsText}</p>
               </div>
             )}
           </div>
@@ -344,6 +348,29 @@ const ProductsPage = () => {
       </div>
     </div>
   );
+};
+
+// Component to translate category label
+const CategoryCheckbox = ({ category, isChecked, onToggle }) => {
+  const translatedLabel = useTranslatedText(category.label);
+  
+  return (
+    <label className="filter-checkbox-vertical">
+      <input
+        type="checkbox"
+        checked={isChecked}
+        onChange={onToggle}
+      />
+      <span className="checkmark"></span>
+      <span className="filter-label">{translatedLabel}</span>
+    </label>
+  );
+};
+
+// Component to translate filter tag
+const FilterTag = ({ label }) => {
+  const translatedLabel = useTranslatedText(label);
+  return <span className="filter-tag">{translatedLabel}</span>;
 };
 
 export default ProductsPage;

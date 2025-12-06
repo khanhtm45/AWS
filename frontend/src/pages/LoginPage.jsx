@@ -1,10 +1,27 @@
 import React, { useState, useEffect } from 'react';     
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import './LoginPage.css';
+import { useTranslatedText } from '../hooks/useTranslation';
 
 const LoginPage = () => {
+  // Translation hooks
+  const txtBackBtn = useTranslatedText('Quay lại');
+  const txtLogin = useTranslatedText('Đăng nhập');
+  const txtLoginInstruction = useTranslatedText('Hãy nhập thông tin hợp lệ của bạn vào các ô dưới đây');
+  const txtEmail = useTranslatedText('Email');
+  const txtSendOTP = useTranslatedText('Gửi OTP');
+  const txtOTP = useTranslatedText('OTP');
+  const txtVerifyAndLogin = useTranslatedText('Xác thực và đăng nhập');
+  const txtPrivacyPolicy = useTranslatedText('Chính sách quyền riêng tư & Điều khoản dịch vụ');
+  const txtStaffAdminLogin = useTranslatedText('Đăng nhập Staff và admin');
+  const txtOtpSent = useTranslatedText('OTP đã được gửi. Kiểm tra email.');
+  const txtSendOtpError = useTranslatedText('Lỗi khi gửi OTP');
+  const txtLoginSuccess = useTranslatedText('Đăng nhập thành công');
+  const txtVerifyFailed = useTranslatedText('Xác thực thất bại');
+  
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [step, setStep] = useState('request'); // 'request' or 'verify'
   const [otp, setOtp] = useState('');
@@ -32,10 +49,10 @@ const LoginPage = () => {
         });
         if (!res.ok) throw new Error(await res.text());
         setStep('verify');
-        setMessage('OTP đã được gửi. Kiểm tra email.');
+        setMessage(txtOtpSent);
       } catch (err) {
         console.error(err);
-        setMessage('Lỗi khi gửi OTP: ' + (err.message || err));
+        setMessage(txtSendOtpError + ': ' + (err.message || err));
       }
     })();
   };
@@ -114,11 +131,14 @@ const LoginPage = () => {
         }
       }
 
-      setMessage('Đăng nhập thành công');
-      navigate('/');
+      setMessage(txtLoginSuccess);
+      
+      // Redirect to checkout if came from checkout page, otherwise go home
+      const from = location.state?.from || '/';
+      navigate(from);
     } catch (err) {
       console.error(err);
-      setMessage('Xác thực thất bại: ' + (err.message || err));
+      setMessage(txtVerifyFailed + ': ' + (err.message || err));
     }
   };
 
@@ -134,7 +154,7 @@ const LoginPage = () => {
           {/* Back Button */}
           <div className="back-button-section">
             <button onClick={handleGoBack} className="back-btn">
-              ← Quay lại
+              ← {txtBackBtn}
             </button>
           </div>
 
@@ -145,8 +165,8 @@ const LoginPage = () => {
 
           {/* Title and Description */}
           <div className="form-header">
-            <h1>Đăng nhập</h1>
-            <p>Hãy nhập thông tin hợp lệ của bạn vào các ô dưới đây</p>
+            <h1>{txtLogin}</h1>
+            <p>{txtLoginInstruction}</p>
           </div>
 
           {/* Form */}
@@ -155,7 +175,7 @@ const LoginPage = () => {
               <div className="input-group">
                 <input
                   type="email"
-                  placeholder="Email"
+                  placeholder={txtEmail}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -163,7 +183,7 @@ const LoginPage = () => {
               </div>
 
               <button type="submit" className="continue-btn">
-                Gửi OTP
+                {txtSendOTP}
               </button>
             </form>
           )}
@@ -173,7 +193,7 @@ const LoginPage = () => {
               <div className="input-group">
                 <input
                   type="email"
-                  placeholder="Email"
+                  placeholder={txtEmail}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -182,14 +202,14 @@ const LoginPage = () => {
               <div className="input-group">
                 <input
                   type="text"
-                  placeholder="OTP"
+                  placeholder={txtOTP}
                   value={otp}
                   onChange={(e) => setOtp(e.target.value)}
                   required
                 />
               </div>
               <button type="submit" className="continue-btn">
-                Xác thực và đăng nhập
+                {txtVerifyAndLogin}
               </button>
             </form>
           )}
@@ -203,10 +223,10 @@ const LoginPage = () => {
           {/* Links */}
           <div className="form-links">
             <Link to="/policy" className="policy-link">
-              Chính sách quyền riêng tư & Điều khoản dịch vụ
+              {txtPrivacyPolicy}
             </Link>
             <Link to="/staff-admin-login" className="admin-link">
-              Đăng nhập Staff và admin
+              {txtStaffAdminLogin}
             </Link>
           </div>
         </div>

@@ -172,8 +172,9 @@ public class CartService {
 
     public CreateOrderResponse checkout(CheckoutRequest req) {
         // 1. Validate request parameters
-        if (req.getUserId() == null && req.getSessionId() == null) {
-            throw new IllegalArgumentException("Either userId or sessionId must be provided");
+        // Require userId for checkout - guests cannot complete orders
+        if (req.getUserId() == null || req.getUserId().isEmpty()) {
+            throw new IllegalArgumentException("User must be logged in to checkout. Please login first.");
         }
         if (req.getShippingAddress() == null) {
             throw new IllegalArgumentException("Shipping address is required");
@@ -182,26 +183,18 @@ public class CartService {
         String cartPk = cartPk(req.getUserId(), req.getSessionId());
         List<OrderTable> cartItems = orderTableRepository.findOrderItemsByPk(cartPk);
 
-        // 2. Check for duplicate checkout from same cart
-        Optional<OrderTable> existingMeta = orderTableRepository.findByCartId(cartPk).stream()
-            .filter(o -> "META".equals(o.getSk()))
-            .findFirst();
-        if (existingMeta.isPresent()) {
-            OrderTable meta = existingMeta.get();
-            return CreateOrderResponse.builder()
-                .orderId(meta.getOrderId())
-                .orderPk(meta.getPk())
-                .totalAmount(meta.getTotalAmount())
-                .orderStatus(meta.getOrderStatus())
-                .build();
-        }
-
-        // 3. Validate cart is not empty
+        // 2. Validate cart is not empty
         if (cartItems.isEmpty()) {
             throw new IllegalStateException("Cart is empty");
         }
 
-        // 4. Validate all products & variants exist (from ProductTable)
+        // Note: Removed duplicate checkout check because:
+        // - After successful checkout, cart is completely deleted (items + META)
+        // - When user adds new items, it creates a fresh cart
+        // - Each cart should be allowed to checkout once
+        // - The previous logic was preventing new checkouts after cart was repopulated
+
+        // 3. Validate all products & variants exist (from ProductTable)
         for (OrderTable cartItem : cartItems) {
             if (cartItem.getProductId() == null) {
                 throw new IllegalArgumentException("Cart item missing productId");
@@ -223,14 +216,14 @@ public class CartService {
             }
         }
 
-        // 5. Validate warehouses exist
+        // 4. Validate warehouses exist
         List<WarehouseTable> warehouses = warehouseTableRepository.findByIsActiveTrue();
         boolean warehousesAvailable = warehouses != null && !warehouses.isEmpty();
         if (!warehousesAvailable) {
             logger.warn("No active warehouses available — skipping inventory checks and allocation");
         }
 
-        // 6. Pre-check: Verify sufficient stock across all warehouses for each product
+        // 5. Pre-check: Verify sufficient stock across all warehouses for each product
         // If warehouses are not available, skip pre-check and allocation (will create order but not reserve stock)
         if (warehousesAvailable) {
         Map<String, Integer> inventoryMap = new HashMap<>();
@@ -281,16 +274,16 @@ public class CartService {
         } else {
             // warehouses not available -> do not perform inventory checks
         }
-        // 7. Generate order ID and PK
+        // 6. Generate order ID and PK
         String orderId = UUID.randomUUID().toString();
         String orderPk = (req.getUserId() != null && !req.getUserId().isEmpty())
             ? DynamoDBKeyUtil.userOrderPk(req.getUserId(), orderId)
             : DynamoDBKeyUtil.orderPk(orderId);
 
-        // 8. Calculate totals
+        // 7. Calculate totals
         CartResponse totals = buildCartResponse(cartPk, req.getUserId(), req.getSessionId(), req.getCouponCode());
 
-        // 9. Save Order META (OrderTable with SK=META)
+        // 8. Save Order META (OrderTable with SK=META)
         OrderTable orderMeta = OrderTable.builder()
             .pk(orderPk)
             .sk("META")
@@ -311,7 +304,7 @@ public class CartService {
             .build();
         orderTableRepository.save(orderMeta);
 
-        // 10. Move cart items to order (OrderTable with SK=ITEM#...)
+        // 9. Move cart items to order (OrderTable with SK=ITEM#...)
         for (OrderTable cartItem : cartItems) {
             String itemId = cartItem.getSk().substring(5); // Remove "ITEM#" prefix
             OrderTable orderItem = OrderTable.builder()
@@ -328,7 +321,7 @@ public class CartService {
                 .build();
             orderTableRepository.save(orderItem);
 
-            // 11. Allocate/reserve inventory from WarehouseTable (if warehouses available)
+            // 10. Allocate/reserve inventory from WarehouseTable (if warehouses available)
             if (warehousesAvailable) {
                 int remaining = cartItem.getQuantity() != null ? cartItem.getQuantity() : 0;
                 for (WarehouseTable warehouse : warehouses) {
@@ -382,11 +375,11 @@ public class CartService {
                 logger.warn("Skipping inventory allocation for product {} because no active warehouses", cartItem.getProductId());
             }
 
-            // 12. Delete cart item
+            // 11. Delete cart item
             orderTableRepository.deleteByPkAndSk(cartPk, cartItem.getSk());
         }
 
-        // 13. Delete cart META
+        // 12. Delete cart META
         orderTableRepository.deleteByPkAndSk(cartPk, "META");
 
         return CreateOrderResponse.builder()
