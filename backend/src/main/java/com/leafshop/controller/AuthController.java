@@ -83,6 +83,43 @@ public class AuthController {
         return ResponseEntity.ok().build();
     }
 
+    /**
+     * Send OTP for email-based login using Redis
+     */
+    @PostMapping("/send-otp")
+    public ResponseEntity<?> sendOtp(@Valid @RequestBody LoginOtpRequest req) {
+        try {
+            authService.sendLoginOtp(req.getEmail());
+            return ResponseEntity.ok(Map.of(
+                "message", "OTP đã được gửi đến email của bạn",
+                "email", req.getEmail()
+            ));
+        } catch (RuntimeException e) {
+            log.error("Error sending OTP: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of(
+                "error", "send_otp_failed",
+                "message", e.getMessage()
+            ));
+        }
+    }
+
+    /**
+     * Verify OTP and login using Redis
+     */
+    @PostMapping("/verify-otp-login")
+    public ResponseEntity<?> verifyOtpLogin(@Valid @RequestBody VerifyLoginOtpRequest req) {
+        try {
+            AuthResponse resp = authService.verifyLoginOtp(req.getEmail(), req.getOtp());
+            return ResponseEntity.ok(resp);
+        } catch (RuntimeException e) {
+            log.error("Error verifying OTP: {}", e.getMessage());
+            return ResponseEntity.status(401).body(Map.of(
+                "error", "invalid_otp",
+                "message", e.getMessage()
+            ));
+        }
+    }
+
     @PostMapping("/request-otp")
     public ResponseEntity<?> requestOtp(@Valid @RequestBody RequestOtpRequest req) {
         // If accountId provided, try lookup by PK

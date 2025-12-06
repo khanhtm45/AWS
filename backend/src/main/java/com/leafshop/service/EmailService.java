@@ -22,11 +22,15 @@ public class EmailService {
     @Value("${spring.mail.username:noreply@leafshop.vn}")
     private String fromEmail;
 
+    @Value("${spring.mail.host:}")
+    private String mailHost;
+
     /**
      * Send email with PDF attachment
      */
     public boolean sendEmailWithAttachment(String to, String subject, String htmlBody, byte[] attachment, String filename) {
         try {
+            logger.info("Sending email via SMTP host: {} from: {}", mailHost, fromEmail);
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
