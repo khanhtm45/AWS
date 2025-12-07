@@ -1,0 +1,77 @@
+﻿========================================
+DEPLOYMENT INFORMATION
+========================================
+
+S3 Bucket: leaf-shop-frontend-20251207113351
+Region: ap-southeast-1
+S3 Website URL: http://leaf-shop-frontend-20251207113351.s3-website-ap-southeast-1.amazonaws.com
+
+========================================
+BUOC TIEP THEO: TAO CLOUDFRONT
+========================================
+
+TAO QUA AWS CONSOLE (Khuyên nghị - vì user chưa có quyền CLI):
+
+1. Mở AWS Console: https://console.aws.amazon.com
+2. Tìm kiếm 'CloudFront' và mở service
+3. Click 'Create Distribution'
+
+4. Origin Settings:
+   - Origin domain: leaf-shop-frontend-20251207113351.s3.ap-southeast-1.amazonaws.com
+   - Origin path: (để trống)
+   - Name: S3-leaf-shop-frontend-20251207113351
+   - Origin access: Public
+
+5. Default Cache Behavior:
+   - Viewer protocol policy: Redirect HTTP to HTTPS
+   - Allowed HTTP methods: GET, HEAD
+   - Compress objects automatically: Yes
+
+6. Settings:
+   - Price class: Use all edge locations
+   - Default root object: index.html
+
+7. Custom Error Pages (QUAN TRỌNG cho React Router):
+   Click 'Add custom error response':
+   - HTTP error code: 404
+   - Customize error response: Yes
+   - Response page path: /index.html
+   - HTTP response code: 200
+   
+   Thêm 1 response nữa:
+   - HTTP error code: 403
+   - Customize error response: Yes
+   - Response page path: /index.html
+   - HTTP response code: 200
+
+8. Click 'Create distribution'
+9. Chờ 10-15 phút để CloudFront deploy
+10. Copy CloudFront domain name (vd: d1234.cloudfront.net)
+
+========================================
+HOẶC CẤP QUYỀN CHO USER (nếu muốn dùng CLI):
+========================================
+
+Vào IAM Console:
+1. IAM > Users > leaf-shop
+2. Add permissions > Attach policies directly
+3. Tìm và chọn: CloudFrontFullAccess
+4. Click 'Add permissions'
+
+Sau đó chạy lại lệnh:
+aws cloudfront create-distribution --distribution-config file://cloudfront-config.json
+
+========================================
+QUICK COMMANDS
+========================================
+
+# Re-upload files sau khi update:
+aws s3 sync build/ s3://leaf-shop-frontend-20251207113351 --delete
+
+# List files:
+aws s3 ls s3://leaf-shop-frontend-20251207113351 --recursive
+
+# Xóa bucket (nếu cần):
+aws s3 rb s3://leaf-shop-frontend-20251207113351 --force
+
+========================================

@@ -1,0 +1,8 @@
+# Dockerfile for AWS Lambda Java
+FROM public.ecr.aws/lambda/java:latest
+
+# Copy jar file vào Lambda task root
+COPY target/leaf-shop-0.0.1-SNAPSHOT.jar ${LAMBDA_TASK_ROOT}
+
+# Định nghĩa handler (package.ClassName::methodName)
+CMD ["com.leafshop.LambdaHandler::handleRequest"]

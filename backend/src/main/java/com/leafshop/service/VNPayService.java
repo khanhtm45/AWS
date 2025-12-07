@@ -25,7 +25,7 @@ public class VNPayService {
     @Value("${vnpay.url:https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}")
     private String vnpUrl;
 
-    @Value("${vnpay.returnUrl:http://localhost:3001/payment-return}")
+    @Value("${vnpay.returnUrl:https://d2bk5r8qpr2ye6.cloudfront.net/payment-return}")
     private String vnpReturnUrl;
 
     @Value("${vnpay.version:2.1.0}")

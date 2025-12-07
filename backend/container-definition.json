@@ -1,0 +1,14 @@
+[
+  {
+    "name": "leaf-shop-backend",
+    "image": "083011581293.dkr.ecr.ap-southeast-1.amazonaws.com/leaf-shop-backend:latest",
+    "essential": true,
+    "portMappings": [
+      {
+        "containerPort": 8080,
+        "hostPort": 8080,
+        "protocol": "tcp"
+      }
+    ]
+  }
+]
