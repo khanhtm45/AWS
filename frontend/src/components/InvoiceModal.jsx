@@ -72,7 +72,7 @@ const InvoiceModal = ({ isOpen, onClose, order }) => {
     try {
       const userId = order.userId || '';
       console.log('📦 Order data:', { orderId, userId, fullOrder: order });
-      const apiUrl = `http://localhost:8080/api/invoice/${orderId}/pdf${userId ? `?userId=${encodeURIComponent(userId)}` : ''}`;
+      const apiUrl = `http://98.81.221.1:8080/api/invoice/${orderId}/pdf${userId ? `?userId=${encodeURIComponent(userId)}` : ''}`;
       console.log('🔗 API URL:', apiUrl);
       const response = await fetch(apiUrl, {
         method: 'GET',
@@ -111,7 +111,7 @@ const InvoiceModal = ({ isOpen, onClose, order }) => {
     setMessage('');
     try {
       const userId = order.userId || '';
-      const url = `http://localhost:8080/api/invoice/${orderId}/email${userId ? `?userId=${encodeURIComponent(userId)}` : ''}`;
+      const url = `http://98.81.221.1:8080/api/invoice/${orderId}/email${userId ? `?userId=${encodeURIComponent(userId)}` : ''}`;
       const response = await fetch(url, {
         method: 'POST',
         headers: {

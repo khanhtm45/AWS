@@ -78,7 +78,7 @@ function ChatBox() {
   const fetchProductSuggestions = async (query) => {
     try {
       const backendUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-        ? 'http://localhost:8080'
+        ? 'http://98.81.221.1:8080'
         : '';
       
       const response = await fetch(`${backendUrl}/api/public/chatbot/suggest-products`, {
@@ -108,14 +108,14 @@ function ChatBox() {
     try {
       // Resolve API endpoint:
       // - If REACT_APP_AWS_API_ENDPOINT is set and not the placeholder, use it.
-      // - If running on localhost, default to backend at http://localhost:8080/api/chat
+      // - If running on localhost, default to backend at http://98.81.221.1:8080/api/chat
       // - Otherwise use relative `/api/chat` (for same-origin deployments).
       const envEndpoint = process.env.REACT_APP_AWS_API_ENDPOINT;
       let API_ENDPOINT = null;
       if (envEndpoint && envEndpoint !== 'YOUR_API_GATEWAY_URL') {
         API_ENDPOINT = envEndpoint;
       } else if (window && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-        API_ENDPOINT = 'http://localhost:8080/api/chat';
+        API_ENDPOINT = 'http://98.81.221.1:8080/api/chat';
       } else {
         API_ENDPOINT = '/api/chat';
       }

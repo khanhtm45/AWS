@@ -14,7 +14,7 @@ export function ProductDetailModal({ isOpen, onClose, productId }) {
 
     try {
       const response = await fetch(
-        `http://localhost:8080/api/s3/download-url?s3Key=${encodeURIComponent(s3KeyOrUrl)}&expirationMinutes=5`
+        `http://98.81.221.1:8080/api/s3/download-url?s3Key=${encodeURIComponent(s3KeyOrUrl)}&expirationMinutes=5`
       );
       
       if (!response.ok) {
@@ -44,12 +44,12 @@ export function ProductDetailModal({ isOpen, onClose, productId }) {
     try {
       const timestamp = new Date().toLocaleTimeString();
       console.log(`🔎 [${timestamp}] Đang fetch media list cho Product ID "${productId}"...`);
-      console.log(`   URL: http://localhost:8080/api/products/${encodeURIComponent(productId)}/media`);
+      console.log(`   URL: http://98.81.221.1:8080/api/products/${encodeURIComponent(productId)}/media`);
 
       // Fetch product info and media in parallel
       const [productRes, mediaRes] = await Promise.all([
-        fetch(`http://localhost:8080/api/products/${encodeURIComponent(productId)}`),
-        fetch(`http://localhost:8080/api/products/${encodeURIComponent(productId)}/media`)
+        fetch(`http://98.81.221.1:8080/api/products/${encodeURIComponent(productId)}`),
+        fetch(`http://98.81.221.1:8080/api/products/${encodeURIComponent(productId)}/media`)
       ]);
 
       if (!productRes.ok) {
@@ -78,7 +78,7 @@ export function ProductDetailModal({ isOpen, onClose, productId }) {
               console.log(`   Primary: ${media.isPrimary ? 'Yes ✅' : 'No'}`);
               console.log(`   S3 Key: ${media.s3Key}`);
               
-              console.log(`   ➤ Fetch download URL: http://localhost:8080/api/s3/download-url?s3Key=${encodeURIComponent(media.s3Key)}&expirationMinutes=5`);
+              console.log(`   ➤ Fetch download URL: http://98.81.221.1:8080/api/s3/download-url?s3Key=${encodeURIComponent(media.s3Key)}&expirationMinutes=5`);
               const presignedUrl = await getPresignedUrl(media.s3Key);
               
               return {
@@ -98,7 +98,7 @@ export function ProductDetailModal({ isOpen, onClose, productId }) {
       let variants = [];
       try {
         const variantsRes = await fetch(
-          `http://localhost:8080/api/products/${encodeURIComponent(productId)}/variants`
+          `http://98.81.221.1:8080/api/products/${encodeURIComponent(productId)}/variants`
         );
         if (variantsRes.ok) {
           const variantsData = await variantsRes.json();

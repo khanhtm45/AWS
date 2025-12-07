@@ -40,7 +40,7 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
 
     try {
       const response = await fetch(
-        `http://localhost:8080/api/s3/download-url?s3Key=${encodeURIComponent(s3KeyOrUrl)}`
+        `http://98.81.221.1:8080/api/s3/download-url?s3Key=${encodeURIComponent(s3KeyOrUrl)}`
       );
       
       if (!response.ok) {
@@ -78,7 +78,7 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
 
   const fetchCategories = async () => {
     try {
-      const res = await fetch('http://localhost:8080/api/categories');
+      const res = await fetch('http://98.81.221.1:8080/api/categories');
       if (res.ok) {
         const data = await res.json();
         setCategories(data);
@@ -94,8 +94,8 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
     setIsLoading(true);
     try {
       const [productRes, variantsRes] = await Promise.all([
-        fetch(`http://localhost:8080/api/products/${encodeURIComponent(productId)}`),
-        fetch(`http://localhost:8080/api/products/${encodeURIComponent(productId)}/variants`)
+        fetch(`http://98.81.221.1:8080/api/products/${encodeURIComponent(productId)}`),
+        fetch(`http://98.81.221.1:8080/api/products/${encodeURIComponent(productId)}/variants`)
       ]);
 
       if (productRes.ok) {
@@ -125,9 +125,9 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
           try {
             const timestamp = new Date().toLocaleTimeString();
             console.log(`🔎 [${timestamp}] Đang fetch media list cho Product ID "${productId}"...`);
-            console.log(`   URL: http://localhost:8080/api/products/${encodeURIComponent(productId)}/media`);
+            console.log(`   URL: http://98.81.221.1:8080/api/products/${encodeURIComponent(productId)}/media`);
             
-            const mediaRes = await fetch(`http://localhost:8080/api/products/${encodeURIComponent(productId)}/media`);
+            const mediaRes = await fetch(`http://98.81.221.1:8080/api/products/${encodeURIComponent(productId)}/media`);
             console.log(`   Response Status: ${mediaRes.status}`);
             
             if (mediaRes.ok) {
@@ -149,7 +149,7 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
                     console.log(`   Primary: ${media.isPrimary ? 'Yes ✅' : 'No'}`);
                     console.log(`   S3 Key: ${media.s3Key}`);
                     
-                    console.log(`   ➤ Fetch download URL: http://localhost:8080/api/s3/download-url?s3Key=${encodeURIComponent(media.s3Key)}&expirationMinutes=5`);
+                    console.log(`   ➤ Fetch download URL: http://98.81.221.1:8080/api/s3/download-url?s3Key=${encodeURIComponent(media.s3Key)}&expirationMinutes=5`);
                     const presignedUrl = await getPresignedUrl(media.s3Key);
                     
                     return {
@@ -274,9 +274,9 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
       
       // Bước 1: Lấy presigned URL từ backend
       console.log(`📤 [${timestamp}] Step 1: Đang lấy presigned URL...`);
-      console.log(`   URL: http://localhost:8080/api/s3/presigned-url`);
+      console.log(`   URL: http://98.81.221.1:8080/api/s3/presigned-url`);
       
-      const presignedResponse = await fetch('http://localhost:8080/api/s3/presigned-url', {
+      const presignedResponse = await fetch('http://98.81.221.1:8080/api/s3/presigned-url', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -345,7 +345,7 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
         console.log(`   Media ID: ${mediaId}`);
         console.log(`   S3 Key: ${s3Key}`);
         
-        const deleteUrl = `http://localhost:8080/api/products/${encodeURIComponent(productId)}/media/${encodeURIComponent(mediaId)}`;
+        const deleteUrl = `http://98.81.221.1:8080/api/products/${encodeURIComponent(productId)}/media/${encodeURIComponent(mediaId)}`;
         console.log(`   DELETE URL: ${deleteUrl}`);
         
         const response = await fetch(deleteUrl, {
@@ -450,7 +450,7 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
       };
 
       console.log(`📤 [${timestamp}] Đang gửi request cập nhật sản phẩm...`);
-      const response = await fetch(`http://localhost:8080/api/products/${encodeURIComponent(productId)}`, {
+      const response = await fetch(`http://98.81.221.1:8080/api/products/${encodeURIComponent(productId)}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -492,7 +492,7 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
 
           try {
             const mediaResponse = await fetch(
-              `http://localhost:8080/api/products/${encodeURIComponent(productId)}/media`, 
+              `http://98.81.221.1:8080/api/products/${encodeURIComponent(productId)}/media`, 
               {
                 method: 'POST',
                 headers: {
@@ -552,7 +552,7 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
           };
 
           await fetch(
-            `http://localhost:8080/api/products/${encodeURIComponent(productId)}/variants/${encodeURIComponent(variant.variantId)}`,
+            `http://98.81.221.1:8080/api/products/${encodeURIComponent(productId)}/variants/${encodeURIComponent(variant.variantId)}`,
             {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
@@ -570,7 +570,7 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
           };
 
           await fetch(
-            `http://localhost:8080/api/products/${encodeURIComponent(productId)}/variants`,
+            `http://98.81.221.1:8080/api/products/${encodeURIComponent(productId)}/variants`,
             {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },

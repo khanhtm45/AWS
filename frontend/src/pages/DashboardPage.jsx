@@ -6,7 +6,7 @@ import { ProductDetailModal } from '../components/ProductDetailModal';
 import './DashboardPage.css';
 import { useAuth } from '../context/AuthContext';
 
-const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:8080';
+const API_BASE = process.env.REACT_APP_API_BASE || 'http://98.81.221.1:8080';
 
 const DashboardPage = () => {
   const navigate = useNavigate();

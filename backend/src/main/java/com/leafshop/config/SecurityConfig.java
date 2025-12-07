@@ -140,7 +140,7 @@ public class SecurityConfig {
 			"https://dna-chain-bloodline.vercel.app",
 			"https://dna-chain-bl.vercel.app",
 			"https://d2bk5r8qpr2ye6.cloudfront.net"
-		));
+			       "http://98.81.221.1:8080"
 		
 		configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
 		configuration.setAllowedHeaders(Arrays.asList("*"));

@@ -41,7 +41,7 @@ const ProductsPage = () => {
     if (s3KeyOrUrl.startsWith('http')) return s3KeyOrUrl;
 
     try {
-      const apiUrl = `http://localhost:8080/api/s3/download-url?s3Key=${encodeURIComponent(s3KeyOrUrl)}&expirationMinutes=60`;
+      const apiUrl = `http://98.81.221.1:8080/api/s3/download-url?s3Key=${encodeURIComponent(s3KeyOrUrl)}&expirationMinutes=60`;
       const response = await fetch(apiUrl);
       
       if (!response.ok) {
@@ -71,7 +71,7 @@ const ProductsPage = () => {
       try {
         setLoading(true);
         // Fetch danh sách tất cả products
-        const response = await fetch('http://localhost:8080/api/products');
+        const response = await fetch('http://98.81.221.1:8080/api/products');
         
         if (!response.ok) {
           throw new Error('Failed to fetch products');
@@ -83,7 +83,7 @@ const ProductsPage = () => {
         const productsWithMedia = await Promise.all(
           productsData.map(async (product) => {
             try {
-              const mediaResponse = await fetch(`http://localhost:8080/api/products/${product.productId}/media`);
+              const mediaResponse = await fetch(`http://98.81.221.1:8080/api/products/${product.productId}/media`);
               
               if (mediaResponse.ok) {
                 const mediaData = await mediaResponse.json();

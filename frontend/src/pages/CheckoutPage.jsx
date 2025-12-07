@@ -56,7 +56,7 @@ function CheckoutPage() {
   const orderErrorText = useTranslatedText('Lỗi khi đặt hàng');
 
   // API Base URL
-  const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:8080';
+  const API_BASE = process.env.REACT_APP_API_BASE || 'http://98.81.221.1:8080';
 
   // User addresses state
   // eslint-disable-next-line no-unused-vars

@@ -91,7 +91,7 @@ const ManagerDashboard = () => {
     setKpiLoading(true);
     setKpiError(null);
     try {
-      const res = await fetch(`http://localhost:8080/api/dashboard/stats?period=${encodeURIComponent(period)}`);
+      const res = await fetch(`http://98.81.221.1:8080/api/dashboard/stats?period=${encodeURIComponent(period)}`);
       if (!res.ok) throw new Error(`Status ${res.status}`);
       const data = await res.json();
       // Expect structure: { kpiData: { totalOrders: {...}, revenue: {...}, productsSold: {...}, newCustomers: {...}, lowStock: n } }
@@ -109,7 +109,7 @@ const ManagerDashboard = () => {
   // Fetch blogs
   const fetchBlogs = async () => {
     try {
-      const res = await fetch('http://localhost:8080/api/blog');
+      const res = await fetch('http://98.81.221.1:8080/api/blog');
       if (!res.ok) throw new Error('Blog API error ' + res.status);
       const posts = await res.json();
       setBlogPosts(posts || []);
@@ -126,7 +126,7 @@ const ManagerDashboard = () => {
   // Fetch warehouses then inventory for the first warehouse (if any)
   const fetchWarehousesAndInventory = async () => {
     try {
-      const res = await fetch('http://localhost:8080/api/warehouses');
+      const res = await fetch('http://98.81.221.1:8080/api/warehouses');
       if (!res.ok) throw new Error('Warehouses API error ' + res.status);
       const warehouses = await res.json();
       if (Array.isArray(warehouses) && warehouses.length > 0) {
@@ -134,7 +134,7 @@ const ManagerDashboard = () => {
         // call inventory for the warehouse
         const warehouseId = wh.warehouseId || wh.warehouseId || wh.pk || wh.id;
         if (warehouseId) {
-          const invRes = await fetch(`http://localhost:8080/api/warehouses/${encodeURIComponent(warehouseId)}/inventory`);
+          const invRes = await fetch(`http://98.81.221.1:8080/api/warehouses/${encodeURIComponent(warehouseId)}/inventory`);
           if (invRes.ok) {
             const inv = await invRes.json();
             setInventoryList(inv || []);
@@ -157,7 +157,7 @@ const ManagerDashboard = () => {
 
   const fetchWarehouseAlerts = async () => {
     try {
-      const res = await fetch('http://localhost:8080/api/warehouses/alerts');
+      const res = await fetch('http://98.81.221.1:8080/api/warehouses/alerts');
       if (!res.ok) throw new Error('Alerts API error ' + res.status);
       const alerts = await res.json();
       // map alerts to lowStock count
@@ -170,7 +170,7 @@ const ManagerDashboard = () => {
   // Fetch admin orders (staff)
   const fetchStaffOrders = async () => {
     try {
-      const res = await fetch('http://localhost:8080/api/staff/orders');
+      const res = await fetch('http://98.81.221.1:8080/api/staff/orders');
       if (!res.ok) throw new Error('Staff orders API error ' + res.status);
       const orders = await res.json();
       // show last 5 orders
@@ -189,7 +189,7 @@ const ManagerDashboard = () => {
 
   const fetchStaffCustomers = async () => {
     try {
-      const res = await fetch('http://localhost:8080/api/staff/customers');
+      const res = await fetch('http://98.81.221.1:8080/api/staff/customers');
       if (!res.ok) throw new Error('Staff customers API error ' + res.status);
       const customers = await res.json();
       // Could use customers for KPI newCustomers
@@ -206,7 +206,7 @@ const ManagerDashboard = () => {
     if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
 
     try {
-      const res = await fetch(`http://localhost:8080/api/orders/${encodeURIComponent(orderId)}`, { headers });
+      const res = await fetch(`http://98.81.221.1:8080/api/orders/${encodeURIComponent(orderId)}`, { headers });
       if (!res.ok) {
         console.warn('Không thể lấy chi tiết đơn hàng', orderId, 'Status:', res.status);
         return;
@@ -247,7 +247,7 @@ const ManagerDashboard = () => {
   // Fetch products to populate topProducts (fallback)
   const fetchProducts = async () => {
     try {
-      const res = await fetch('http://localhost:8080/api/products');
+      const res = await fetch('http://98.81.221.1:8080/api/products');
       if (!res.ok) throw new Error('Products API error ' + res.status);
       const products = await res.json();
       // Use first 5 as "top" for now
@@ -259,7 +259,7 @@ const ManagerDashboard = () => {
 
   const fetchCategories = async () => {
     try {
-      const res = await fetch('http://localhost:8080/api/categories');
+      const res = await fetch('http://98.81.221.1:8080/api/categories');
       if (!res.ok) throw new Error('Categories API error ' + res.status);
       const categories = await res.json();
       // not used directly yet, but could power filters
