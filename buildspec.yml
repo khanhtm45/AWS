@@ -1,0 +1,21 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      java: corretto17
+      nodejs: 18
+    commands:
+      - echo Installing dependencies
+      - cd backend && ./mvnw install || mvn install
+      - cd ../frontend && npm install
+  build:
+    commands:
+      - echo Building backend
+      - cd ../backend && ./mvnw package -DskipTests || mvn package -DskipTests
+      - echo Building frontend
+      - cd ../frontend && npm run build
+artifacts:
+  files:
+    - "**/*"
+  base-directory: frontend/build
