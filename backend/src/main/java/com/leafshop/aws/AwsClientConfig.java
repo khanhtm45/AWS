@@ -23,11 +23,6 @@ public class AwsClientConfig {
     @Value("${aws.s3.region:ap-southeast-2}")
     private String awsRegion;
 
-    @Value("${opensearch.endpoint:}")
-    private String opensearchEndpoint;
-
-    @Value("${opensearch.signing.enabled:true}")
-    private boolean opensearchSigningEnabled;
 
     @Bean
     public TranslateClient translateClient() {
@@ -36,7 +31,5 @@ public class AwsClientConfig {
                 .credentialsProvider(DefaultCredentialsProvider.create())
                 .build();
     }
-
-    @Bean
 
 }
