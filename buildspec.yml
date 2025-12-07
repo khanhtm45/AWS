@@ -6,6 +6,7 @@ phases:
       - echo Logging in to Amazon ECR...
       - aws --version
       - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $REPOSITORY_URI
+        - docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_PASSWORD
   build:
     commands:
       - echo Build backend Docker image
