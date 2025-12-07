@@ -402,6 +402,14 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.suggestion-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: #000;
 }
 
 .suggestion-image {
@@ -412,7 +420,7 @@
 }
 
 .suggestion-body {
-  padding: 8px;
+  padding: 10px;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -421,11 +429,45 @@
 .suggestion-name {
   font-size: 13px;
   font-weight: 600;
+  color: #111;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 .suggestion-price {
-  font-size: 12px;
-  color: #111;
+  font-size: 14px;
+  font-weight: 700;
+  color: #000;
+}
+
+.suggestion-description {
+  font-size: 11px;
+  color: #666;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.suggestion-meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.suggestion-badge {
+  font-size: 10px;
+  padding: 3px 6px;
+  background: #f0f0f0;
+  border-radius: 4px;
+  color: #666;
 }
 
 .suggestion-link {
@@ -433,6 +475,16 @@
   font-size: 12px;
   color: #0070f3;
   text-decoration: none;
+  font-weight: 600;
+  text-align: center;
+  padding: 6px;
+  background: #f8f9fa;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.suggestion-link:hover {
+  background: #e9ecef;
 }
 
 

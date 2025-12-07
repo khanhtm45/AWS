@@ -74,6 +74,35 @@ function ChatBox() {
     }
   }, [messages]);
 
+  // Hàm gọi backend để gợi ý sản phẩm
+  const fetchProductSuggestions = async (query) => {
+    try {
+      const backendUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        ? 'http://localhost:8080'
+        : '';
+      
+      const response = await fetch(`${backendUrl}/api/public/chatbot/suggest-products`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query: query,
+          limit: 5
+        }),
+      });
+
+      if (response.ok) {
+        const products = await response.json();
+        return products;
+      }
+      return [];
+    } catch (error) {
+      console.error('Error fetching product suggestions:', error);
+      return [];
+    }
+  };
+
   // Hàm gọi AWS Bedrock API
   const callAWSBedrockAPI = async (userMessage, intent = '') => {
     try {
@@ -235,13 +264,54 @@ function ChatBox() {
     // Simulate API call delay
     setTimeout(async () => {
       try {
-        // Detect intent (simple keyword detection). For a robust solution,
-        // perform intent recognition on backend or via a dedicated intent model.
+        // Detect intent (simple keyword detection)
         const textLower = inputMessage.toLowerCase();
-        const intent = (textLower.includes('gợi ý') || textLower.includes('goi y') || textLower.includes('gợi ý đồ')) ? 'suggest_outfit' : '';
-
-        // Call AWS API or use local response
-        const botResponse = await callAWSBedrockAPI(inputMessage, intent);
+        
+        // Detect product search intent
+        const productSearchKeywords = [
+          'tìm', 'tìm kiếm', 'có', 'muốn', 'cần', 'gợi ý', 'goi y', 
+          'áo', 'quần', 'quan', 'sweater', 'hoodie',
+          'trẻ trung', 'tre trung', 'thanh lịch', 'thanh lich', 'thể thao', 'the thao',
+          'cá tính', 'ca tinh', 'công sở', 'cong so', 'dạo phố', 'dao pho',
+          'minimalist', 'vintage', 'casual', 'formal'
+        ];
+        
+        const isProductSearch = productSearchKeywords.some(keyword => textLower.includes(keyword));
+        
+        let botResponse;
+        
+        if (isProductSearch) {
+          // Gọi API backend để tìm sản phẩm
+          const products = await fetchProductSuggestions(inputMessage);
+          
+          if (products && products.length > 0) {
+            // Format products thành suggestions
+            const suggestions = products.map(p => ({
+              id: p.productId,
+              name: p.name,
+              price: `${parseInt(p.price).toLocaleString('vi-VN')}đ`,
+              image: p.primaryImageUrl || 'https://via.placeholder.com/320x320.png?text=No+Image',
+              url: `/product/${p.productId}`,
+              description: p.description,
+              colors: p.colors,
+              sizes: p.sizes
+            }));
+            
+            botResponse = {
+              type: 'suggestions',
+              text: `Mình tìm được ${products.length} sản phẩm phù hợp với bạn:`,
+              suggestions: suggestions
+            };
+          } else {
+            // Không tìm thấy sản phẩm, fallback to AWS API
+            const intent = (textLower.includes('gợi ý') || textLower.includes('goi y')) ? 'suggest_outfit' : '';
+            botResponse = await callAWSBedrockAPI(inputMessage, intent);
+          }
+        } else {
+          // Không phải tìm sản phẩm, gọi AWS API bình thường
+          const intent = (textLower.includes('gợi ý') || textLower.includes('goi y') || textLower.includes('gợi ý đồ')) ? 'suggest_outfit' : '';
+          botResponse = await callAWSBedrockAPI(inputMessage, intent);
+        }
 
         if (botResponse && botResponse.type === 'suggestions') {
           const botMessage = {
@@ -366,12 +436,40 @@ function ChatBox() {
                       <p style={{ whiteSpace: 'pre-line' }}>{message.text}</p>
                       <div className="suggestions-grid">
                         {message.suggestions && message.suggestions.map((p, idx) => (
-                          <div className="suggestion-card" key={p.id || idx}>
+                          <div 
+                            className="suggestion-card" 
+                            key={p.id || idx}
+                            onClick={() => window.location.href = p.url}
+                          >
                             <img src={p.image} alt={p.name} className="suggestion-image" />
                             <div className="suggestion-body">
                               <div className="suggestion-name">{p.name}</div>
                               <div className="suggestion-price">{p.price}</div>
-                              <a href={p.url} className="suggestion-link">Xem</a>
+                              {p.description && (
+                                <div className="suggestion-description">{p.description}</div>
+                              )}
+                              {(p.colors || p.sizes) && (
+                                <div className="suggestion-meta">
+                                  {p.colors && p.colors.length > 0 && (
+                                    <span className="suggestion-badge">
+                                      Màu: {p.colors.slice(0, 2).join(', ')}
+                                      {p.colors.length > 2 && '...'}
+                                    </span>
+                                  )}
+                                  {p.sizes && p.sizes.length > 0 && (
+                                    <span className="suggestion-badge">
+                                      Size: {p.sizes.slice(0, 3).join(', ')}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                              <a 
+                                href={p.url} 
+                                className="suggestion-link"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                Xem chi tiết
+                              </a>
                             </div>
                           </div>
                         ))}
