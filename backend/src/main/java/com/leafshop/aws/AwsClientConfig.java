@@ -4,12 +4,7 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.auth.AWS4Signer;
 import org.apache.http.HttpHost;
-import org.opensearch.client.opensearch.OpenSearchClient;
-import org.opensearch.client.json.jackson.JacksonJsonpMapper;
-import org.opensearch.client.transport.rest_client.RestClientTransport;
-import org.opensearch.client.transport.OpenSearchTransport;
-import org.opensearch.client.RestClient;
-import org.opensearch.client.RestClientBuilder;
+// ...existing code...
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

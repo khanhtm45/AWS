@@ -172,19 +172,7 @@
             <version>2.20.26</version>
         </dependency>
 
-        <!-- OpenSearch Java client -->
-        <dependency>
-            <groupId>org.opensearch.client</groupId>
-            <artifactId>opensearch-java</artifactId>
-            <version>2.11.0</version>
-        </dependency>
-
-        <!-- OpenSearch Rest Client (low-level) -->
-        <dependency>
-            <groupId>org.opensearch.client</groupId>
-            <artifactId>opensearch-rest-client</artifactId>
-            <version>2.11.0</version>
-        </dependency>
+        <!-- ...existing code... -->
 
         <!-- AWS Java SDK v1 core (used for AWSRequestSigningApacheInterceptor) -->
         <dependency>
