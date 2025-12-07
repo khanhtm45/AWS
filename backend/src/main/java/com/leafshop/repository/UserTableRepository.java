@@ -49,13 +49,13 @@ public class UserTableRepository {
 	// Find user meta by PK and SK = "META"
 	public Optional<UserTable> findByPkAndSk(String pk, String sk) {
 		Key key = Key.builder().partitionValue(pk).sortValue(sk).build();
-		return Optional.ofNullable(userTable().getItem(key));
+		return Optional.ofNullable(userTable().getItem(r -> r.key(key).consistentRead(true)));
 	}
 
 	// Find account by PK and SK = "ACCOUNT"
 	public Optional<UserTable> findAccountByPk(String pk) {
 		Key key = Key.builder().partitionValue(pk).sortValue("ACCOUNT").build();
-		return Optional.ofNullable(userTable().getItem(key));
+		return Optional.ofNullable(userTable().getItem(r -> r.key(key).consistentRead(true)));
 	}
 
 	// Find all addresses for a user
@@ -71,7 +71,7 @@ public class UserTableRepository {
 	// Find token by PK and SK = "TOKEN#<token_id>"
 	public Optional<UserTable> findTokenByPkAndSk(String pk, String sk) {
 		Key key = Key.builder().partitionValue(pk).sortValue(sk).build();
-		return Optional.ofNullable(userTable().getItem(key));
+		return Optional.ofNullable(userTable().getItem(r -> r.key(key).consistentRead(true)));
 	}
 
 	// Find token by PK, token value and token type (scan)
@@ -114,7 +114,7 @@ public class UserTableRepository {
 	// Find employee info by PK and SK = "EMPLOYEE#<employee_id>"
 	public Optional<UserTable> findEmployeeByPkAndSk(String pk, String sk) {
 		Key key = Key.builder().partitionValue(pk).sortValue(sk).build();
-		return Optional.ofNullable(userTable().getItem(key));
+		return Optional.ofNullable(userTable().getItem(r -> r.key(key).consistentRead(true)));
 	}
 
 	// Scan for all user META records (PK starts with USER# and SK = META)

@@ -2,6 +2,9 @@ package com.leafshop.service;
 
 import com.leafshop.dto.order.OrderItemResponse;
 import com.leafshop.dto.order.OrderResponse;
+import com.leafshop.model.dynamodb.ProductTable;
+import com.leafshop.repository.ProductTableRepository;
+import com.leafshop.util.DynamoDBKeyUtil;
 import com.itextpdf.text.*;
 import com.itextpdf.text.pdf.*;
 import com.itextpdf.text.pdf.draw.LineSeparator;
@@ -9,25 +12,98 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
+import java.util.Optional;
 
 @Service
 public class InvoiceService {
 
     @Autowired
     private EmailService emailService;
+    
+    @Autowired
+    private ProductTableRepository productTableRepository;
 
-    private static final Font FONT_TITLE = new Font(Font.FontFamily.HELVETICA, 24, Font.BOLD, BaseColor.BLACK);
-    private static final Font FONT_HEADER = new Font(Font.FontFamily.HELVETICA, 16, Font.BOLD, BaseColor.BLACK);
-    private static final Font FONT_NORMAL = new Font(Font.FontFamily.HELVETICA, 11, Font.NORMAL, BaseColor.BLACK);
-    private static final Font FONT_BOLD = new Font(Font.FontFamily.HELVETICA, 11, Font.BOLD, BaseColor.BLACK);
-    private static final Font FONT_SMALL = new Font(Font.FontFamily.HELVETICA, 9, Font.NORMAL, BaseColor.GRAY);
+    private static BaseFont vietnameseFont;
+    private static Font FONT_TITLE;
+    private static Font FONT_HEADER;
+    private static Font FONT_NORMAL;
+    private static Font FONT_BOLD;
+    private static Font FONT_SMALL;
+
+    static {
+        try {
+            // Try multiple font options for Vietnamese support
+            // Option 1: Try Arial (common on most systems and supports Vietnamese well)
+            try {
+                vietnameseFont = BaseFont.createFont("c:/windows/fonts/arial.ttf", BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+                System.out.println("Successfully loaded Arial font for Vietnamese PDF");
+            } catch (Exception e1) {
+                // Option 2: Try Times New Roman
+                try {
+                    vietnameseFont = BaseFont.createFont("c:/windows/fonts/times.ttf", BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+                    System.out.println("Successfully loaded Times New Roman font for Vietnamese PDF");
+                } catch (Exception e2) {
+                    // Option 3: Use built-in with CP1252 encoding (better Vietnamese support than IDENTITY_H)
+                    vietnameseFont = BaseFont.createFont(BaseFont.TIMES_ROMAN, "Cp1252", BaseFont.EMBEDDED);
+                    System.out.println("Using built-in Times Roman with Cp1252 encoding");
+                }
+            }
+            
+            FONT_TITLE = new Font(vietnameseFont, 24, Font.BOLD, BaseColor.BLACK);
+            FONT_HEADER = new Font(vietnameseFont, 16, Font.BOLD, BaseColor.BLACK);
+            FONT_NORMAL = new Font(vietnameseFont, 11, Font.NORMAL, BaseColor.BLACK);
+            FONT_BOLD = new Font(vietnameseFont, 11, Font.BOLD, BaseColor.BLACK);
+            FONT_SMALL = new Font(vietnameseFont, 9, Font.NORMAL, BaseColor.GRAY);
+        } catch (Exception e) {
+            System.err.println("Failed to load any Vietnamese font, using default: " + e.getMessage());
+            e.printStackTrace();
+            // Last fallback to default fonts
+            FONT_TITLE = new Font(Font.FontFamily.TIMES_ROMAN, 24, Font.BOLD, BaseColor.BLACK);
+            FONT_HEADER = new Font(Font.FontFamily.TIMES_ROMAN, 16, Font.BOLD, BaseColor.BLACK);
+            FONT_NORMAL = new Font(Font.FontFamily.TIMES_ROMAN, 11, Font.NORMAL, BaseColor.BLACK);
+            FONT_BOLD = new Font(Font.FontFamily.TIMES_ROMAN, 11, Font.BOLD, BaseColor.BLACK);
+            FONT_SMALL = new Font(Font.FontFamily.TIMES_ROMAN, 9, Font.NORMAL, BaseColor.GRAY);
+        }
+    }
 
     private static final NumberFormat currencyFormatter = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
     private static final SimpleDateFormat dateFormatter = new SimpleDateFormat("dd/MM/yyyy HH:mm");
+
+    /**
+     * Fix encoding issues - Aggressive approach to fix Vietnamese text
+     */
+    private String fixEncoding(String text) {
+        if (text == null || text.isEmpty()) return text;
+        
+        // If text already looks correct (contains proper Vietnamese characters), return as-is
+        if (text.matches(".*[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđĐ].*")) {
+            return text;
+        }
+        
+        // Try multiple encoding conversions
+        String[] encodings = {"ISO-8859-1", "Windows-1252", "CP1252"};
+        
+        for (String encoding : encodings) {
+            try {
+                byte[] bytes = text.getBytes(java.nio.charset.Charset.forName(encoding));
+                String converted = new String(bytes, java.nio.charset.StandardCharsets.UTF_8);
+                
+                // Check if conversion produced Vietnamese characters
+                if (converted.matches(".*[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđĐ].*")) {
+                    return converted;
+                }
+            } catch (Exception ignored) {
+            }
+        }
+        
+        // If no conversion worked, return original
+        return text;
+    }
 
     /**
      * Generate invoice PDF
@@ -112,18 +188,21 @@ public class InvoiceService {
         customerTable.setWidthPercentage(100);
         customerTable.setWidths(new int[]{1, 3});
 
-        addCustomerRow(customerTable, "Ho ten:", order.getShippingAddress() != null ? order.getShippingAddress().getFullName() : "N/A");
-        addCustomerRow(customerTable, "So dien thoai:", order.getShippingAddress() != null ? order.getShippingAddress().getPhoneNumber() : "N/A");
+        String fullName = order.getShippingAddress() != null ? fixEncoding(order.getShippingAddress().getFullName()) : "N/A";
+        String phone = order.getShippingAddress() != null ? fixEncoding(order.getShippingAddress().getPhoneNumber()) : "N/A";
+        
+        addCustomerRow(customerTable, "Ho ten:", fullName);
+        addCustomerRow(customerTable, "So dien thoai:", phone);
         addCustomerRow(customerTable, "Email:", order.getUserId());
 
         String address = "";
         if (order.getShippingAddress() != null) {
             address = String.format("%s, %s, %s, %s, %s",
-                    order.getShippingAddress().getAddressLine1() != null ? order.getShippingAddress().getAddressLine1() : "",
-                    order.getShippingAddress().getWard() != null ? order.getShippingAddress().getWard() : "",
-                    order.getShippingAddress().getDistrict() != null ? order.getShippingAddress().getDistrict() : "",
-                    order.getShippingAddress().getCity() != null ? order.getShippingAddress().getCity() : "",
-                    order.getShippingAddress().getCountry() != null ? order.getShippingAddress().getCountry() : "");
+                    fixEncoding(order.getShippingAddress().getAddressLine1() != null ? order.getShippingAddress().getAddressLine1() : ""),
+                    fixEncoding(order.getShippingAddress().getWard() != null ? order.getShippingAddress().getWard() : ""),
+                    fixEncoding(order.getShippingAddress().getDistrict() != null ? order.getShippingAddress().getDistrict() : ""),
+                    fixEncoding(order.getShippingAddress().getCity() != null ? order.getShippingAddress().getCity() : ""),
+                    fixEncoding(order.getShippingAddress().getCountry() != null ? order.getShippingAddress().getCountry() : ""));
         }
         addCustomerRow(customerTable, "Dia chi giao hang:", address);
 
@@ -163,7 +242,23 @@ public class InvoiceService {
         int index = 1;
         for (OrderItemResponse item : order.getItems()) {
             addTableCell(itemsTable, String.valueOf(index++), Element.ALIGN_CENTER);
-            addTableCell(itemsTable, item.getProductName() != null ? item.getProductName() : item.getProductId(), Element.ALIGN_LEFT);
+            
+            // Fetch productName if not available
+            String productName = item.getProductName();
+            if (productName == null || productName.isEmpty()) {
+                String productPk = DynamoDBKeyUtil.productPk(item.getProductId());
+                Optional<ProductTable> productOpt = productTableRepository.findProductByPk(productPk);
+                if (productOpt.isPresent()) {
+                    productName = productOpt.get().getName();
+                } else {
+                    productName = item.getProductId(); // fallback to ID
+                }
+            }
+            
+            // Fix encoding issues for Vietnamese text
+            productName = fixEncoding(productName);
+            
+            addTableCell(itemsTable, productName, Element.ALIGN_LEFT);
             addTableCell(itemsTable, String.valueOf(item.getQuantity()), Element.ALIGN_CENTER);
             addTableCell(itemsTable, currencyFormatter.format(item.getUnitPrice()), Element.ALIGN_RIGHT);
             addTableCell(itemsTable, currencyFormatter.format(item.getItemTotal()), Element.ALIGN_RIGHT);

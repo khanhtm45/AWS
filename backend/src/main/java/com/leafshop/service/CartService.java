@@ -126,12 +126,20 @@ public class CartService {
         } else {
             String itemId = UUID.randomUUID().toString();
             itemSk = "ITEM#" + itemId;
+            
+            // Fetch productName from ProductTable
+            String productName = null;
+            if (pMetaOpt.isPresent()) {
+                productName = pMetaOpt.get().getName();
+            }
+            
             OrderTable item = OrderTable.builder()
                 .pk(pk)
                 .sk(itemSk)
                 .itemType("CartItem")
                 .productId(req.getProductId())
                 .variantId(req.getVariantId())
+                .productName(productName)
                 .size(req.getSize())
                 .quantity(quantity)
                 .unitPrice(unitPrice)
@@ -307,13 +315,24 @@ public class CartService {
         // 9. Move cart items to order (OrderTable with SK=ITEM#...)
         for (OrderTable cartItem : cartItems) {
             String itemId = cartItem.getSk().substring(5); // Remove "ITEM#" prefix
+            
+            // Fetch productName from ProductTable if not available in cart
+            String productName = cartItem.getProductName();
+            if (productName == null || productName.isEmpty()) {
+                String productPk = DynamoDBKeyUtil.productPk(cartItem.getProductId());
+                Optional<ProductTable> productOpt = productTableRepository.findProductByPk(productPk);
+                if (productOpt.isPresent()) {
+                    productName = productOpt.get().getName();
+                }
+            }
+            
             OrderTable orderItem = OrderTable.builder()
                 .pk(orderPk)
                 .sk("ITEM#" + itemId)
                 .itemType("OrderItem")
                 .productId(cartItem.getProductId())
                 .variantId(cartItem.getVariantId())
-                .productName(cartItem.getProductName())
+                .productName(productName)
                 .quantity(cartItem.getQuantity())
                 .unitPrice(cartItem.getUnitPrice())
                 .itemTotal(cartItem.getItemTotal())
