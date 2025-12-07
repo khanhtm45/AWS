@@ -1,21 +1,23 @@
 version: 0.2
 
 phases:
-  install:
-    runtime-versions:
-      java: corretto17
-      nodejs: 18
+  pre_build:
     commands:
-      - echo Installing dependencies
-      - cd backend && ./mvnw install || mvn install
-      - cd ../frontend && npm install
+      - echo Logging in to Amazon ECR...
+      - aws --version
+      - $(aws ecr get-login --no-include-email --region us-east-1)
   build:
     commands:
-      - echo Building backend
-      - cd ../backend && ./mvnw package -DskipTests || mvn package -DskipTests
-      - echo Building frontend
-      - cd ../frontend && npm run build
+      - echo Build backend Docker image
+      - cd backend
+      - docker build -t $REPOSITORY_URI:$CODEBUILD_RESOLVED_SOURCE_VERSION .
+      - docker push $REPOSITORY_URI:$CODEBUILD_RESOLVED_SOURCE_VERSION
+      - cd ..
+  post_build:
+    commands:
+      - echo Write imagedefinitions.json
+      - echo '[{"name":"leaf-shop-backend","imageUri":"'$REPOSITORY_URI:$CODEBUILD_RESOLVED_SOURCE_VERSION'"}]' > imagedefinitions.json
 artifacts:
   files:
-    - "**/*"
-  base-directory: frontend/build
+    - imagedefinitions.json
+    - backend/**
