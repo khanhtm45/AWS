@@ -59,7 +59,7 @@ export const LanguageProvider = ({ children }) => {
 
         try {
             setIsTranslating(true);
-            const response = await axios.post('http://98.81.221.1:8080/api/translate', {
+            const response = await axios.post('https://44.205.22.2:8080/api/translate', {
                 text: text,
                 sourceLanguage: 'auto',
                 targetLanguage: target

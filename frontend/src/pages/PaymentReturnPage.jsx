@@ -35,7 +35,7 @@ function PaymentReturnPage() {
       setDetails(params);
 
       // IMPORTANT: Call backend to update payment status
-      const API_BASE = process.env.REACT_APP_API_BASE || 'http://98.81.221.1:8080';
+      const API_BASE = process.env.REACT_APP_API_BASE || 'https://44.205.22.2:8080';
       
       try {
         if (params.vnp_ResponseCode !== undefined) {

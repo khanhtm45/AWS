@@ -36,7 +36,7 @@ function HomePage() {
     }
 
     try {
-      const apiUrl = `http://98.81.221.1:8080/api/s3/download-url?s3Key=${encodeURIComponent(s3KeyOrUrl)}&expirationMinutes=60`;
+      const apiUrl = `https://44.205.22.2:8080/api/s3/download-url?s3Key=${encodeURIComponent(s3KeyOrUrl)}&expirationMinutes=60`;
       const response = await fetch(apiUrl);
       
       if (!response.ok) {
@@ -64,7 +64,7 @@ function HomePage() {
       try {
         setLoading(true);
         
-        const response = await fetch('http://98.81.221.1:8080/api/products');
+        const response = await fetch('https://44.205.22.2:8080/api/products');
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -97,7 +97,7 @@ function HomePage() {
               // Strategy 2: Fallback to media API
               if (productImage === '/LEAF.png') {
                 try {
-                  const mediaResponse = await fetch(`http://98.81.221.1:8080/api/products/${product.productId}/media`);
+                  const mediaResponse = await fetch(`https://44.205.22.2:8080/api/products/${product.productId}/media`);
                   
                   if (mediaResponse.ok) {
                     const mediaData = await mediaResponse.json();
