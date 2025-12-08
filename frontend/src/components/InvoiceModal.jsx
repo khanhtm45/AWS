@@ -72,7 +72,7 @@ const InvoiceModal = ({ isOpen, onClose, order }) => {
     try {
       const userId = order.userId || '';
       console.log('📦 Order data:', { orderId, userId, fullOrder: order });
-      const apiUrl = `https://44.205.22.2:8080/api/invoice/${orderId}/pdf${userId ? `?userId=${encodeURIComponent(userId)}` : ''}`;
+      const apiUrl = `https://aws-e4h8.onrender.com/api/invoice/${orderId}/pdf${userId ? `?userId=${encodeURIComponent(userId)}` : ''}`;
       console.log('🔗 API URL:', apiUrl);
       const response = await fetch(apiUrl, {
         method: 'GET',
@@ -111,7 +111,7 @@ const InvoiceModal = ({ isOpen, onClose, order }) => {
     setMessage('');
     try {
       const userId = order.userId || '';
-      const url = `https://44.205.22.2:8080/api/invoice/${orderId}/email${userId ? `?userId=${encodeURIComponent(userId)}` : ''}`;
+      const url = `https://aws-e4h8.onrender.com/api/invoice/${orderId}/email${userId ? `?userId=${encodeURIComponent(userId)}` : ''}`;
       const response = await fetch(url, {
         method: 'POST',
         headers: {

@@ -6,7 +6,7 @@ import { ProductDetailModal } from '../components/ProductDetailModal';
 import './DashboardPage.css';
 import { useAuth } from '../context/AuthContext';
 
-const API_BASE = process.env.REACT_APP_API_BASE || 'https://44.205.22.2:8080';
+const API_BASE = process.env.REACT_APP_API_BASE || 'https://aws-e4h8.onrender.com';
 
 const DashboardPage = () => {
   const navigate = useNavigate();

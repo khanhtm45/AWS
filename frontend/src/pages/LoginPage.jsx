@@ -27,7 +27,7 @@ const LoginPage = () => {
   const [otp, setOtp] = useState('');
   const [message, setMessage] = useState('');
   const { setAuth } = useAuth();
-  const API_BASE = process.env.REACT_APP_API_BASE || 'https://44.205.22.2:8080';
+  const API_BASE = process.env.REACT_APP_API_BASE || 'https://aws-e4h8.onrender.com';
 
   // Scroll to top when component mounts
   useEffect(() => {

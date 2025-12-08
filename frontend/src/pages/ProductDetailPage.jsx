@@ -11,7 +11,7 @@ const getPresignedUrl = async (s3KeyOrUrl) => {
   }
 
   try {
-    const apiUrl = `https://44.205.22.2:8080/api/s3/download-url?s3Key=${encodeURIComponent(s3KeyOrUrl)}&expirationMinutes=60`;
+    const apiUrl = `https://aws-e4h8.onrender.com/api/s3/download-url?s3Key=${encodeURIComponent(s3KeyOrUrl)}&expirationMinutes=60`;
     const response = await fetch(apiUrl);
     
     if (!response.ok) {
@@ -99,7 +99,7 @@ function ProductDetailPage() {
   const originText = useTranslatedText('Xuất xứ');
   
   // API Base URL
-  const API_BASE = 'https://44.205.22.2:8080';
+  const API_BASE = 'https://aws-e4h8.onrender.com';
   
   // --- STATE ---
   const [product, setProduct] = useState(null);
@@ -243,7 +243,7 @@ function ProductDetailPage() {
       
       try {
         const formattedId = id.padStart(2, '0');
-        const mediaRes = await fetch(`https://44.205.22.2:8080/api/products/${formattedId}/variants/${selectedVariantId}/media`);
+        const mediaRes = await fetch(`https://aws-e4h8.onrender.com/api/products/${formattedId}/variants/${selectedVariantId}/media`);
         
         if (mediaRes.ok) {
           const mediaData = await mediaRes.json();

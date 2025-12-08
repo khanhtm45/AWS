@@ -73,7 +73,7 @@ export function ProductModal({ isOpen, onClose, onSubmit }) {
   const fetchCategories = async () => {
     try {
       console.log('📋 Fetching categories from API...');
-      const res = await fetch('https://44.205.22.2:8080/api/categories');
+      const res = await fetch('https://aws-e4h8.onrender.com/api/categories');
       
       if (!res.ok) {
         console.error('Lỗi gọi API categories, status:', res.status);
@@ -182,7 +182,7 @@ export function ProductModal({ isOpen, onClose, onSubmit }) {
       // Step 1: Get presigned URL from backend
       console.log('🚀 Step 1: Getting presigned URL...');
       
-      const presignedResponse = await fetch('https://44.205.22.2:8080/api/s3/presigned-url', {
+      const presignedResponse = await fetch('https://aws-e4h8.onrender.com/api/s3/presigned-url', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -261,7 +261,7 @@ export function ProductModal({ isOpen, onClose, onSubmit }) {
         console.log(`🗑️ Deleting S3 file: ${imageToRemove.s3Key}`);
         
         const deleteResponse = await fetch(
-          `https://44.205.22.2:8080/api/s3/delete?s3Key=${encodeURIComponent(imageToRemove.s3Key)}`,
+          `https://aws-e4h8.onrender.com/api/s3/delete?s3Key=${encodeURIComponent(imageToRemove.s3Key)}`,
           {
             method: 'DELETE'
           }
@@ -327,7 +327,7 @@ export function ProductModal({ isOpen, onClose, onSubmit }) {
       }
 
       console.log('🚀 Step 1: Creating product with API...');
-      console.log('API URL:', 'https://44.205.22.2:8080/api/products');
+      console.log('API URL:', 'https://aws-e4h8.onrender.com/api/products');
       console.log('Payload:', JSON.stringify(productPayload, null, 2));
       console.log('📷 Images (S3 keys):', productPayload.images);
       
@@ -338,7 +338,7 @@ export function ProductModal({ isOpen, onClose, onSubmit }) {
       console.log('   tags:', productPayload.tags);
 
       // Call API with proper headers
-      const response = await fetch('https://44.205.22.2:8080/api/products', {
+      const response = await fetch('https://aws-e4h8.onrender.com/api/products', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -388,7 +388,7 @@ export function ProductModal({ isOpen, onClose, onSubmit }) {
 
             console.log(`📤 Uploading image ${i + 1}/${formData.images.length}:`, mediaPayload);
 
-            const mediaResponse = await fetch(`https://44.205.22.2:8080/api/products/${encodeURIComponent(productId)}/media`, {
+            const mediaResponse = await fetch(`https://aws-e4h8.onrender.com/api/products/${encodeURIComponent(productId)}/media`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -441,9 +441,9 @@ export function ProductModal({ isOpen, onClose, onSubmit }) {
       // Provide troubleshooting hints based on error type
       if (error.message.includes('Failed to fetch') || error.message.includes('CORS')) {
         console.log('💡 CORS/Network Issue Detected');
-        console.log('   1. Check if backend is running on https://44.205.22.2:8080');
+        console.log('   1. Check if backend is running on https://aws-e4h8.onrender.com');
         console.log('   2. Verify CORS is configured properly in backend');
-        console.log('   3. Try: curl -X POST https://44.205.22.2:8080/api/products');
+        console.log('   3. Try: curl -X POST https://aws-e4h8.onrender.com/api/products');
       }
     }
   };
@@ -479,10 +479,10 @@ export function ProductModal({ isOpen, onClose, onSubmit }) {
         };
 
         console.log(`🚀 Creating variant ${i + 1}/${validVariants.length}:`, variantPayload);
-        console.log(`📍 API URL: https://44.205.22.2:8080/api/products/${createdProductId}/variants`);
+        console.log(`📍 API URL: https://aws-e4h8.onrender.com/api/products/${createdProductId}/variants`);
         
         // Call API to create variant
-        const variantResponse = await fetch(`https://44.205.22.2:8080/api/products/${createdProductId}/variants`, {
+        const variantResponse = await fetch(`https://aws-e4h8.onrender.com/api/products/${createdProductId}/variants`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'

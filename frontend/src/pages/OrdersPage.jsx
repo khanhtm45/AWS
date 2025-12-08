@@ -5,7 +5,7 @@ import InvoiceModal from '../components/InvoiceModal';
 import { useTranslatedText } from '../hooks/useTranslation';
 import './OrdersPage.css';
 
-const API_BASE = process.env.REACT_APP_API_BASE || 'https://44.205.22.2:8080';
+const API_BASE = process.env.REACT_APP_API_BASE || 'https://aws-e4h8.onrender.com';
 
 const OrderItemName = ({ itemName }) => {
   const translatedName = useTranslatedText(itemName);
