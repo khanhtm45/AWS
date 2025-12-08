@@ -1,4 +1,5 @@
 FROM maven:3.9.4-eclipse-temurin-17 AS build
+FROM node:18
 
 WORKDIR /app
 
@@ -18,3 +19,21 @@ COPY --from=build /app/target/leaf-shop-0.0.1-SNAPSHOT.jar ./app.jar
 EXPOSE 8080
 
 CMD ["java", "-jar", "app.jar", "--spring.profiles.active=prod"]
+
+
+
+# Install OpenSSL
+RUN apt-get update && apt-get install -y openssl
+
+# Copy package files
+COPY package*.json ./
+RUN npm install
+
+# Copy application code
+COPY . .
+
+# Expose both HTTP and HTTPS ports
+EXPOSE 8080 443
+
+# Start the HTTPS server
+CMD ["node", "server-https.js"]
