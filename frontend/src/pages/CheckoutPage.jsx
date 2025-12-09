@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { API_BASE_URL } from '../config/api';
 import PolicyModals from '../components/PolicyModals';
 import ContactModal from '../components/ContactModal';
 import './CheckoutPage.css';
@@ -55,9 +56,6 @@ function CheckoutPage() {
   const loginAlertText = useTranslatedText('Đăng nhập để tiếp tục đặt hàng!');
   const orderErrorText = useTranslatedText('Lỗi khi đặt hàng');
 
-  // API Base URL
-  const API_BASE = process.env.REACT_APP_API_BASE || 'https://aws-e4h8.onrender.com';
-
   // User addresses state
   // eslint-disable-next-line no-unused-vars
   // eslint-disable-next-line no-unused-vars
@@ -102,7 +100,7 @@ function CheckoutPage() {
         }
 
         console.log('[CheckoutPage] Fetching user addresses...');
-        const response = await fetch(`${API_BASE}/api/user/addresses`, {
+        const response = await fetch(`${API_BASE_URL}/api/user/addresses`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -148,7 +146,7 @@ function CheckoutPage() {
     };
 
     fetchUserAddresses();
-  }, [accessToken, user, API_BASE]);
+  }, [accessToken, user]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -199,7 +197,7 @@ function CheckoutPage() {
         };
 
         console.log('[CheckoutPage] sending checkout request', checkoutReq);
-        const res = await fetch(`${API_BASE}/api/cart/checkout`, {
+        const res = await fetch(`${API_BASE_URL}/api/cart/checkout`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -241,7 +239,7 @@ function CheckoutPage() {
             
             console.log('[CheckoutPage] Initiating payment with:', payReq);
             
-            const payRes = await fetch(`${API_BASE}/api/payments/initiate`, {
+            const payRes = await fetch(`${API_BASE_URL}/api/payments/initiate`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
               body: JSON.stringify(payReq)

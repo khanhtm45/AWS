@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
+import { API_BASE_URL } from '../config/api';
 // Minimal UUID generator for sessionId
 const generateUuid = () => {
   // RFC4122 version 4 compliant simple implementation
@@ -8,8 +9,6 @@ const generateUuid = () => {
     return v.toString(16);
   });
 };
-
-const API_BASE = process.env.REACT_APP_API_BASE || 'https://aws-e4h8.onrender.com';
 
 const CartContext = createContext();
 
@@ -84,7 +83,7 @@ export const CartProvider = ({ children }) => {
     if (!s3KeyOrUrl) return '/LEAF.png';
     if (s3KeyOrUrl.startsWith('http')) return s3KeyOrUrl;
     try {
-      const apiUrl = `${API_BASE}/api/s3/download-url?s3Key=${encodeURIComponent(s3KeyOrUrl)}&expirationMinutes=60`;
+      const apiUrl = `${API_BASE_URL}/api/s3/download-url?s3Key=${encodeURIComponent(s3KeyOrUrl)}&expirationMinutes=60`;
       const response = await fetch(apiUrl);
       if (!response.ok) return '/LEAF.png';
       const data = await response.json();
@@ -106,7 +105,7 @@ export const CartProvider = ({ children }) => {
     
     const productsMap = {};
     try {
-      const productsRes = await fetch(`${API_BASE}/api/products`);
+      const productsRes = await fetch(`${API_BASE_URL}/api/products`);
       if (productsRes.ok) {
         const allProducts = await productsRes.json();
         allProducts.forEach(p => {
@@ -130,7 +129,7 @@ export const CartProvider = ({ children }) => {
         
         // Fetch media for this product
         try {
-          const mediaRes = await fetch(`${API_BASE}/api/products/${productId}/media`);
+          const mediaRes = await fetch(`${API_BASE_URL}/api/products/${productId}/media`);
           if (mediaRes.ok) {
             const mediaData = await mediaRes.json();
             let primaryImage = mediaData.find(m => m.isPrimary === true);
@@ -173,7 +172,7 @@ export const CartProvider = ({ children }) => {
           params.append('sessionId', sessionId);
         }
 
-        const res = await fetch(`${API_BASE}/api/cart?${params.toString()}`);
+        const res = await fetch(`${API_BASE_URL}/api/cart?${params.toString()}`);
         if (res.ok) {
           const serverCart = await res.json();
           const mapped = await mapServerCartToFrontend(serverCart);
@@ -205,7 +204,7 @@ export const CartProvider = ({ children }) => {
         };
         const headers = { 'Content-Type': 'application/json' };
         if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
-        const res = await fetch(`${API_BASE}/api/cart/items`, {
+        const res = await fetch(`${API_BASE_URL}/api/cart/items`, {
           method: 'POST',
           headers,
           body: JSON.stringify(body)
@@ -252,7 +251,7 @@ export const CartProvider = ({ children }) => {
         }
         const headers = {};
         if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
-        const res = await fetch(`${API_BASE}/api/cart/items/${encodeURIComponent(cartItemId)}?${params.toString()}`, {
+        const res = await fetch(`${API_BASE_URL}/api/cart/items/${encodeURIComponent(cartItemId)}?${params.toString()}`, {
           method: 'DELETE',
           headers
         });
@@ -286,7 +285,7 @@ export const CartProvider = ({ children }) => {
         params.append('quantity', String(newQuantity));
         const headers = {};
         if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
-        const res = await fetch(`${API_BASE}/api/cart/items/${encodeURIComponent(cartItemId)}?${params.toString()}`, {
+        const res = await fetch(`${API_BASE_URL}/api/cart/items/${encodeURIComponent(cartItemId)}?${params.toString()}`, {
           method: 'PUT',
           headers
         });

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { API_BASE_URL } from '../config/api';
 import './ProductsPage.css';
 import { useTranslatedText } from '../hooks/useTranslation';
 import ProductCard from '../components/ProductCard';
@@ -41,7 +42,7 @@ const ProductsPage = () => {
     if (s3KeyOrUrl.startsWith('http')) return s3KeyOrUrl;
 
     try {
-      const apiUrl = `https://aws-e4h8.onrender.com/api/s3/download-url?s3Key=${encodeURIComponent(s3KeyOrUrl)}&expirationMinutes=60`;
+      const apiUrl = `${API_BASE_URL}/api/s3/download-url?s3Key=${encodeURIComponent(s3KeyOrUrl)}&expirationMinutes=60`;
       const response = await fetch(apiUrl);
       
       if (!response.ok) {
@@ -71,7 +72,7 @@ const ProductsPage = () => {
       try {
         setLoading(true);
         // Fetch danh sách tất cả products
-        const response = await fetch('https://aws-e4h8.onrender.com/api/products');
+        const response = await fetch(`${API_BASE_URL}/api/products`);
         
         if (!response.ok) {
           throw new Error('Failed to fetch products');
@@ -83,7 +84,7 @@ const ProductsPage = () => {
         const productsWithMedia = await Promise.all(
           productsData.map(async (product) => {
             try {
-              const mediaResponse = await fetch(`https://aws-e4h8.onrender.com/api/products/${product.productId}/media`);
+              const mediaResponse = await fetch(`${API_BASE_URL}/api/products/${product.productId}/media`);
               
               if (mediaResponse.ok) {
                 const mediaData = await mediaResponse.json();

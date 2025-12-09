@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import './StaffAdminLoginPage.css';
 import { useAuth } from '../context/AuthContext';
 import { useTranslatedText } from '../hooks/useTranslation';
+import { API_BASE_URL } from '../config/api';
 
 function StaffAdminLoginPage() {
   const navigate = useNavigate();
@@ -24,8 +25,6 @@ function StaffAdminLoginPage() {
   const [loading, setLoading] = useState(false);
   const { setAuth } = useAuth();
 
-  const API_BASE = process.env.REACT_APP_API_BASE || 'https://aws-e4h8.onrender.com';
-
   // staff/admin login form
 
   const handleChange = (e) => {
@@ -44,7 +43,7 @@ function StaffAdminLoginPage() {
     setError('');
 
     try {
-      const res = await fetch(`${API_BASE}/api/auth/login-staff`, {
+      const res = await fetch(`${API_BASE_URL}/api/auth/login-staff`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: formData.username, password: formData.password })
@@ -62,7 +61,7 @@ function StaffAdminLoginPage() {
       // Fetch profile info and store a value that DashboardPage expects (`staffAdminUser`)
       let staffUser = { username: formData.username, role: 'admin' ||  'staff' || 'manager' };
       try {
-        const profileRes = await fetch(`${API_BASE}/api/user/profile`, {
+        const profileRes = await fetch(`${API_BASE_URL}/api/user/profile`, {
           method: 'GET',
           headers: { Authorization: `Bearer ${body.accessToken}` }
         });

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import './ProductDetailPage.css';
 import { useTranslatedText } from '../hooks/useTranslation';
+import { API_BASE_URL } from '../config/api';
 
 // Helper function để lấy presigned URL từ S3 key
 const getPresignedUrl = async (s3KeyOrUrl) => {
@@ -11,7 +12,7 @@ const getPresignedUrl = async (s3KeyOrUrl) => {
   }
 
   try {
-    const apiUrl = `https://aws-e4h8.onrender.com/api/s3/download-url?s3Key=${encodeURIComponent(s3KeyOrUrl)}&expirationMinutes=60`;
+    const apiUrl = `${API_BASE_URL}/api/s3/download-url?s3Key=${encodeURIComponent(s3KeyOrUrl)}&expirationMinutes=60`;
     const response = await fetch(apiUrl);
     
     if (!response.ok) {
@@ -98,9 +99,6 @@ function ProductDetailPage() {
   const productCodeText = useTranslatedText('Mã số');
   const originText = useTranslatedText('Xuất xứ');
   
-  // API Base URL
-  const API_BASE = 'https://aws-e4h8.onrender.com';
-  
   // --- STATE ---
   const [product, setProduct] = useState(null);
   const [variants, setVariants] = useState([]);
@@ -124,10 +122,10 @@ function ProductDetailPage() {
         const formattedId = id.padStart(2, '0');
         
         const [productRes, variantsRes, mediaRes, sizesRes] = await Promise.all([
-          fetch(`${API_BASE}/api/products/${formattedId}`),
-          fetch(`${API_BASE}/api/products/${formattedId}/variants`),
-          fetch(`${API_BASE}/api/products/${formattedId}/media`),
-          fetch(`${API_BASE}/api/sizes`) // Fetch sizes from API
+          fetch(`${API_BASE_URL}/api/products/${formattedId}`),
+          fetch(`${API_BASE_URL}/api/products/${formattedId}/variants`),
+          fetch(`${API_BASE_URL}/api/products/${formattedId}/media`),
+          fetch(`${API_BASE_URL}/api/sizes`) // Fetch sizes from API
         ]);
 
         // Product sẽ được set trong phần xử lý media bên dưới
@@ -243,7 +241,7 @@ function ProductDetailPage() {
       
       try {
         const formattedId = id.padStart(2, '0');
-        const mediaRes = await fetch(`https://aws-e4h8.onrender.com/api/products/${formattedId}/variants/${selectedVariantId}/media`);
+        const mediaRes = await fetch(`${API_BASE_URL}/api/products/${formattedId}/variants/${selectedVariantId}/media`);
         
         if (mediaRes.ok) {
           const mediaData = await mediaRes.json();

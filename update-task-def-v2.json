@@ -1,0 +1,55 @@
+{
+  "family": "leaf-shop-backend",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "1024",
+  "memory": "2048",
+  "containerDefinitions": [
+    {
+      "name": "leaf-shop-backend",
+      "image": "083011581293.dkr.ecr.ap-southeast-1.amazonaws.com/leaf-shop-backend:v2.0",
+      "portMappings": [
+        {
+          "containerPort": 8443,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "DYNAMODB_TABLE_PRODUCT",
+          "value": "leaf-shop-products"
+        },
+        {
+          "name": "AWS_REGION",
+          "value": "ap-southeast-1"
+        },
+        {
+          "name": "DYNAMODB_TABLE_PAYMENT",
+          "value": "leaf-shop-payments"
+        },
+        {
+          "name": "DYNAMODB_TABLE_USER",
+          "value": "leaf-shop-users"
+        },
+        {
+          "name": "DYNAMODB_TABLE_ORDER",
+          "value": "leaf-shop-orders"
+        },
+        {
+          "name": "SPRING_PROFILES_ACTIVE",
+          "value": "prod,https"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/leaf-shop-backend",
+          "awslogs-region": "ap-southeast-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ],
+  "executionRoleArn": "arn:aws:iam::083011581293:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::083011581293:role/ecsTaskRole"
+}

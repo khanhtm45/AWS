@@ -20,7 +20,7 @@ bedrock = boto3.client(
 MODEL_ID = os.environ.get('BEDROCK_MODEL_ID', 'anthropic.claude-3-haiku-20240307-v1:0')
 
 # Backend API endpoint
-BACKEND_API_URL = os.environ.get('BACKEND_API_URL', 'http://localhost:8080')
+BACKEND_API_URL = os.environ.get('BACKEND_API_URL', 'https://aws-e4h8.onrender.com')
 
 # HTTP client
 http = urllib3.PoolManager()

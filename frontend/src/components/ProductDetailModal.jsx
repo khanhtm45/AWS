@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../config/api';
 import React, { useEffect, useState } from 'react';
 import './ProductModal.css';
 
@@ -14,7 +15,7 @@ export function ProductDetailModal({ isOpen, onClose, productId }) {
 
     try {
       const response = await fetch(
-        `https://aws-e4h8.onrender.com/api/s3/download-url?s3Key=${encodeURIComponent(s3KeyOrUrl)}&expirationMinutes=5`
+        `${API_BASE_URL}/api/s3/download-url?s3Key=${encodeURIComponent(s3KeyOrUrl)}&expirationMinutes=5`
       );
       
       if (!response.ok) {
@@ -44,12 +45,12 @@ export function ProductDetailModal({ isOpen, onClose, productId }) {
     try {
       const timestamp = new Date().toLocaleTimeString();
       console.log(`🔎 [${timestamp}] Đang fetch media list cho Product ID "${productId}"...`);
-      console.log(`   URL: https://aws-e4h8.onrender.com/api/products/${encodeURIComponent(productId)}/media`);
+      console.log(`   URL: ${API_BASE_URL}/api/products/${encodeURIComponent(productId)}/media`);
 
       // Fetch product info and media in parallel
       const [productRes, mediaRes] = await Promise.all([
-        fetch(`https://aws-e4h8.onrender.com/api/products/${encodeURIComponent(productId)}`),
-        fetch(`https://aws-e4h8.onrender.com/api/products/${encodeURIComponent(productId)}/media`)
+        fetch(`${API_BASE_URL}/api/products/${encodeURIComponent(productId)}`),
+        fetch(`${API_BASE_URL}/api/products/${encodeURIComponent(productId)}/media`)
       ]);
 
       if (!productRes.ok) {
@@ -78,7 +79,7 @@ export function ProductDetailModal({ isOpen, onClose, productId }) {
               console.log(`   Primary: ${media.isPrimary ? 'Yes ✅' : 'No'}`);
               console.log(`   S3 Key: ${media.s3Key}`);
               
-              console.log(`   ➤ Fetch download URL: https://aws-e4h8.onrender.com/api/s3/download-url?s3Key=${encodeURIComponent(media.s3Key)}&expirationMinutes=5`);
+              console.log(`   ➤ Fetch download URL: ${API_BASE_URL}/api/s3/download-url?s3Key=${encodeURIComponent(media.s3Key)}&expirationMinutes=5`);
               const presignedUrl = await getPresignedUrl(media.s3Key);
               
               return {
@@ -98,7 +99,7 @@ export function ProductDetailModal({ isOpen, onClose, productId }) {
       let variants = [];
       try {
         const variantsRes = await fetch(
-          `https://aws-e4h8.onrender.com/api/products/${encodeURIComponent(productId)}/variants`
+          `${API_BASE_URL}/api/products/${encodeURIComponent(productId)}/variants`
         );
         if (variantsRes.ok) {
           const variantsData = await variantsRes.json();

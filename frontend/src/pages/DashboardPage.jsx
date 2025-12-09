@@ -6,7 +6,7 @@ import { ProductDetailModal } from '../components/ProductDetailModal';
 import './DashboardPage.css';
 import { useAuth } from '../context/AuthContext';
 
-const API_BASE = process.env.REACT_APP_API_BASE || 'https://aws-e4h8.onrender.com';
+import { API_BASE_URL } from '../config/api';
 
 const DashboardPage = () => {
   const navigate = useNavigate();
@@ -144,7 +144,7 @@ const DashboardPage = () => {
     const loadOrders = async () => {
       try {
         // Gọi API để lấy tất cả đơn hàng (không cần userId cho admin/staff)
-        const url = `${API_BASE}/api/orders`;
+        const url = `${API_BASE_URL}/api/orders`;
         const res = await fetch(url);
         if (!res.ok) {
           console.warn('Orders API returned non-ok status', res.status);
@@ -235,7 +235,7 @@ const DashboardPage = () => {
       try {
         const headers = { 'Content-Type': 'application/json' };
         if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
-        const res = await fetch(`${API_BASE}/api/staff/customers`, { headers });
+        const res = await fetch(`${API_BASE_URL}/api/staff/customers`, { headers });
         if (!res.ok) {
           console.warn('Customers API returned non-ok status', res.status);
           throw new Error('Customers API error');
@@ -294,7 +294,7 @@ const DashboardPage = () => {
 
     const loadCategories = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/categories`);
+        const res = await fetch(`${API_BASE_URL}/api/categories`);
         if (!res.ok) {
           console.error('Lỗi gọi API categories, status:', res.status);
           return;
@@ -319,14 +319,14 @@ const DashboardPage = () => {
   const loadDashboardStats = async () => {
     try {
       // Load all customers to count
-      const usersRes = await fetch(`${API_BASE}/api/staff/customers`, {
+      const usersRes = await fetch(`${API_BASE_URL}/api/staff/customers`, {
         headers: { 'Content-Type': 'application/json', ...(accessToken && { Authorization: `Bearer ${accessToken}` }) }
       });
       const usersData = usersRes.ok ? await usersRes.json() : [];
       const totalUsers = (usersData || []).length;
 
       // Load all orders to calculate stats
-      const ordersRes = await fetch(`${API_BASE}/api/orders`, {
+      const ordersRes = await fetch(`${API_BASE_URL}/api/orders`, {
         headers: { 'Content-Type': 'application/json', ...(accessToken && { Authorization: `Bearer ${accessToken}` }) }
       });
       const ordersData = ordersRes.ok ? await ordersRes.json() : [];
@@ -387,7 +387,7 @@ const DashboardPage = () => {
 
     try {
       // Add userId as query parameter
-      const url = `${API_BASE}/api/orders/${editingOrder.id}/status?userId=${userId}`;
+      const url = `${API_BASE_URL}/api/orders/${editingOrder.id}/status?userId=${userId}`;
       const payload = {
         status: newStatus,
         note: statusNote || ''
@@ -410,7 +410,7 @@ const DashboardPage = () => {
       alert('Cập nhật trạng thái đơn hàng thành công!');
       
       // Reload orders
-      const ordersRes = await fetch(`${API_BASE}/api/orders`, {
+      const ordersRes = await fetch(`${API_BASE_URL}/api/orders`, {
         headers: {
           'Authorization': `Bearer ${accessToken}`
         }
@@ -533,7 +533,7 @@ const DashboardPage = () => {
       const headers = { 'Content-Type': 'application/json' };
       if (token) headers.Authorization = `Bearer ${token}`;
 
-      const res = await fetch(`${API_BASE}/api/auth/register`, {
+      const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
         method: 'POST',
         headers,
         body: JSON.stringify(regPayload)
@@ -549,7 +549,7 @@ const DashboardPage = () => {
         // Refresh customers list if current user is admin
         try {
           if (user && user.role === 'admin') {
-            const ures = await fetch(`${API_BASE}/api/staff/customers`, {
+            const ures = await fetch(`${API_BASE_URL}/api/staff/customers`, {
               headers: { 'Content-Type': 'application/json', ...(accessToken && { Authorization: `Bearer ${accessToken}` }) }
             });
             if (ures.ok) {
@@ -664,7 +664,7 @@ const DashboardPage = () => {
     }
 
     try {
-      const response = await fetch(`${API_BASE}/api/s3/download-url?s3Key=${encodeURIComponent(s3KeyOrUrl)}`);
+      const response = await fetch(`${API_BASE_URL}/api/s3/download-url?s3Key=${encodeURIComponent(s3KeyOrUrl)}`);
       
       if (!response.ok) {
         console.error('Failed to get presigned URL:', response.status);
@@ -686,8 +686,8 @@ const DashboardPage = () => {
       
       // Fetch products and categories in parallel
       const [productsRes, categoriesRes] = await Promise.all([
-        fetch(`${API_BASE}/api/products`),
-        fetch(`${API_BASE}/api/categories`)
+        fetch(`${API_BASE_URL}/api/products`),
+        fetch(`${API_BASE_URL}/api/categories`)
       ]);
       
       if (!productsRes.ok) {
@@ -733,7 +733,7 @@ const DashboardPage = () => {
             // Nếu không có trong product.images, thử gọi API /media
             console.log(`⚠️ No images in product.images, trying /media endpoint...`);
             try {
-              const mediaRes = await fetch(`${API_BASE}/api/products/${encodeURIComponent(product.productId)}/media`);
+              const mediaRes = await fetch(`${API_BASE_URL}/api/products/${encodeURIComponent(product.productId)}/media`);
               console.log(`📡 Media API response status:`, mediaRes.status);
               if (mediaRes.ok) {
                 const mediaData = await mediaRes.json();
@@ -844,7 +844,7 @@ const DashboardPage = () => {
     try {
       console.log(`🗑️ Deleting product: ${productId}`);
       
-      const response = await fetch(`${API_BASE}/api/products/${encodeURIComponent(productId)}`, {
+      const response = await fetch(`${API_BASE_URL}/api/products/${encodeURIComponent(productId)}`, {
         method: 'DELETE',
         headers: {
           'Accept': 'application/json'
@@ -889,7 +889,7 @@ const DashboardPage = () => {
   // ======================= CATEGORY API (GET/POST/PUT/DELETE) =======================
   const loadCategoriesData = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/categories`);
+      const res = await fetch(`${API_BASE_URL}/api/categories`);
       if (!res.ok) {
         console.error('Lỗi gọi API categories, status:', res.status);
         return;
@@ -946,7 +946,7 @@ const DashboardPage = () => {
     if (!ok) return;
 
     try {
-      const res = await fetch(`${API_BASE}/api/categories/${encodeURIComponent(categoryId)}`, { method: 'DELETE' });
+      const res = await fetch(`${API_BASE_URL}/api/categories/${encodeURIComponent(categoryId)}`, { method: 'DELETE' });
 
       if (!res.ok) {
         const text = await res.text();
@@ -974,8 +974,8 @@ const DashboardPage = () => {
     const isEdit = !!editingCategoryId;
 
     const url = isEdit
-      ? `${API_BASE}/api/categories/${encodeURIComponent(editingCategoryId)}`
-      : `${API_BASE}/api/categories`;
+      ? `${API_BASE_URL}/api/categories/${encodeURIComponent(editingCategoryId)}`
+      : `${API_BASE_URL}/api/categories`;
 
     const method = isEdit ? 'PUT' : 'POST';
 
@@ -1262,7 +1262,7 @@ const DashboardPage = () => {
 
       console.log(`[viewCustomerOrders] Fetching orders for userId: ${customerId}`);
       
-      const response = await fetch(`${API_BASE}/api/orders?userId=${customerId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/orders?userId=${customerId}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -1354,7 +1354,7 @@ const DashboardPage = () => {
       }
 
       console.log('[DashboardPage] Fetching customers from API...');
-      const response = await fetch(`${API_BASE}/api/staff/customers?t=${Date.now()}`, {
+      const response = await fetch(`${API_BASE_URL}/api/staff/customers?t=${Date.now()}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,

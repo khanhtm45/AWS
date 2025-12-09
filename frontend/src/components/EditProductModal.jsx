@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../config/api';
 import React, { useEffect, useState } from 'react';
 import './ProductModal.css';
 
@@ -40,7 +41,7 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
 
     try {
       const response = await fetch(
-        `https://aws-e4h8.onrender.com/api/s3/download-url?s3Key=${encodeURIComponent(s3KeyOrUrl)}`
+        `${API_BASE_URL}/api/s3/download-url?s3Key=${encodeURIComponent(s3KeyOrUrl)}`
       );
       
       if (!response.ok) {
@@ -78,7 +79,7 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
 
   const fetchCategories = async () => {
     try {
-      const res = await fetch('https://aws-e4h8.onrender.com/api/categories');
+      const res = await fetch('${API_BASE_URL}/api/categories');
       if (res.ok) {
         const data = await res.json();
         setCategories(data);
@@ -94,8 +95,8 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
     setIsLoading(true);
     try {
       const [productRes, variantsRes] = await Promise.all([
-        fetch(`https://aws-e4h8.onrender.com/api/products/${encodeURIComponent(productId)}`),
-        fetch(`https://aws-e4h8.onrender.com/api/products/${encodeURIComponent(productId)}/variants`)
+        fetch(`${API_BASE_URL}/api/products/${encodeURIComponent(productId)}`),
+        fetch(`${API_BASE_URL}/api/products/${encodeURIComponent(productId)}/variants`)
       ]);
 
       if (productRes.ok) {
@@ -125,9 +126,9 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
           try {
             const timestamp = new Date().toLocaleTimeString();
             console.log(`🔎 [${timestamp}] Đang fetch media list cho Product ID "${productId}"...`);
-            console.log(`   URL: https://aws-e4h8.onrender.com/api/products/${encodeURIComponent(productId)}/media`);
+            console.log(`   URL: ${API_BASE_URL}/api/products/${encodeURIComponent(productId)}/media`);
             
-            const mediaRes = await fetch(`https://aws-e4h8.onrender.com/api/products/${encodeURIComponent(productId)}/media`);
+            const mediaRes = await fetch(`${API_BASE_URL}/api/products/${encodeURIComponent(productId)}/media`);
             console.log(`   Response Status: ${mediaRes.status}`);
             
             if (mediaRes.ok) {
@@ -149,7 +150,7 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
                     console.log(`   Primary: ${media.isPrimary ? 'Yes ✅' : 'No'}`);
                     console.log(`   S3 Key: ${media.s3Key}`);
                     
-                    console.log(`   ➤ Fetch download URL: https://aws-e4h8.onrender.com/api/s3/download-url?s3Key=${encodeURIComponent(media.s3Key)}&expirationMinutes=5`);
+                    console.log(`   ➤ Fetch download URL: ${API_BASE_URL}/api/s3/download-url?s3Key=${encodeURIComponent(media.s3Key)}&expirationMinutes=5`);
                     const presignedUrl = await getPresignedUrl(media.s3Key);
                     
                     return {
@@ -274,9 +275,9 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
       
       // Bước 1: Lấy presigned URL từ backend
       console.log(`📤 [${timestamp}] Step 1: Đang lấy presigned URL...`);
-      console.log(`   URL: https://aws-e4h8.onrender.com/api/s3/presigned-url`);
+      console.log(`   URL: ${API_BASE_URL}/api/s3/presigned-url`);
       
-      const presignedResponse = await fetch('https://aws-e4h8.onrender.com/api/s3/presigned-url', {
+      const presignedResponse = await fetch('${API_BASE_URL}/api/s3/presigned-url', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -345,7 +346,7 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
         console.log(`   Media ID: ${mediaId}`);
         console.log(`   S3 Key: ${s3Key}`);
         
-        const deleteUrl = `https://aws-e4h8.onrender.com/api/products/${encodeURIComponent(productId)}/media/${encodeURIComponent(mediaId)}`;
+        const deleteUrl = `${API_BASE_URL}/api/products/${encodeURIComponent(productId)}/media/${encodeURIComponent(mediaId)}`;
         console.log(`   DELETE URL: ${deleteUrl}`);
         
         const response = await fetch(deleteUrl, {
@@ -450,7 +451,7 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
       };
 
       console.log(`📤 [${timestamp}] Đang gửi request cập nhật sản phẩm...`);
-      const response = await fetch(`https://aws-e4h8.onrender.com/api/products/${encodeURIComponent(productId)}`, {
+      const response = await fetch(`${API_BASE_URL}/api/products/${encodeURIComponent(productId)}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -492,7 +493,7 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
 
           try {
             const mediaResponse = await fetch(
-              `https://aws-e4h8.onrender.com/api/products/${encodeURIComponent(productId)}/media`, 
+              `${API_BASE_URL}/api/products/${encodeURIComponent(productId)}/media`, 
               {
                 method: 'POST',
                 headers: {
@@ -552,7 +553,7 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
           };
 
           await fetch(
-            `https://aws-e4h8.onrender.com/api/products/${encodeURIComponent(productId)}/variants/${encodeURIComponent(variant.variantId)}`,
+            `${API_BASE_URL}/api/products/${encodeURIComponent(productId)}/variants/${encodeURIComponent(variant.variantId)}`,
             {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
@@ -570,7 +571,7 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
           };
 
           await fetch(
-            `https://aws-e4h8.onrender.com/api/products/${encodeURIComponent(productId)}/variants`,
+            `${API_BASE_URL}/api/products/${encodeURIComponent(productId)}/variants`,
             {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from '../config/api';
 
 const LanguageContext = createContext();
 
@@ -59,7 +60,7 @@ export const LanguageProvider = ({ children }) => {
 
         try {
             setIsTranslating(true);
-            const response = await axios.post('https://aws-e4h8.onrender.com/api/translate', {
+            const response = await axios.post(`${API_BASE_URL}/api/translate`, {
                 text: text,
                 sourceLanguage: 'auto',
                 targetLanguage: target

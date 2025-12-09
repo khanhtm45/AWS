@@ -16,7 +16,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/invoice")
-@CrossOrigin(origins = "*")
 public class InvoiceController {
 
     @Autowired
@@ -30,7 +29,7 @@ public class InvoiceController {
      */
     @GetMapping("/{orderId}/pdf")
     public ResponseEntity<Resource> downloadInvoicePDF(@PathVariable String orderId,
-                                                       @RequestParam(required = false) String userId) {
+            @RequestParam(required = false) String userId) {
         try {
             // Get order details
             OrderResponse order = orderService.getOrderDetails(orderId, userId);
@@ -66,8 +65,8 @@ public class InvoiceController {
      */
     @PostMapping("/{orderId}/email")
     public ResponseEntity<?> sendInvoiceEmail(@PathVariable String orderId,
-                                             @RequestParam(required = false) String userId,
-                                             @RequestBody Map<String, String> request) {
+            @RequestParam(required = false) String userId,
+            @RequestBody Map<String, String> request) {
         try {
             String email = request.get("email");
             if (email == null || email.isEmpty()) {

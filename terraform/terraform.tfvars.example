@@ -1,0 +1,39 @@
+# AWS Configuration
+aws_region     = "ap-southeast-1"
+aws_account_id = "YOUR_AWS_ACCOUNT_ID"  # Thay bằng AWS Account ID của bạn
+environment    = "prod"
+project_name   = "leaf-shop"
+domain_name    = "leafshop.com"
+
+# VPC Configuration
+vpc_cidr           = "10.0.0.0/16"
+availability_zones = ["ap-southeast-1a", "ap-southeast-1b"]
+
+# ECS Configuration
+ecs_task_cpu      = "1024"   # 1 vCPU
+ecs_task_memory   = "2048"   # 2 GB
+ecs_desired_count = 2        # Số lượng tasks
+ecs_min_capacity  = 1        # Minimum tasks khi scale down
+ecs_max_capacity  = 4        # Maximum tasks khi scale up
+image_tag         = "latest" # Docker image tag
+
+# Redis Configuration
+redis_node_type       = "cache.t3.micro"  # Instance type
+redis_num_cache_nodes = 2                 # Số nodes (2 cho Multi-AZ)
+
+# Lambda Configuration
+bedrock_model_id = "anthropic.claude-3-haiku-20240307-v1:0"
+
+# Secrets (QUAN TRỌNG: KHÔNG commit file terraform.tfvars vào git!)
+jwt_secret        = "CHANGE_ME_TO_STRONG_SECRET"
+vnpay_tmn_code    = "YOUR_VNPAY_TMN_CODE"
+vnpay_hash_secret = "YOUR_VNPAY_HASH_SECRET"
+momo_partner_code = "YOUR_MOMO_PARTNER_CODE"
+momo_access_key   = "YOUR_MOMO_ACCESS_KEY"
+momo_secret_key   = "YOUR_MOMO_SECRET_KEY"
+
+# SSL Certificate (optional - để trống nếu chưa có)
+certificate_arn = ""  # ARN của ACM certificate, ví dụ: "arn:aws:acm:us-east-1:123456789012:certificate/xxxxx"
+
+# Domain aliases for CloudFront (optional - để trống nếu chưa có domain)
+domain_aliases = []  # Ví dụ: ["www.leafshop.com", "leafshop.com"]

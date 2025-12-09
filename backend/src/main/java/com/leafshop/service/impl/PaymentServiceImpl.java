@@ -2,20 +2,14 @@ package com.leafshop.service.impl;
 
 /**
  * Payment Service Implementation
- * 
- * VNPay Response Codes:
- * - 00: Success
- * - 24: User cancelled transaction
- * - 99: Unknown error / Transaction failed
- * - Other codes: Various failure reasons
- * 
- * Payment Status Mapping:
- * - PENDING: Payment initiated, awaiting confirmation
- * - PAID: Payment successful
- * - CANCELLED: User cancelled payment
- * - FAILED: Payment failed due to error
+ *
+ * VNPay Response Codes: - 00: Success - 24: User cancelled transaction - 99:
+ * Unknown error / Transaction failed - Other codes: Various failure reasons
+ *
+ * Payment Status Mapping: - PENDING: Payment initiated, awaiting confirmation -
+ * PAID: Payment successful - CANCELLED: User cancelled payment - FAILED:
+ * Payment failed due to error
  */
-
 import com.leafshop.dto.payment.InitiatePaymentRequest;
 import com.leafshop.dto.payment.PaymentResponse;
 import com.leafshop.dto.payment.RefundRequest;
@@ -78,18 +72,18 @@ public class PaymentServiceImpl implements PaymentService {
         long now = Instant.now().toEpochMilli();
 
         PaymentTable p = PaymentTable.builder()
-            .pk("PAYMENT#" + paymentId)
-            .sk("META")
-            .paymentId(paymentId)
-            .orderId(req.getOrderId())
-            .amount(req.getAmount())
-            .currency(req.getCurrency())
-            .method(req.getMethod())
-            .provider(req.getProvider())
-            .status("PENDING")
-            .createdAt(now)
-            .updatedAt(now)
-            .build();
+                .pk("PAYMENT#" + paymentId)
+                .sk("META")
+                .paymentId(paymentId)
+                .orderId(req.getOrderId())
+                .amount(req.getAmount())
+                .currency(req.getCurrency())
+                .method(req.getMethod())
+                .provider(req.getProvider())
+                .status("PENDING")
+                .createdAt(now)
+                .updatedAt(now)
+                .build();
 
         // Create provider-specific payment flows
         String clientSecret = null;
@@ -99,12 +93,12 @@ public class PaymentServiceImpl implements PaymentService {
             try {
                 long amountInCents = Math.round(req.getAmount() * 100);
                 PaymentIntentCreateParams params = PaymentIntentCreateParams.builder()
-                    .setAmount(amountInCents)
-                    .setCurrency(req.getCurrency().toLowerCase())
-                    .addPaymentMethodType("card")
-                    .putMetadata("orderId", req.getOrderId())
-                    .putMetadata("paymentId", paymentId)
-                    .build();
+                        .setAmount(amountInCents)
+                        .setCurrency(req.getCurrency().toLowerCase())
+                        .addPaymentMethodType("card")
+                        .putMetadata("orderId", req.getOrderId())
+                        .putMetadata("paymentId", paymentId)
+                        .build();
 
                 PaymentIntent intent = PaymentIntent.create(params);
                 clientSecret = intent.getClientSecret();
@@ -116,14 +110,14 @@ public class PaymentServiceImpl implements PaymentService {
                 p.setUpdatedAt(Instant.now().toEpochMilli());
                 paymentRepo.save(p);
                 return PaymentResponse.builder()
-                    .paymentId(paymentId)
-                    .orderId(req.getOrderId())
-                    .amount(req.getAmount())
-                    .currency(req.getCurrency())
-                    .method(req.getMethod())
-                    .provider(req.getProvider())
-                    .status("FAILED")
-                    .build();
+                        .paymentId(paymentId)
+                        .orderId(req.getOrderId())
+                        .amount(req.getAmount())
+                        .currency(req.getCurrency())
+                        .method(req.getMethod())
+                        .provider(req.getProvider())
+                        .status("FAILED")
+                        .build();
             }
         } else if ("VNPAY".equalsIgnoreCase(req.getProvider())) {
             // Use VNPayService to create payment URL
@@ -141,20 +135,26 @@ public class PaymentServiceImpl implements PaymentService {
         }
 
         // persist providerTransactionId and clientSecret if available
-        if (providerTxId != null) p.setProviderTransactionId(providerTxId);
+        if (providerTxId != null) {
+            p.setProviderTransactionId(providerTxId);
+        }
         paymentRepo.save(p);
 
         PaymentResponse.PaymentResponseBuilder resp = PaymentResponse.builder()
-            .paymentId(paymentId)
-            .orderId(req.getOrderId())
-            .amount(req.getAmount())
-            .currency(req.getCurrency())
-            .method(req.getMethod())
-            .provider(req.getProvider())
-            .status(p.getStatus());
+                .paymentId(paymentId)
+                .orderId(req.getOrderId())
+                .amount(req.getAmount())
+                .currency(req.getCurrency())
+                .method(req.getMethod())
+                .provider(req.getProvider())
+                .status(p.getStatus());
 
-        if (clientSecret != null) resp.clientSecret(clientSecret);
-        if (paymentUrl != null) resp.paymentUrl(paymentUrl);
+        if (clientSecret != null) {
+            resp.clientSecret(clientSecret);
+        }
+        if (paymentUrl != null) {
+            resp.paymentUrl(paymentUrl);
+        }
 
         return resp.build();
     }
@@ -162,17 +162,19 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     public PaymentResponse getPaymentById(String paymentId) {
         Optional<PaymentTable> opt = paymentRepo.findByPaymentId(paymentId);
-        if (opt.isEmpty()) return null;
+        if (opt.isEmpty()) {
+            return null;
+        }
         PaymentTable p = opt.get();
         return PaymentResponse.builder()
-            .paymentId(p.getPaymentId())
-            .orderId(p.getOrderId())
-            .amount(p.getAmount())
-            .currency(p.getCurrency())
-            .method(p.getMethod())
-            .provider(p.getProvider())
-            .status(p.getStatus())
-            .build();
+                .paymentId(p.getPaymentId())
+                .orderId(p.getOrderId())
+                .amount(p.getAmount())
+                .currency(p.getCurrency())
+                .method(p.getMethod())
+                .provider(p.getProvider())
+                .status(p.getStatus())
+                .build();
     }
 
     @Override
@@ -180,18 +182,18 @@ public class PaymentServiceImpl implements PaymentService {
         Map<String, String> payload = webhookRequest.getPayload();
         String paymentId = payload != null ? payload.get("paymentId") : null;
         String providerTx = payload != null ? payload.get("providerTransactionId") : null;
-        
+
         // VNPay specific: vnp_TxnRef contains orderId (may have _timestamp suffix)
         String vnpTxnRef = payload != null ? payload.get("vnp_TxnRef") : null;
         String orderId = vnpTxnRef;
-        
+
         // Extract orderId from vnp_TxnRef (remove _timestamp if present)
         // Format: orderId_timestamp (e.g., 87907458-849d-46e2-96a6-3ef9f4a2dd0c_1765026748703)
         if (orderId != null && orderId.contains("_")) {
             orderId = orderId.substring(0, orderId.lastIndexOf("_"));
             System.out.println("[PaymentService] Extracted orderId from vnp_TxnRef: " + vnpTxnRef + " → " + orderId);
         }
-        
+
         System.out.println("[PaymentService] === WEBHOOK RECEIVED ===");
         System.out.println("[PaymentService] Provider: " + webhookRequest.getProvider());
         System.out.println("[PaymentService] PaymentId: " + paymentId + ", OrderId: " + orderId + ", ProviderTx: " + providerTx);
@@ -205,7 +207,7 @@ public class PaymentServiceImpl implements PaymentService {
         if (opt.isEmpty() && providerTx != null) {
             opt = paymentRepo.findByProviderTransactionId(providerTx);
         }
-        
+
         // Try to find by orderId (VNPay uses vnp_TxnRef as orderId)
         if (opt.isEmpty() && orderId != null) {
             System.out.println("[PaymentService] Searching by orderId: " + orderId);
@@ -225,7 +227,7 @@ public class PaymentServiceImpl implements PaymentService {
         String provider = webhookRequest.getProvider();
         String providerStatus = payload.getOrDefault("status", payload.getOrDefault("result", ""));
         boolean verified = true;
-        
+
         // Use provider-specific services for signature verification
         if ("VNPAY".equalsIgnoreCase(provider)) {
             verified = vnPayService.verifyCallback(payload);
@@ -238,19 +240,17 @@ public class PaymentServiceImpl implements PaymentService {
             // Map provider status codes to internal status
             if (providerStatus != null) {
                 // Success codes
-                if (providerStatus.equalsIgnoreCase("SUCCESS") || 
-                    providerStatus.equalsIgnoreCase("PAID") || 
-                    providerStatus.equals("00") || 
-                    providerStatus.equals("0")) {
+                if (providerStatus.equalsIgnoreCase("SUCCESS")
+                        || providerStatus.equalsIgnoreCase("PAID")
+                        || providerStatus.equals("00")
+                        || providerStatus.equals("0")) {
                     p.setStatus("PAID");
-                }
-                // Cancelled codes (VNPay: 24 = user cancelled, MoMo: 1006 = user cancelled)
-                else if (providerStatus.equals("24") || 
-                         providerStatus.equals("1006") ||
-                         providerStatus.equals("99")) { // VNPay error code 99
+                } // Cancelled codes (VNPay: 24 = user cancelled, MoMo: 1006 = user cancelled)
+                else if (providerStatus.equals("24")
+                        || providerStatus.equals("1006")
+                        || providerStatus.equals("99")) { // VNPay error code 99
                     p.setStatus("CANCELLED");
-                }
-                // All other codes = failed
+                } // All other codes = failed
                 else {
                     p.setStatus("FAILED");
                 }
@@ -259,10 +259,12 @@ public class PaymentServiceImpl implements PaymentService {
             }
         }
 
-        if (providerTx != null) p.setProviderTransactionId(providerTx);
+        if (providerTx != null) {
+            p.setProviderTransactionId(providerTx);
+        }
         p.setUpdatedAt(Instant.now().toEpochMilli());
         paymentRepo.save(p);
-        
+
         System.out.println("[PaymentService] ✅ Payment status updated to: " + p.getStatus());
 
         // Update order status and paymentStatus in OrderTable based on payment result
@@ -275,14 +277,14 @@ public class PaymentServiceImpl implements PaymentService {
         }
 
         return PaymentResponse.builder()
-            .paymentId(p.getPaymentId())
-            .orderId(p.getOrderId())
-            .amount(p.getAmount())
-            .currency(p.getCurrency())
-            .method(p.getMethod())
-            .provider(p.getProvider())
-            .status(p.getStatus())
-            .build();
+                .paymentId(p.getPaymentId())
+                .orderId(p.getOrderId())
+                .amount(p.getAmount())
+                .currency(p.getCurrency())
+                .method(p.getMethod())
+                .provider(p.getProvider())
+                .status(p.getStatus())
+                .build();
     }
 
     @Override
@@ -306,14 +308,14 @@ public class PaymentServiceImpl implements PaymentService {
                     p.setUpdatedAt(Instant.now().toEpochMilli());
                     paymentRepo.save(p);
                     return PaymentResponse.builder()
-                        .paymentId(p.getPaymentId())
-                        .orderId(p.getOrderId())
-                        .amount(p.getAmount())
-                        .currency(p.getCurrency())
-                        .method(p.getMethod())
-                        .provider(p.getProvider())
-                        .status(p.getStatus())
-                        .build();
+                            .paymentId(p.getPaymentId())
+                            .orderId(p.getOrderId())
+                            .amount(p.getAmount())
+                            .currency(p.getCurrency())
+                            .method(p.getMethod())
+                            .provider(p.getProvider())
+                            .status(p.getStatus())
+                            .build();
                 }
             }
         } else if ("payment_intent.payment_failed".equals(event.getType())) {
@@ -328,14 +330,14 @@ public class PaymentServiceImpl implements PaymentService {
                     p.setUpdatedAt(Instant.now().toEpochMilli());
                     paymentRepo.save(p);
                     return PaymentResponse.builder()
-                        .paymentId(p.getPaymentId())
-                        .orderId(p.getOrderId())
-                        .amount(p.getAmount())
-                        .currency(p.getCurrency())
-                        .method(p.getMethod())
-                        .provider(p.getProvider())
-                        .status(p.getStatus())
-                        .build();
+                            .paymentId(p.getPaymentId())
+                            .orderId(p.getOrderId())
+                            .amount(p.getAmount())
+                            .currency(p.getCurrency())
+                            .method(p.getMethod())
+                            .provider(p.getProvider())
+                            .status(p.getStatus())
+                            .build();
                 }
             }
         }
@@ -345,7 +347,9 @@ public class PaymentServiceImpl implements PaymentService {
 
     // Utility HMAC helpers
     private String hmacSHA256(String data, String secret) throws Exception {
-        if (secret == null) secret = "";
+        if (secret == null) {
+            secret = "";
+        }
         Mac sha256_HMAC = Mac.getInstance("HmacSHA256");
         SecretKeySpec secret_key = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
         sha256_HMAC.init(secret_key);
@@ -354,7 +358,9 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     private String hmacSHA512(String data, String secret) throws Exception {
-        if (secret == null) secret = "";
+        if (secret == null) {
+            secret = "";
+        }
         Mac sha512_HMAC = Mac.getInstance("HmacSHA512");
         SecretKeySpec secret_key = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA512");
         sha512_HMAC.init(secret_key);
@@ -364,27 +370,33 @@ public class PaymentServiceImpl implements PaymentService {
 
     private String bytesToHex(byte[] bytes) {
         StringBuilder sb = new StringBuilder();
-        for (byte b : bytes) sb.append(String.format("%02x", b & 0xff));
+        for (byte b : bytes) {
+            sb.append(String.format("%02x", b & 0xff));
+        }
         return sb.toString();
     }
 
     @Override
     public PaymentResponse refundPayment(String paymentId, RefundRequest req) {
         Optional<PaymentTable> opt = paymentRepo.findByPaymentId(paymentId);
-        if (opt.isEmpty()) return null;
+        if (opt.isEmpty()) {
+            return null;
+        }
         PaymentTable p = opt.get();
 
         if ("STRIPE".equalsIgnoreCase(p.getProvider()) && p.getProviderTransactionId() != null) {
             try {
                 long amount = req.getAmount() == null ? Math.round(p.getAmount() * 100) : Math.round(req.getAmount() * 100);
                 RefundCreateParams rparams = RefundCreateParams.builder()
-                    .setPaymentIntent(p.getProviderTransactionId())
-                    .setAmount(amount)
-                    .build();
+                        .setPaymentIntent(p.getProviderTransactionId())
+                        .setAmount(amount)
+                        .build();
                 Refund refund = Refund.create(rparams);
                 p.setStatus("REFUNDED");
                 p.setUpdatedAt(Instant.now().toEpochMilli());
-                if (p.getMetadata() != null) p.getMetadata().put("refundId", refund.getId());
+                if (p.getMetadata() != null) {
+                    p.getMetadata().put("refundId", refund.getId());
+                }
                 paymentRepo.save(p);
             } catch (StripeException e) {
                 // Failed refund
@@ -400,14 +412,14 @@ public class PaymentServiceImpl implements PaymentService {
         }
 
         return PaymentResponse.builder()
-            .paymentId(p.getPaymentId())
-            .orderId(p.getOrderId())
-            .amount(p.getAmount())
-            .currency(p.getCurrency())
-            .method(p.getMethod())
-            .provider(p.getProvider())
-            .status(p.getStatus())
-            .build();
+                .paymentId(p.getPaymentId())
+                .orderId(p.getOrderId())
+                .amount(p.getAmount())
+                .currency(p.getCurrency())
+                .method(p.getMethod())
+                .provider(p.getProvider())
+                .status(p.getStatus())
+                .build();
     }
 
     /**
@@ -417,20 +429,24 @@ public class PaymentServiceImpl implements PaymentService {
         if (orderId == null || orderId.isEmpty()) {
             return;
         }
-        
+
         try {
             // Search for order by orderId attribute (regardless of PK structure)
             Optional<OrderTable> orderMetaOpt = orderRepo.findByOrderId(orderId);
-            
+
             if (orderMetaOpt.isPresent()) {
                 OrderTable orderMeta = orderMetaOpt.get();
-                
-                // Only update paymentStatus, keep orderStatus unchanged (should be PENDING)
+
+                // Update paymentStatus and orderStatus
                 orderMeta.setPaymentStatus(paymentStatus);
+                // If payment is PAID, change order status from PENDING_PAYMENT to PENDING (ready for processing)
+                if ("PAID".equals(paymentStatus) && "PENDING_PAYMENT".equals(orderMeta.getOrderStatus())) {
+                    orderMeta.setOrderStatus("PENDING");
+                }
                 orderMeta.setUpdatedAt(Instant.now().toEpochMilli());
                 orderRepo.save(orderMeta);
-                
-                System.out.println("[PaymentService] ✅ Updated order " + orderId + " paymentStatus to " + paymentStatus + " (orderStatus: " + orderMeta.getOrderStatus() + ")");
+
+                System.out.println("[PaymentService] ✅ Updated order " + orderId + " paymentStatus to " + paymentStatus + ", orderStatus to " + orderMeta.getOrderStatus());
             } else {
                 System.err.println("[PaymentService] ❌ Order not found with orderId: " + orderId);
             }
@@ -447,24 +463,24 @@ public class PaymentServiceImpl implements PaymentService {
         if (orderId == null || orderId.isEmpty()) {
             return;
         }
-        
+
         try {
             // Search for order by orderId attribute (regardless of PK structure)
             Optional<OrderTable> orderMetaOpt = orderRepo.findByOrderId(orderId);
-            
+
             if (orderMetaOpt.isPresent()) {
                 OrderTable orderMeta = orderMetaOpt.get();
-                
+
                 // Update both orderStatus and paymentStatus
                 orderMeta.setOrderStatus(newStatus);
-                
+
                 // Map order status to payment status
                 String paymentStatus = newStatus.equals("CANCELLED") ? "FAILED" : newStatus;
                 orderMeta.setPaymentStatus(paymentStatus);
-                
+
                 orderMeta.setUpdatedAt(Instant.now().toEpochMilli());
                 orderRepo.save(orderMeta);
-                
+
                 System.out.println("[PaymentService] ✅ Updated order " + orderId + " - orderStatus: " + newStatus + ", paymentStatus: " + paymentStatus);
             } else {
                 System.err.println("[PaymentService] ❌ Order not found with orderId: " + orderId);

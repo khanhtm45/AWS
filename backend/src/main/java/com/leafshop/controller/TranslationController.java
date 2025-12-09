@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/translate")
-@CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Translation", description = "AWS Translate API for language translation")
@@ -24,9 +23,9 @@ public class TranslationController {
     @Operation(summary = "Translate text", description = "Translate text from source language to target language")
     public ResponseEntity<TranslationResponse> translateText(@RequestBody TranslationRequest request) {
         try {
-            log.info("Translation request: {} -> {}, text length: {}", 
-                    request.getSourceLanguage(), 
-                    request.getTargetLanguage(), 
+            log.info("Translation request: {} -> {}, text length: {}",
+                    request.getSourceLanguage(),
+                    request.getTargetLanguage(),
                     request.getText().length());
 
             String translatedText = translationService.translateText(

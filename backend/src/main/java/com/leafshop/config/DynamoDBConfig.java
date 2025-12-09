@@ -14,13 +14,13 @@ import java.net.URI;
 @Configuration
 public class DynamoDBConfig {
 
-    @Value("${aws.dynamodb.endpoint:}")
+    @Value("${aws.dynamodb.endpoint:#{null}}")
     private String dynamoDbEndpoint;
 
-    @Value("${aws.access.key.id:}")
+    @Value("${aws.access.key.id:#{null}}")
     private String awsAccessKeyId;
 
-    @Value("${aws.secret.access.key:}")
+    @Value("${aws.secret.access.key:#{null}}")
     private String awsSecretAccessKey;
 
     @Value("${aws.dynamodb.region:us-east-1}")
@@ -29,7 +29,7 @@ public class DynamoDBConfig {
     @Bean
     public DynamoDbClient dynamoDbClient() {
         var builder = DynamoDbClient.builder()
-            .region(Region.of(awsRegion));
+                .region(Region.of(awsRegion));
 
         // Nếu có endpoint (local DynamoDB), set endpoint override
         if (dynamoDbEndpoint != null && !dynamoDbEndpoint.isEmpty()) {
@@ -37,11 +37,11 @@ public class DynamoDBConfig {
         }
 
         // Nếu có credentials, set credentials
-        if (awsAccessKeyId != null && !awsAccessKeyId.isEmpty() 
-            && awsSecretAccessKey != null && !awsSecretAccessKey.isEmpty()) {
+        if (awsAccessKeyId != null && !awsAccessKeyId.isEmpty()
+                && awsSecretAccessKey != null && !awsSecretAccessKey.isEmpty()) {
             AwsBasicCredentials awsCredentials = AwsBasicCredentials.create(
-                awsAccessKeyId, 
-                awsSecretAccessKey
+                    awsAccessKeyId,
+                    awsSecretAccessKey
             );
             builder.credentialsProvider(StaticCredentialsProvider.create(awsCredentials));
         }
@@ -52,7 +52,7 @@ public class DynamoDBConfig {
     @Bean
     public DynamoDbEnhancedClient dynamoDbEnhancedClient(DynamoDbClient dynamoDbClient) {
         return DynamoDbEnhancedClient.builder()
-            .dynamoDbClient(dynamoDbClient)
-            .build();
+                .dynamoDbClient(dynamoDbClient)
+                .build();
     }
 }

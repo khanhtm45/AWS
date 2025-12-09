@@ -4,6 +4,7 @@ import ContactModal from '../components/ContactModal';
 import './ProfilePage.css';
 import { useAuth } from '../context/AuthContext';
 import { useTranslatedText } from '../hooks/useTranslation';
+import { API_BASE_URL } from '../config/api';
 
 export default function ProfilePage() {
   // Translation hooks
@@ -60,9 +61,6 @@ export default function ProfilePage() {
   
   const { user, updateUser, accessToken } = useAuth();
 
-  // Load từ AuthContext user, fallback to localStorage hoặc giá trị mặc định
-  const API_BASE = process.env.REACT_APP_API_BASE || 'https://aws-e4h8.onrender.com';
-
   const getInitialProfile = () => {
     if (user) {
       return {
@@ -118,7 +116,7 @@ export default function ProfilePage() {
       try {
         if (accessToken) {
           console.log('[ProfilePage] Debug fetching /api/user/profile with token');
-          const res = await fetch(`${API_BASE}/api/user/profile`, {
+          const res = await fetch(`${API_BASE_URL}/api/user/profile`, {
             method: 'GET',
             headers: { Authorization: `Bearer ${accessToken}` }
           });
@@ -142,7 +140,7 @@ export default function ProfilePage() {
             const emailToUse = storedEmail || userEmail;
             if (emailToUse) {
               try {
-                const custRes = await fetch(`${API_BASE}/api/customer/profile?email=${encodeURIComponent(emailToUse.trim().toLowerCase())}`);
+                const custRes = await fetch(`${API_BASE_URL}/api/customer/profile?email=${encodeURIComponent(emailToUse.trim().toLowerCase())}`);
                 if (custRes.ok) {
                   const body = await custRes.json();
                   if (body.firstName) setFirstName(body.firstName);
@@ -162,7 +160,7 @@ export default function ProfilePage() {
           const emailToUse = (user && user.email) || (stored ? (JSON.parse(stored).email) : userEmail);
           if (emailToUse) {
             try {
-              const custRes = await fetch(`${API_BASE}/api/customer/profile?email=${encodeURIComponent(emailToUse.trim().toLowerCase())}`);
+              const custRes = await fetch(`${API_BASE_URL}/api/customer/profile?email=${encodeURIComponent(emailToUse.trim().toLowerCase())}`);
               if (custRes.ok) {
                 const body = await custRes.json();
                 if (body.firstName) setFirstName(body.firstName);
@@ -184,7 +182,7 @@ export default function ProfilePage() {
         console.error('[ProfilePage] profile GET error:', err);
       }
     })();
-  }, [accessToken, API_BASE, user, userEmail]);
+  }, [accessToken, user, userEmail]);
   
   // Edit profile form
   const [editForm, setEditForm] = useState({
@@ -246,7 +244,7 @@ export default function ProfilePage() {
               isDefault: addressForm.isDefault || false
             };
 
-            const res = await fetch(`${API_BASE}/api/customer/address`, {
+            const res = await fetch(`${API_BASE_URL}/api/customer/address`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -259,7 +257,7 @@ export default function ProfilePage() {
             }
           } else {
             // editing existing address: fall back to PUT profile with full addresses list
-            await fetch(`${API_BASE}/api/user/profile`, {
+            await fetch(`${API_BASE_URL}/api/user/profile`, {
               method: 'PUT',
               headers: {
                 'Content-Type': 'application/json',
@@ -271,7 +269,7 @@ export default function ProfilePage() {
 
           // re-fetch canonical profile
           try {
-            const profileRes = await fetch(`${API_BASE}/api/user/profile`, {
+            const profileRes = await fetch(`${API_BASE_URL}/api/user/profile`, {
               method: 'GET',
               headers: { Authorization: `Bearer ${token}` }
             });
@@ -366,7 +364,7 @@ export default function ProfilePage() {
       // request OTP to new email and show modal
       (async () => {
         try {
-          await fetch(`${API_BASE}/api/auth/request-login-otp`, {
+          await fetch(`${API_BASE_URL}/api/auth/request-login-otp`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: newEmail })
@@ -389,7 +387,7 @@ export default function ProfilePage() {
           setMessage(txtNoToken);
           return;
         }
-        const res = await fetch(`${API_BASE}/api/user/profile`, {
+        const res = await fetch(`${API_BASE_URL}/api/user/profile`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -403,7 +401,7 @@ export default function ProfilePage() {
           return;
         }
         // re-fetch canonical profile
-        const profileRes = await fetch(`${API_BASE}/api/user/profile`, {
+        const profileRes = await fetch(`${API_BASE_URL}/api/user/profile`, {
           method: 'GET',
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -441,7 +439,7 @@ export default function ProfilePage() {
         setMessage(txtLoginRequired);
         return;
       }
-      const res = await fetch(`${API_BASE}/api/customer/profile/confirm-email-change`, {
+      const res = await fetch(`${API_BASE_URL}/api/customer/profile/confirm-email-change`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -461,7 +459,7 @@ export default function ProfilePage() {
 
       // apply first/last update
       const upr = { firstName: editForm.firstName, lastName: editForm.lastName };
-      const updateRes = await fetch(`${API_BASE}/api/user/profile`, {
+      const updateRes = await fetch(`${API_BASE_URL}/api/user/profile`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(upr)

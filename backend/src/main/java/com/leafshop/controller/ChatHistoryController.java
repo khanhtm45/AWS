@@ -11,7 +11,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/chat/history")
-@CrossOrigin(origins = "*")
 public class ChatHistoryController {
 
     private final ChatHistoryService chatHistoryService;
@@ -51,7 +50,7 @@ public class ChatHistoryController {
 
     @GetMapping
     public ResponseEntity<?> getHistory(@RequestParam(required = false) String chatId,
-                                        @RequestParam(required = false) String userId) {
+            @RequestParam(required = false) String userId) {
         try {
             List<ChatTable> items = chatHistoryService.fetchBy(chatId, userId);
             return ResponseEntity.ok(items);

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { API_BASE_URL } from '../config/api';
 import './PaymentReturnPage.css';
 import { useTranslatedText } from '../hooks/useTranslation';
 
@@ -35,14 +36,12 @@ function PaymentReturnPage() {
       setDetails(params);
 
       // IMPORTANT: Call backend to update payment status
-      const API_BASE = process.env.REACT_APP_API_BASE || 'https://aws-e4h8.onrender.com';
-      
       try {
         if (params.vnp_ResponseCode !== undefined) {
           // VNPay - call backend return endpoint
           console.log('[PaymentReturn] Calling VNPay return endpoint with params:', params);
           const queryString = new URLSearchParams(params).toString();
-          const response = await fetch(`${API_BASE}/api/payments/vnpay/return?${queryString}`, {
+          const response = await fetch(`${API_BASE_URL}/api/payments/vnpay/return?${queryString}`, {
             method: 'GET'
           });
           

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTranslatedText } from '../hooks/useTranslation';
+import { API_BASE_URL } from '../config/api';
 import './HomePage.css';
 import ChatBox from '../components/ChatBox';
 import ProductCard from '../components/ProductCard';
@@ -36,7 +37,7 @@ function HomePage() {
     }
 
     try {
-      const apiUrl = `https://aws-e4h8.onrender.com/api/s3/download-url?s3Key=${encodeURIComponent(s3KeyOrUrl)}&expirationMinutes=60`;
+      const apiUrl = `${API_BASE_URL}/api/s3/download-url?s3Key=${encodeURIComponent(s3KeyOrUrl)}&expirationMinutes=60`;
       const response = await fetch(apiUrl);
       
       if (!response.ok) {
@@ -64,7 +65,7 @@ function HomePage() {
       try {
         setLoading(true);
         
-        const response = await fetch('https://aws-e4h8.onrender.com/api/products');
+        const response = await fetch(`${API_BASE_URL}/api/products`);
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -97,7 +98,7 @@ function HomePage() {
               // Strategy 2: Fallback to media API
               if (productImage === '/LEAF.png') {
                 try {
-                  const mediaResponse = await fetch(`https://aws-e4h8.onrender.com/api/products/${product.productId}/media`);
+                  const mediaResponse = await fetch(`${API_BASE_URL}/api/products/${product.productId}/media`);
                   
                   if (mediaResponse.ok) {
                     const mediaData = await mediaResponse.json();

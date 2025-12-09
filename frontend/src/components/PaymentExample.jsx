@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../config/api';
 import React from 'react';
 
 export default function PaymentExample() {
@@ -11,7 +12,7 @@ export default function PaymentExample() {
       returnUrl: window.location.origin + '/payment-return'
     };
 
-    const resp = await fetch('/api/payments/initiate', {
+    const resp = await fetch('${API_BASE_URL}/api/payments/initiate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)

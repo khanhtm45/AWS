@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';     
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { API_BASE_URL } from '../config/api';
 import './LoginPage.css';
 import { useTranslatedText } from '../hooks/useTranslation';
 
@@ -27,7 +28,6 @@ const LoginPage = () => {
   const [otp, setOtp] = useState('');
   const [message, setMessage] = useState('');
   const { setAuth } = useAuth();
-  const API_BASE = process.env.REACT_APP_API_BASE || 'https://aws-e4h8.onrender.com';
 
   // Scroll to top when component mounts
   useEffect(() => {
@@ -42,7 +42,7 @@ const LoginPage = () => {
     (async () => {
       try {
         const emailToSend = email.trim().toLowerCase();
-        const res = await fetch(`${API_BASE}/api/auth/send-otp`, {
+        const res = await fetch(`${API_BASE_URL}/api/auth/send-otp`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: emailToSend })
@@ -62,7 +62,7 @@ const LoginPage = () => {
     setMessage('');
     try {
       const emailToSend = email.trim().toLowerCase();
-      const res = await fetch(`${API_BASE}/api/auth/verify-otp-login`, {
+      const res = await fetch(`${API_BASE_URL}/api/auth/verify-otp-login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: emailToSend, otp })
@@ -75,7 +75,7 @@ const LoginPage = () => {
 
       // Try to fetch full user profile from backend using the received access token
       try {
-        const profileRes = await fetch(`${API_BASE}/api/user/profile`, {
+        const profileRes = await fetch(`${API_BASE_URL}/api/user/profile`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -96,7 +96,7 @@ const LoginPage = () => {
         } else {
           // fallback to public customer profile by email if token-based call fails
           try {
-            const custRes = await fetch(`${API_BASE}/api/customer/profile?email=${encodeURIComponent(normalizedEmail)}`);
+            const custRes = await fetch(`${API_BASE_URL}/api/customer/profile?email=${encodeURIComponent(normalizedEmail)}`);
             if (custRes.ok) {
               const profileBody = await custRes.json();
               const userInfo = {
@@ -115,7 +115,7 @@ const LoginPage = () => {
         console.warn('Could not fetch user profile after login:', err);
         // try public customer profile as last resort
         try {
-          const custRes = await fetch(`${API_BASE}/api/customer/profile?email=${encodeURIComponent(normalizedEmail)}`);
+          const custRes = await fetch(`${API_BASE_URL}/api/customer/profile?email=${encodeURIComponent(normalizedEmail)}`);
           if (custRes.ok) {
             const profileBody = await custRes.json();
             const userInfo = {

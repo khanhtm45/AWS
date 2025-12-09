@@ -1,6 +1,7 @@
 package com.leafshop.service;
 
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
@@ -15,13 +16,14 @@ import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 
 @Service
-@Slf4j
 public class TranslationService {
 
-    @Value("${aws.access.key.id:}")
+    private static final Logger log = LoggerFactory.getLogger(TranslationService.class);
+
+    @Value("${aws.access.key.id:#{null}}")
     private String awsAccessKeyId;
 
-    @Value("${aws.secret.access.key:}")
+    @Value("${aws.secret.access.key:#{null}}")
     private String awsSecretKey;
 
     @Value("${aws.translate.region:ap-southeast-1}")
@@ -39,10 +41,10 @@ public class TranslationService {
             return;
         }
 
-        if (awsAccessKeyId == null || awsAccessKeyId.isEmpty() || 
-            awsSecretKey == null || awsSecretKey.isEmpty()) {
-            log.warn("AWS credentials not configured. Translation service will be disabled. " +
-                    "Please configure aws.access.key.id and aws.secret.access.key in application.properties");
+        if (awsAccessKeyId == null || awsAccessKeyId.isEmpty()
+                || awsSecretKey == null || awsSecretKey.isEmpty()) {
+            log.warn("AWS credentials not configured. Translation service will be disabled. "
+                    + "Please configure aws.access.key.id and aws.secret.access.key in application.properties");
             translateEnabled = false;
             return;
         }
@@ -76,8 +78,8 @@ public class TranslationService {
 
     /**
      * Translate text from source language to target language
-     * 
-     * @param text           Text to translate
+     *
+     * @param text Text to translate
      * @param sourceLanguage Source language code (e.g., "vi", "en", "auto")
      * @param targetLanguage Target language code (e.g., "vi", "en")
      * @return Translated text
@@ -102,14 +104,14 @@ public class TranslationService {
             TranslateTextResponse response = translateClient.translateText(request);
             String translatedText = response.translatedText();
 
-            log.info("Translated text from {} to {}: '{}' -> '{}'", 
-                    sourceLanguage, targetLanguage, 
-                    text.substring(0, Math.min(50, text.length())), 
+            log.info("Translated text from {} to {}: '{}' -> '{}'",
+                    sourceLanguage, targetLanguage,
+                    text.substring(0, Math.min(50, text.length())),
                     translatedText.substring(0, Math.min(50, translatedText.length())));
 
             return translatedText;
         } catch (Exception e) {
-            log.error("Translation failed from {} to {}: {}", 
+            log.error("Translation failed from {} to {}: {}",
                     sourceLanguage, targetLanguage, e.getMessage(), e);
             throw new RuntimeException("Translation failed: " + e.getMessage(), e);
         }
@@ -117,8 +119,8 @@ public class TranslationService {
 
     /**
      * Translate text with auto-detect source language
-     * 
-     * @param text           Text to translate
+     *
+     * @param text Text to translate
      * @param targetLanguage Target language code
      * @return Translated text
      */
@@ -128,7 +130,7 @@ public class TranslationService {
 
     /**
      * Translate Vietnamese to English
-     * 
+     *
      * @param text Vietnamese text
      * @return English text
      */
@@ -138,7 +140,7 @@ public class TranslationService {
 
     /**
      * Translate English to Vietnamese
-     * 
+     *
      * @param text English text
      * @return Vietnamese text
      */
@@ -148,7 +150,7 @@ public class TranslationService {
 
     /**
      * Check if Translate client is initialized
-     * 
+     *
      * @return true if initialized, false otherwise
      */
     public boolean isInitialized() {

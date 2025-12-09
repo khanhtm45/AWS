@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { API_BASE_URL } from '../config/api';
 import InvoiceModal from '../components/InvoiceModal';
 import { useTranslatedText } from '../hooks/useTranslation';
 import './OrdersPage.css';
-
-const API_BASE = process.env.REACT_APP_API_BASE || 'https://aws-e4h8.onrender.com';
 
 const OrderItemName = ({ itemName }) => {
   const translatedName = useTranslatedText(itemName);
@@ -76,7 +75,7 @@ const OrdersPage = () => {
         }
 
         // Fetch orders for current user
-        const response = await fetch(`${API_BASE}/api/orders?userId=${user.email}`, {
+        const response = await fetch(`${API_BASE_URL}/api/orders?userId=${user.email}`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -100,7 +99,7 @@ const OrdersPage = () => {
                   // If productName is null, fetch from API
                   if (!item.productName && item.productId) {
                     try {
-                      const productResponse = await fetch(`${API_BASE}/api/products/${item.productId}`);
+                      const productResponse = await fetch(`${API_BASE_URL}/api/products/${item.productId}`);
                       if (productResponse.ok) {
                         const productData = await productResponse.json();
                         return {

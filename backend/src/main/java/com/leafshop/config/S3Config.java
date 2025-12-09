@@ -11,28 +11,27 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class S3Config {
 
-	@Value("${aws.access.key.id:}")
-	private String awsAccessKeyId;
+    @Value("${aws.access.key.id:#{null}}")
+    private String awsAccessKeyId;
 
-	@Value("${aws.secret.access.key:}")
-	private String awsSecretAccessKey;
+    @Value("${aws.secret.access.key:#{null}}")
+    private String awsSecretAccessKey;
 
-	@Value("${aws.s3.region:ap-southeast-2}")
-	private String awsRegion;
+    @Value("${aws.s3.region:ap-southeast-2}")
+    private String awsRegion;
 
-	@Bean
-	public AmazonS3 amazonS3() {
-		AmazonS3ClientBuilder builder = AmazonS3ClientBuilder.standard()
-			.withRegion(awsRegion);
+    @Bean
+    public AmazonS3 amazonS3() {
+        AmazonS3ClientBuilder builder = AmazonS3ClientBuilder.standard()
+                .withRegion(awsRegion);
 
-		// Nếu có credentials, set credentials
-		if (awsAccessKeyId != null && !awsAccessKeyId.isEmpty()
-			&& awsSecretAccessKey != null && !awsSecretAccessKey.isEmpty()) {
-			BasicAWSCredentials awsCredentials = new BasicAWSCredentials(awsAccessKeyId, awsSecretAccessKey);
-			builder.withCredentials(new AWSStaticCredentialsProvider(awsCredentials));
-		}
+        // Nếu có credentials, set credentials
+        if (awsAccessKeyId != null && !awsAccessKeyId.isEmpty()
+                && awsSecretAccessKey != null && !awsSecretAccessKey.isEmpty()) {
+            BasicAWSCredentials awsCredentials = new BasicAWSCredentials(awsAccessKeyId, awsSecretAccessKey);
+            builder.withCredentials(new AWSStaticCredentialsProvider(awsCredentials));
+        }
 
-		return builder.build();
-	}
+        return builder.build();
+    }
 }
-

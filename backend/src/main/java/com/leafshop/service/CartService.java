@@ -28,29 +28,51 @@ public class CartService {
 
     // Helper: Convert ShippingAddress to Map
     private Map<String, String> shippingAddressToMap(com.leafshop.dto.order.ShippingAddress address) {
-        if (address == null) return null;
+        if (address == null) {
+            return null;
+        }
         Map<String, String> map = new HashMap<>();
-        if (address.getFullName() != null) map.put("fullName", address.getFullName());
-        if (address.getPhoneNumber() != null) map.put("phoneNumber", address.getPhoneNumber());
-        if (address.getAddressLine1() != null) map.put("addressLine1", address.getAddressLine1());
-        if (address.getAddressLine2() != null) map.put("addressLine2", address.getAddressLine2());
-        if (address.getWard() != null) map.put("ward", address.getWard());
-        if (address.getDistrict() != null) map.put("district", address.getDistrict());
-        if (address.getCity() != null) map.put("city", address.getCity());
-        if (address.getPostalCode() != null) map.put("postalCode", address.getPostalCode());
-        if (address.getCountry() != null) map.put("country", address.getCountry());
-        if (address.getNotes() != null) map.put("notes", address.getNotes());
+        if (address.getFullName() != null) {
+            map.put("fullName", address.getFullName());
+        }
+        if (address.getPhoneNumber() != null) {
+            map.put("phoneNumber", address.getPhoneNumber());
+        }
+        if (address.getAddressLine1() != null) {
+            map.put("addressLine1", address.getAddressLine1());
+        }
+        if (address.getAddressLine2() != null) {
+            map.put("addressLine2", address.getAddressLine2());
+        }
+        if (address.getWard() != null) {
+            map.put("ward", address.getWard());
+        }
+        if (address.getDistrict() != null) {
+            map.put("district", address.getDistrict());
+        }
+        if (address.getCity() != null) {
+            map.put("city", address.getCity());
+        }
+        if (address.getPostalCode() != null) {
+            map.put("postalCode", address.getPostalCode());
+        }
+        if (address.getCountry() != null) {
+            map.put("country", address.getCountry());
+        }
+        if (address.getNotes() != null) {
+            map.put("notes", address.getNotes());
+        }
         return map;
     }
-
-
 
     private final OrderTableRepository orderTableRepository;
     private final ProductTableRepository productTableRepository;
     private final WarehouseTableRepository warehouseTableRepository;
 
     private String cartPk(String userId, String sessionId) {
-        if (userId != null && !userId.isEmpty()) return "CART#" + userId;
+        if (userId != null && !userId.isEmpty()) {
+            return "CART#" + userId;
+        }
         return "CART#GUEST#" + sessionId;
     }
 
@@ -60,17 +82,17 @@ public class CartService {
         Optional<OrderTable> metaOpt = orderTableRepository.findCartByPk(pk);
         if (!metaOpt.isPresent()) {
             OrderTable meta = OrderTable.builder()
-                .pk(pk)
-                .sk("META")
-                .itemType("Cart")
-                .userId(userId)
-                .sessionId(sessionId)
-                .subtotal(0.0)
-                .shippingAmount(0.0)
-                .discountAmount(0.0)
-                .totalAmount(0.0)
-                .createdAt(System.currentTimeMillis())
-                .build();
+                    .pk(pk)
+                    .sk("META")
+                    .itemType("Cart")
+                    .userId(userId)
+                    .sessionId(sessionId)
+                    .subtotal(0.0)
+                    .shippingAmount(0.0)
+                    .discountAmount(0.0)
+                    .totalAmount(0.0)
+                    .createdAt(System.currentTimeMillis())
+                    .build();
             orderTableRepository.save(meta);
         }
 
@@ -100,7 +122,9 @@ public class CartService {
                 Optional<ProductTable> varOpt = productTableRepository.findVariantByPkAndSk(productPk, "VARIANT#" + req.getVariantId());
                 if (varOpt.isPresent()) {
                     ProductTable v = varOpt.get();
-                    if (v.getVariantPrice() != null) unitPrice = v.getVariantPrice();
+                    if (v.getVariantPrice() != null) {
+                        unitPrice = v.getVariantPrice();
+                    }
                 }
             }
         }
@@ -110,10 +134,10 @@ public class CartService {
         // Check if same product+variant exists in cart; if so, increase quantity
         List<OrderTable> items = orderTableRepository.findOrderItemsByPk(pk);
         Optional<OrderTable> existing = items.stream()
-            .filter(i -> req.getProductId().equals(i.getProductId())
+                .filter(i -> req.getProductId().equals(i.getProductId())
                 && Objects.equals(req.getVariantId(), i.getVariantId())
                 && Objects.equals(req.getSize(), i.getSize()))
-            .findFirst();
+                .findFirst();
 
         String itemSk;
         if (existing.isPresent()) {
@@ -126,26 +150,26 @@ public class CartService {
         } else {
             String itemId = UUID.randomUUID().toString();
             itemSk = "ITEM#" + itemId;
-            
+
             // Fetch productName from ProductTable
             String productName = null;
             if (pMetaOpt.isPresent()) {
                 productName = pMetaOpt.get().getName();
             }
-            
+
             OrderTable item = OrderTable.builder()
-                .pk(pk)
-                .sk(itemSk)
-                .itemType("CartItem")
-                .productId(req.getProductId())
-                .variantId(req.getVariantId())
-                .productName(productName)
-                .size(req.getSize())
-                .quantity(quantity)
-                .unitPrice(unitPrice)
-                .itemTotal(unitPrice * quantity)
-                .createdAt(System.currentTimeMillis())
-                .build();
+                    .pk(pk)
+                    .sk(itemSk)
+                    .itemType("CartItem")
+                    .productId(req.getProductId())
+                    .variantId(req.getVariantId())
+                    .productName(productName)
+                    .size(req.getSize())
+                    .quantity(quantity)
+                    .unitPrice(unitPrice)
+                    .itemTotal(unitPrice * quantity)
+                    .createdAt(System.currentTimeMillis())
+                    .build();
             orderTableRepository.save(item);
         }
 
@@ -201,7 +225,6 @@ public class CartService {
         // - When user adds new items, it creates a fresh cart
         // - Each cart should be allowed to checkout once
         // - The previous logic was preventing new checkouts after cart was repopulated
-
         // 3. Validate all products & variants exist (from ProductTable)
         for (OrderTable cartItem : cartItems) {
             if (cartItem.getProductId() == null) {
@@ -209,7 +232,7 @@ public class CartService {
             }
             String productPk = DynamoDBKeyUtil.productPk(cartItem.getProductId());
             ProductTable product = productTableRepository.findProductByPk(productPk)
-                .orElseThrow(() -> new IllegalArgumentException("Product not found: " + cartItem.getProductId()));
+                    .orElseThrow(() -> new IllegalArgumentException("Product not found: " + cartItem.getProductId()));
 
             if (product.getIsActive() != null && !product.getIsActive()) {
                 throw new IllegalArgumentException("Product is inactive: " + cartItem.getProductId());
@@ -219,7 +242,7 @@ public class CartService {
             if (cartItem.getVariantId() != null && !cartItem.getVariantId().isEmpty()) {
                 String variantSk = DynamoDBKeyUtil.productVariantSk(cartItem.getVariantId());
                 productTableRepository.findVariantByPkAndSk(productPk, variantSk)
-                    .orElseThrow(() -> new IllegalArgumentException("Variant not found: " + cartItem.getVariantId() 
+                        .orElseThrow(() -> new IllegalArgumentException("Variant not found: " + cartItem.getVariantId()
                         + " for product " + cartItem.getProductId()));
             }
         }
@@ -234,88 +257,90 @@ public class CartService {
         // 5. Pre-check: Verify sufficient stock across all warehouses for each product
         // If warehouses are not available, skip pre-check and allocation (will create order but not reserve stock)
         if (warehousesAvailable) {
-        Map<String, Integer> inventoryMap = new HashMap<>();
-        for (OrderTable cartItem : cartItems) {
-            int qtyNeeded = cartItem.getQuantity() != null && cartItem.getQuantity() > 0 ? cartItem.getQuantity() : 0;
-            if (qtyNeeded <= 0) {
-                throw new IllegalArgumentException("Invalid quantity for product: " + cartItem.getProductId());
-            }
+            Map<String, Integer> inventoryMap = new HashMap<>();
+            for (OrderTable cartItem : cartItems) {
+                int qtyNeeded = cartItem.getQuantity() != null && cartItem.getQuantity() > 0 ? cartItem.getQuantity() : 0;
+                if (qtyNeeded <= 0) {
+                    throw new IllegalArgumentException("Invalid quantity for product: " + cartItem.getProductId());
+                }
 
-            String inventoryKey = cartItem.getProductId() + "#" + (cartItem.getVariantId() != null ? cartItem.getVariantId() : "");
-            int totalAvailable = 0;
+                String inventoryKey = cartItem.getProductId() + "#" + (cartItem.getVariantId() != null ? cartItem.getVariantId() : "");
+                int totalAvailable = 0;
 
-            for (WarehouseTable warehouse : warehouses) {
-                if (warehouse.getPk() == null) continue;
-
-                // Check variant inventory first
-                if (cartItem.getVariantId() != null && !cartItem.getVariantId().isEmpty()) {
-                    String variantSk = DynamoDBKeyUtil.warehouseVariantSk(cartItem.getProductId(), cartItem.getVariantId());
-                    Optional<WarehouseTable> variantInv = warehouseTableRepository.findVariantInventoryByPkAndSk(
-                        warehouse.getPk(), variantSk);
-                    if (variantInv.isPresent()) {
-                        int available = variantInv.get().getAvailableQuantity() != null 
-                            ? variantInv.get().getAvailableQuantity() 
-                            : 0;
-                        totalAvailable += available;
+                for (WarehouseTable warehouse : warehouses) {
+                    if (warehouse.getPk() == null) {
                         continue;
+                    }
+
+                    // Check variant inventory first
+                    if (cartItem.getVariantId() != null && !cartItem.getVariantId().isEmpty()) {
+                        String variantSk = DynamoDBKeyUtil.warehouseVariantSk(cartItem.getProductId(), cartItem.getVariantId());
+                        Optional<WarehouseTable> variantInv = warehouseTableRepository.findVariantInventoryByPkAndSk(
+                                warehouse.getPk(), variantSk);
+                        if (variantInv.isPresent()) {
+                            int available = variantInv.get().getAvailableQuantity() != null
+                                    ? variantInv.get().getAvailableQuantity()
+                                    : 0;
+                            totalAvailable += available;
+                            continue;
+                        }
+                    }
+
+                    // Check product inventory
+                    String productSk = DynamoDBKeyUtil.warehouseProductSk(cartItem.getProductId());
+                    Optional<WarehouseTable> productInv = warehouseTableRepository.findProductInventoryByPkAndSk(
+                            warehouse.getPk(), productSk);
+                    if (productInv.isPresent()) {
+                        int available = productInv.get().getAvailableQuantity() != null
+                                ? productInv.get().getAvailableQuantity()
+                                : 0;
+                        totalAvailable += available;
                     }
                 }
 
-                // Check product inventory
-                String productSk = DynamoDBKeyUtil.warehouseProductSk(cartItem.getProductId());
-                Optional<WarehouseTable> productInv = warehouseTableRepository.findProductInventoryByPkAndSk(
-                    warehouse.getPk(), productSk);
-                if (productInv.isPresent()) {
-                    int available = productInv.get().getAvailableQuantity() != null 
-                        ? productInv.get().getAvailableQuantity() 
-                        : 0;
-                    totalAvailable += available;
+                if (totalAvailable < qtyNeeded) {
+                    throw new IllegalStateException("Insufficient stock for product " + cartItem.getProductId()
+                            + ". Required: " + qtyNeeded + ", Available: " + totalAvailable);
                 }
+                inventoryMap.put(inventoryKey, qtyNeeded);
             }
-
-            if (totalAvailable < qtyNeeded) {
-                throw new IllegalStateException("Insufficient stock for product " + cartItem.getProductId() 
-                    + ". Required: " + qtyNeeded + ", Available: " + totalAvailable);
-            }
-            inventoryMap.put(inventoryKey, qtyNeeded);
-        }
         } else {
             // warehouses not available -> do not perform inventory checks
         }
         // 6. Generate order ID and PK
         String orderId = UUID.randomUUID().toString();
         String orderPk = (req.getUserId() != null && !req.getUserId().isEmpty())
-            ? DynamoDBKeyUtil.userOrderPk(req.getUserId(), orderId)
-            : DynamoDBKeyUtil.orderPk(orderId);
+                ? DynamoDBKeyUtil.userOrderPk(req.getUserId(), orderId)
+                : DynamoDBKeyUtil.orderPk(orderId);
 
         // 7. Calculate totals
         CartResponse totals = buildCartResponse(cartPk, req.getUserId(), req.getSessionId(), req.getCouponCode());
 
         // 8. Save Order META (OrderTable with SK=META)
         OrderTable orderMeta = OrderTable.builder()
-            .pk(orderPk)
-            .sk("META")
-            .itemType("Order")
-            .orderId(orderId)
-            .userId(req.getUserId())
-            .sessionId(req.getSessionId())
-            .orderStatus("PENDING")
-            .subtotal(totals.getSubtotal())
-            .shippingAmount(totals.getShippingAmount())
-            .discountAmount(totals.getDiscountAmount())
-            .totalAmount(totals.getTotalAmount())
-            .cartId(cartPk)
-            .shippingAddress(shippingAddressToMap(req.getShippingAddress()))
-            .paymentMethod(req.getPaymentMethod())
-            .paymentStatus("PENDING")
-            .createdAt(System.currentTimeMillis())
-            .build();
+                .pk(orderPk)
+                .sk("META")
+                .itemType("Order")
+                .orderId(orderId)
+                .userId(req.getUserId())
+                .sessionId(req.getSessionId())
+                .orderStatus("PENDING_PAYMENT")
+                .subtotal(totals.getSubtotal())
+                .shippingAmount(totals.getShippingAmount())
+                .discountAmount(totals.getDiscountAmount())
+                .totalAmount(totals.getTotalAmount())
+                .cartId(cartPk)
+                .shippingAddress(shippingAddressToMap(req.getShippingAddress()))
+                .paymentMethod(req.getPaymentMethod())
+                .paymentStatus("PENDING")
+                .createdAt(System.currentTimeMillis())
+                .build();
         orderTableRepository.save(orderMeta);
 
         // 9. Move cart items to order (OrderTable with SK=ITEM#...)
         for (OrderTable cartItem : cartItems) {
             String itemId = cartItem.getSk().substring(5); // Remove "ITEM#" prefix
-            
+
             // Fetch productName from ProductTable if not available in cart
             String productName = cartItem.getProductName();
             if (productName == null || productName.isEmpty()) {
@@ -325,33 +350,37 @@ public class CartService {
                     productName = productOpt.get().getName();
                 }
             }
-            
+
             OrderTable orderItem = OrderTable.builder()
-                .pk(orderPk)
-                .sk("ITEM#" + itemId)
-                .itemType("OrderItem")
-                .productId(cartItem.getProductId())
-                .variantId(cartItem.getVariantId())
-                .productName(productName)
-                .quantity(cartItem.getQuantity())
-                .unitPrice(cartItem.getUnitPrice())
-                .itemTotal(cartItem.getItemTotal())
-                .createdAt(System.currentTimeMillis())
-                .build();
+                    .pk(orderPk)
+                    .sk("ITEM#" + itemId)
+                    .itemType("OrderItem")
+                    .productId(cartItem.getProductId())
+                    .variantId(cartItem.getVariantId())
+                    .productName(productName)
+                    .quantity(cartItem.getQuantity())
+                    .unitPrice(cartItem.getUnitPrice())
+                    .itemTotal(cartItem.getItemTotal())
+                    .createdAt(System.currentTimeMillis())
+                    .build();
             orderTableRepository.save(orderItem);
 
             // 10. Allocate/reserve inventory from WarehouseTable (if warehouses available)
             if (warehousesAvailable) {
                 int remaining = cartItem.getQuantity() != null ? cartItem.getQuantity() : 0;
                 for (WarehouseTable warehouse : warehouses) {
-                    if (remaining <= 0) break;
-                    if (warehouse.getPk() == null) continue;
+                    if (remaining <= 0) {
+                        break;
+                    }
+                    if (warehouse.getPk() == null) {
+                        continue;
+                    }
 
                     // Try to reserve from variant inventory first
                     if (cartItem.getVariantId() != null && !cartItem.getVariantId().isEmpty()) {
                         String variantSk = DynamoDBKeyUtil.warehouseVariantSk(cartItem.getProductId(), cartItem.getVariantId());
                         Optional<WarehouseTable> variantInv = warehouseTableRepository.findVariantInventoryByPkAndSk(
-                            warehouse.getPk(), variantSk);
+                                warehouse.getPk(), variantSk);
                         if (variantInv.isPresent()) {
                             WarehouseTable inv = variantInv.get();
                             int available = inv.getAvailableQuantity() != null ? inv.getAvailableQuantity() : 0;
@@ -370,7 +399,7 @@ public class CartService {
                     // Try to reserve from product inventory
                     String productSk = DynamoDBKeyUtil.warehouseProductSk(cartItem.getProductId());
                     Optional<WarehouseTable> productInv = warehouseTableRepository.findProductInventoryByPkAndSk(
-                        warehouse.getPk(), productSk);
+                            warehouse.getPk(), productSk);
                     if (productInv.isPresent()) {
                         WarehouseTable inv = productInv.get();
                         int available = inv.getAvailableQuantity() != null ? inv.getAvailableQuantity() : 0;
@@ -387,8 +416,8 @@ public class CartService {
 
                 // Allocation failed
                 if (remaining > 0) {
-                    throw new IllegalStateException("Failed to allocate stock for product " + cartItem.getProductId() 
-                        + ". Could not reserve: " + remaining + " units");
+                    throw new IllegalStateException("Failed to allocate stock for product " + cartItem.getProductId()
+                            + ". Could not reserve: " + remaining + " units");
                 }
             } else {
                 logger.warn("Skipping inventory allocation for product {} because no active warehouses", cartItem.getProductId());
@@ -402,77 +431,77 @@ public class CartService {
         orderTableRepository.deleteByPkAndSk(cartPk, "META");
 
         return CreateOrderResponse.builder()
-            .orderId(orderId)
-            .orderPk(orderPk)
-            .totalAmount(totals.getTotalAmount())
-            .orderStatus("PENDING")
-            .build();
+                .orderId(orderId)
+                .orderPk(orderPk)
+                .totalAmount(totals.getTotalAmount())
+                .orderStatus("PENDING_PAYMENT")
+                .build();
     }
 
     // Helper to build CartResponse and persist meta totals
     private final CouponService couponService; // thêm inject service
 
-private CartResponse buildCartResponse(String pk, String userId, String sessionId, String couponCode) {
-    List<OrderTable> items = orderTableRepository.findOrderItemsByPk(pk);
-    List<CartItemResponse> itemResponses = items.stream().map(i -> CartItemResponse.builder()
-        .itemId(i.getSk().replaceFirst("ITEM#", ""))
-        .productId(i.getProductId())
-        .variantId(i.getVariantId())
-        .size(i.getSize())
-        .quantity(i.getQuantity())
-        .unitPrice(i.getUnitPrice())
-        .itemTotal(i.getItemTotal())
-        .build()).collect(Collectors.toList());
+    private CartResponse buildCartResponse(String pk, String userId, String sessionId, String couponCode) {
+        List<OrderTable> items = orderTableRepository.findOrderItemsByPk(pk);
+        List<CartItemResponse> itemResponses = items.stream().map(i -> CartItemResponse.builder()
+                .itemId(i.getSk().replaceFirst("ITEM#", ""))
+                .productId(i.getProductId())
+                .variantId(i.getVariantId())
+                .size(i.getSize())
+                .quantity(i.getQuantity())
+                .unitPrice(i.getUnitPrice())
+                .itemTotal(i.getItemTotal())
+                .build()).collect(Collectors.toList());
 
-    double subtotal = itemResponses.stream().mapToDouble(it -> it.getItemTotal() != null ? it.getItemTotal() : 0.0).sum();
+        double subtotal = itemResponses.stream().mapToDouble(it -> it.getItemTotal() != null ? it.getItemTotal() : 0.0).sum();
 
-    double shipping = subtotal > 0 ? 10.0 : 0.0; // flat shipping
-    double discount = 0.0;
+        double shipping = subtotal > 0 ? 10.0 : 0.0; // flat shipping
+        double discount = 0.0;
 
-    // Áp dụng coupon nếu có
-    if (StringUtils.hasText(couponCode)) {
-        try {
-            ApplyCouponRequest applyReq = ApplyCouponRequest.builder()
-                .couponCode(couponCode)
-                .userId(userId)
-                .orderId(UUID.randomUUID().toString()) // tạm orderId để tính discount
-                .orderTotal(subtotal)
-                .build();
-            ApplyCouponResponse applyRes = couponService.applyCoupon(applyReq);
-            discount = applyRes.getDiscountAmount();
-        } catch (Exception e) {
-            // Coupon không hợp lệ hoặc hết hạn → bỏ qua
-            discount = 0.0;
+        // Áp dụng coupon nếu có
+        if (StringUtils.hasText(couponCode)) {
+            try {
+                ApplyCouponRequest applyReq = ApplyCouponRequest.builder()
+                        .couponCode(couponCode)
+                        .userId(userId)
+                        .orderId(UUID.randomUUID().toString()) // tạm orderId để tính discount
+                        .orderTotal(subtotal)
+                        .build();
+                ApplyCouponResponse applyRes = couponService.applyCoupon(applyReq);
+                discount = applyRes.getDiscountAmount();
+            } catch (Exception e) {
+                // Coupon không hợp lệ hoặc hết hạn → bỏ qua
+                discount = 0.0;
+            }
         }
+
+        double total = subtotal + shipping - discount;
+
+        // Lưu/update cart META
+        OrderTable meta = OrderTable.builder()
+                .pk(pk)
+                .sk("META")
+                .itemType("Cart")
+                .userId(userId)
+                .sessionId(sessionId)
+                .subtotal(subtotal)
+                .shippingAmount(shipping)
+                .discountAmount(discount)
+                .totalAmount(total)
+                .updatedAt(System.currentTimeMillis())
+                .build();
+        orderTableRepository.save(meta);
+
+        return CartResponse.builder()
+                .cartId(pk)
+                .userId(userId)
+                .sessionId(sessionId)
+                .items(itemResponses)
+                .subtotal(subtotal)
+                .shippingAmount(shipping)
+                .discountAmount(discount)
+                .totalAmount(total)
+                .build();
     }
-
-    double total = subtotal + shipping - discount;
-
-    // Lưu/update cart META
-    OrderTable meta = OrderTable.builder()
-        .pk(pk)
-        .sk("META")
-        .itemType("Cart")
-        .userId(userId)
-        .sessionId(sessionId)
-        .subtotal(subtotal)
-        .shippingAmount(shipping)
-        .discountAmount(discount)
-        .totalAmount(total)
-        .updatedAt(System.currentTimeMillis())
-        .build();
-    orderTableRepository.save(meta);
-
-    return CartResponse.builder()
-        .cartId(pk)
-        .userId(userId)
-        .sessionId(sessionId)
-        .items(itemResponses)
-        .subtotal(subtotal)
-        .shippingAmount(shipping)
-        .discountAmount(discount)
-        .totalAmount(total)
-        .build();
-}
 
 }
