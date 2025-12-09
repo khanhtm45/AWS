@@ -24,7 +24,7 @@ public class InvoiceService {
 
     @Autowired
     private EmailService emailService;
-    
+
     @Autowired
     private ProductTableRepository productTableRepository;
 
@@ -37,30 +37,30 @@ public class InvoiceService {
 
     static {
         try {
-            // Try multiple font options for Vietnamese support
-            // Option 1: Try Arial (common on most systems and supports Vietnamese well)
+            // Try to use built-in fonts that support Vietnamese
+            // Option 1: Try STSong-Light (supports CJK and Vietnamese)
             try {
-                vietnameseFont = BaseFont.createFont("c:/windows/fonts/arial.ttf", BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
-                System.out.println("Successfully loaded Arial font for Vietnamese PDF");
+                vietnameseFont = BaseFont.createFont("STSong-Light", "UniGB-UCS2-H", BaseFont.NOT_EMBEDDED);
+                System.out.println("Successfully loaded STSong-Light font for Vietnamese PDF");
             } catch (Exception e1) {
-                // Option 2: Try Times New Roman
+                // Option 2: Use TIMES_ROMAN with CP1252 encoding (better Vietnamese support than Helvetica)
                 try {
-                    vietnameseFont = BaseFont.createFont("c:/windows/fonts/times.ttf", BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
-                    System.out.println("Successfully loaded Times New Roman font for Vietnamese PDF");
-                } catch (Exception e2) {
-                    // Option 3: Use built-in with CP1252 encoding (better Vietnamese support than IDENTITY_H)
                     vietnameseFont = BaseFont.createFont(BaseFont.TIMES_ROMAN, "Cp1252", BaseFont.EMBEDDED);
-                    System.out.println("Using built-in Times Roman with Cp1252 encoding");
+                    System.out.println("Successfully loaded Times Roman font with Cp1252 encoding for Vietnamese PDF");
+                } catch (Exception e2) {
+                    // Option 3: Last resort - HELVETICA with IDENTITY_H
+                    vietnameseFont = BaseFont.createFont(BaseFont.HELVETICA, BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+                    System.out.println("Fallback to Helvetica font with Unicode support");
                 }
             }
-            
+
             FONT_TITLE = new Font(vietnameseFont, 24, Font.BOLD, BaseColor.BLACK);
             FONT_HEADER = new Font(vietnameseFont, 16, Font.BOLD, BaseColor.BLACK);
             FONT_NORMAL = new Font(vietnameseFont, 11, Font.NORMAL, BaseColor.BLACK);
             FONT_BOLD = new Font(vietnameseFont, 11, Font.BOLD, BaseColor.BLACK);
             FONT_SMALL = new Font(vietnameseFont, 9, Font.NORMAL, BaseColor.GRAY);
         } catch (Exception e) {
-            System.err.println("Failed to load any Vietnamese font, using default: " + e.getMessage());
+            System.err.println("Failed to load Vietnamese font, using default: " + e.getMessage());
             e.printStackTrace();
             // Last fallback to default fonts
             FONT_TITLE = new Font(Font.FontFamily.TIMES_ROMAN, 24, Font.BOLD, BaseColor.BLACK);
@@ -75,33 +75,13 @@ public class InvoiceService {
     private static final SimpleDateFormat dateFormatter = new SimpleDateFormat("dd/MM/yyyy HH:mm");
 
     /**
-     * Fix encoding issues - Aggressive approach to fix Vietnamese text
+     * Fix encoding issues - ensure text is in UTF-8
      */
     private String fixEncoding(String text) {
-        if (text == null || text.isEmpty()) return text;
-        
-        // If text already looks correct (contains proper Vietnamese characters), return as-is
-        if (text.matches(".*[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđĐ].*")) {
+        if (text == null || text.isEmpty()) {
             return text;
         }
-        
-        // Try multiple encoding conversions
-        String[] encodings = {"ISO-8859-1", "Windows-1252", "CP1252"};
-        
-        for (String encoding : encodings) {
-            try {
-                byte[] bytes = text.getBytes(java.nio.charset.Charset.forName(encoding));
-                String converted = new String(bytes, java.nio.charset.StandardCharsets.UTF_8);
-                
-                // Check if conversion produced Vietnamese characters
-                if (converted.matches(".*[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđĐ].*")) {
-                    return converted;
-                }
-            } catch (Exception ignored) {
-            }
-        }
-        
-        // If no conversion worked, return original
+        // Just return the text as-is since we're using IDENTITY_H encoding which handles UTF-8 properly
         return text;
     }
 
@@ -190,7 +170,7 @@ public class InvoiceService {
 
         String fullName = order.getShippingAddress() != null ? fixEncoding(order.getShippingAddress().getFullName()) : "N/A";
         String phone = order.getShippingAddress() != null ? fixEncoding(order.getShippingAddress().getPhoneNumber()) : "N/A";
-        
+
         addCustomerRow(customerTable, "Ho ten:", fullName);
         addCustomerRow(customerTable, "So dien thoai:", phone);
         addCustomerRow(customerTable, "Email:", order.getUserId());
@@ -242,7 +222,7 @@ public class InvoiceService {
         int index = 1;
         for (OrderItemResponse item : order.getItems()) {
             addTableCell(itemsTable, String.valueOf(index++), Element.ALIGN_CENTER);
-            
+
             // Fetch productName if not available
             String productName = item.getProductName();
             if (productName == null || productName.isEmpty()) {
@@ -254,10 +234,10 @@ public class InvoiceService {
                     productName = item.getProductId(); // fallback to ID
                 }
             }
-            
+
             // Fix encoding issues for Vietnamese text
             productName = fixEncoding(productName);
-            
+
             addTableCell(itemsTable, productName, Element.ALIGN_LEFT);
             addTableCell(itemsTable, String.valueOf(item.getQuantity()), Element.ALIGN_CENTER);
             addTableCell(itemsTable, currencyFormatter.format(item.getUnitPrice()), Element.ALIGN_RIGHT);
@@ -302,7 +282,7 @@ public class InvoiceService {
 
     private void addTotalRow(PdfPTable table, String label, String value, boolean isGrandTotal) {
         Font font = isGrandTotal ? new Font(Font.FontFamily.HELVETICA, 13, Font.BOLD, BaseColor.BLACK) : FONT_NORMAL;
-        
+
         PdfPCell labelCell = new PdfPCell(new Phrase(label, font));
         labelCell.setBorder(isGrandTotal ? Rectangle.TOP : Rectangle.NO_BORDER);
         labelCell.setPadding(8);
@@ -346,24 +326,37 @@ public class InvoiceService {
 
     private String getStatusText(String status) {
         switch (status) {
-            case "PENDING": return "Cho xu ly";
-            case "CONFIRMED": return "Da xac nhan";
-            case "PROCESSING": return "Dang xu ly";
-            case "SHIPPED": return "Dang giao hang";
-            case "DELIVERED": return "Da giao hang";
-            case "CANCELLED": return "Da huy";
-            default: return status;
+            case "PENDING":
+                return "Cho xu ly";
+            case "CONFIRMED":
+                return "Da xac nhan";
+            case "PROCESSING":
+                return "Dang xu ly";
+            case "SHIPPED":
+                return "Dang giao hang";
+            case "DELIVERED":
+                return "Da giao hang";
+            case "CANCELLED":
+                return "Da huy";
+            default:
+                return status;
         }
     }
 
     private String getPaymentMethodText(String method) {
         switch (method.toLowerCase()) {
-            case "cod": return "Thanh toan khi nhan hang";
-            case "bank_transfer": return "Chuyen khoan ngan hang";
-            case "credit_card": return "The tin dung";
-            case "vnpay": return "VNPay";
-            case "momo": return "MoMo";
-            default: return method;
+            case "cod":
+                return "Thanh toan khi nhan hang";
+            case "bank_transfer":
+                return "Chuyen khoan ngan hang";
+            case "credit_card":
+                return "The tin dung";
+            case "vnpay":
+                return "VNPay";
+            case "momo":
+                return "MoMo";
+            default:
+                return method;
         }
     }
 

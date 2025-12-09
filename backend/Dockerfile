@@ -15,6 +15,6 @@ WORKDIR /app
 # Copy the built jar from the build stage
 COPY --from=build /app/target/leaf-shop-0.0.1-SNAPSHOT.jar ./app.jar
 
-EXPOSE 8443
+EXPOSE 8080
 
-CMD ["java", "-jar", "app.jar", "--spring.profiles.active=prod,https"]
+CMD ["java", "-jar", "app.jar", "--spring.profiles.active=prod"]

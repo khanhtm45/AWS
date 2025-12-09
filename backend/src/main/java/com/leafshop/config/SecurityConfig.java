@@ -57,13 +57,16 @@ public class SecurityConfig {
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 // Allow public read access to products (pages, detail, media, variants)
                 .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
-                // Allow public read access to categories for storefront
-                // Mutating category endpoints require admin privileges
-                .requestMatchers(HttpMethod.POST, "/api/categories/**").permitAll()
-                .requestMatchers(HttpMethod.PUT, "/api/categories/**").permitAll()
-                .requestMatchers(HttpMethod.DELETE, "/api/categories/**").permitAll()
+                // Product mutations require ADMIN or STAFF role
+                .requestMatchers(HttpMethod.POST, "/api/products/**").hasAnyRole("ADMIN", "STAFF")
+                .requestMatchers(HttpMethod.PUT, "/api/products/**").hasAnyRole("ADMIN", "STAFF")
+                .requestMatchers(HttpMethod.DELETE, "/api/products/**").hasAnyRole("ADMIN", "STAFF")
                 // Allow public read access to categories for storefront
                 .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
+                // Category mutations require ADMIN or STAFF role
+                .requestMatchers(HttpMethod.POST, "/api/categories/**").hasAnyRole("ADMIN", "STAFF")
+                .requestMatchers(HttpMethod.PUT, "/api/categories/**").hasAnyRole("ADMIN", "STAFF")
+                .requestMatchers(HttpMethod.DELETE, "/api/categories/**").hasAnyRole("ADMIN", "STAFF")
                 // Allow public access to common static resources and error page
                 // Note: avoid complex double-wildcard patterns that can cause PathPattern parsing issues.
                 .requestMatchers(HttpMethod.GET,
@@ -81,8 +84,36 @@ public class SecurityConfig {
                 .requestMatchers("/error").permitAll()
                 // Public customer endpoints (used by email+OTP flow)
                 .requestMatchers(HttpMethod.GET, "/api/customer/**").permitAll()
+                // Public endpoints for cart (session-based, no auth required)
+                .requestMatchers("/api/cart/**").permitAll()
+                // Public endpoints for orders (payment callbacks)
+                .requestMatchers("/api/orders/vnpay-return", "/api/orders/momo-return").permitAll()
+                // Public endpoints for payments
+                .requestMatchers("/api/payments/**").permitAll()
+                // Public endpoints for translation
+                .requestMatchers("/api/translate").permitAll()
+                // Orders endpoints - Public access for dashboard
+                .requestMatchers("/api/orders/**").permitAll() // All order endpoints public
+                // Public endpoints for chat (if any)
+                .requestMatchers("/api/chat/**").permitAll()
+                // Public endpoints for invoice download
+                .requestMatchers(HttpMethod.GET, "/api/invoices/**").permitAll()
+                // Public endpoints for S3 file access
+                .requestMatchers("/api/s3/**").permitAll()
+                // Public endpoints for sizes (used by product detail page)
+                .requestMatchers(HttpMethod.GET, "/api/sizes/**").permitAll()
+                // Public endpoints for types (used by product filtering)
+                .requestMatchers(HttpMethod.GET, "/api/types/**").permitAll()
+                // Public endpoints for blogs (used by blog pages)
+                .requestMatchers(HttpMethod.GET, "/api/blogs/**").permitAll()
+                // Public endpoints for coupons (check validity)
+                .requestMatchers(HttpMethod.GET, "/api/coupons/check/**").permitAll()
+                // Public endpoints for reviews (read reviews)
+                .requestMatchers(HttpMethod.GET, "/api/reviews/**").permitAll()
+                // Protected user endpoints (require authentication)
+                .requestMatchers("/api/user/**").authenticated()
                 // Protect all other API endpoints under /api/**
-                .requestMatchers("/api/**").permitAll()
+                .requestMatchers("/api/**").authenticated()
                 // Tất cả các request khác cần authentication
                 .anyRequest().authenticated()
                 );

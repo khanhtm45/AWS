@@ -27,6 +27,9 @@ public class AddressController {
 
     @GetMapping
     public ResponseEntity<List<UserTable>> list(@AuthenticationPrincipal UserDetails user) {
+        if (user == null) {
+            return ResponseEntity.ok(List.of()); // Return empty list if not authenticated
+        }
         return ResponseEntity.ok(addressService.listAddresses(user.getUsername()));
     }
 

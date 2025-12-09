@@ -45,7 +45,7 @@ function ChatBox() {
     return [
       {
         id: 1,
-        text: 'Xin chào! Tôi là tr? lý AI c?a shop. Tôi có th? giúp b?n tìm ki?m s?n ph?m, tu v?n v? size, màu s?c và ch?t li?u. B?n c?n tôi giúp gì?',
+        text: 'Xin chï¿½o! Tï¿½i lï¿½ tr? lï¿½ AI c?a shop. Tï¿½i cï¿½ th? giï¿½p b?n tï¿½m ki?m s?n ph?m, tu v?n v? size, mï¿½u s?c vï¿½ ch?t li?u. B?n c?n tï¿½i giï¿½p gï¿½?',
         sender: 'bot',
         timestamp: new Date()
       }
@@ -75,11 +75,11 @@ function ChatBox() {
     }
   }, [messages]);
 
-  // Hàm g?i backend d? g?i ý s?n ph?m
+  // Hï¿½m g?i backend d? g?i ï¿½ s?n ph?m
   const fetchProductSuggestions = async (query) => {
     try {
       const backendUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-        ? '${API_BASE_URL}'
+        ? `${API_BASE_URL}`
         : '';
       
       const response = await fetch(`${backendUrl}/api/public/chatbot/suggest-products`, {
@@ -104,7 +104,7 @@ function ChatBox() {
     }
   };
 
-  // Hàm g?i AWS Bedrock API
+  // Hï¿½m g?i AWS Bedrock API
   const callAWSBedrockAPI = async (userMessage, intent = '') => {
     try {
       // Resolve API endpoint:
@@ -116,7 +116,7 @@ function ChatBox() {
       if (envEndpoint && envEndpoint !== 'YOUR_API_GATEWAY_URL') {
         API_ENDPOINT = envEndpoint;
       } else if (window && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-        API_ENDPOINT = '${API_BASE_URL}/api/chat';
+        API_ENDPOINT = `${API_BASE_URL}/api/chat`;
       } else {
         API_ENDPOINT = '/api/chat';
       }
@@ -129,8 +129,8 @@ function ChatBox() {
         body: JSON.stringify({
           message: userMessage,
           intent: intent,
-          // Thêm context v? shop
-          context: 'Shop qu?n áo th?i trang nam n?, các dòng s?n ph?m: áo thun, áo so mi, qu?n short, qu?n kaki. Giá t? 167.000 - 347.000 VND.'
+          // Thï¿½m context v? shop
+          context: 'Shop qu?n ï¿½o th?i trang nam n?, cï¿½c dï¿½ng s?n ph?m: ï¿½o thun, ï¿½o so mi, qu?n short, qu?n kaki. Giï¿½ t? 167.000 - 347.000 VND.'
         }),
       });
 
@@ -165,86 +165,86 @@ function ChatBox() {
     for (let i = 1; i <= 6; i++) {
       suggestions.push({
         id: `local-${i}`,
-        name: `G?i ý ${i} — Set cho bu?i h?n t?i`,
+        name: `G?i ï¿½ ${i} ï¿½ Set cho bu?i h?n t?i`,
         price: `${199 + i * 50}.000?`,
         image: `https://via.placeholder.com/320x320.png?text=Set+${i}`,
         url: `#/product/${i}`,
       });
     }
-    return { type: 'suggestions', text: 'Mình g?i ý m?t vài set d? cho bu?i h?n t?i:', suggestions };
+    return { type: 'suggestions', text: 'Mï¿½nh g?i ï¿½ m?t vï¿½i set d? cho bu?i h?n t?i:', suggestions };
   };
 
-  // Hàm ph?n h?i local (cho demo khi chua có AWS)
+  // Hï¿½m ph?n h?i local (cho demo khi chua cï¿½ AWS)
   const getLocalResponse = (message) => {
     const lowerMessage = message.toLowerCase();
     
     // Tu v?n v? s?n ph?m
-    if (lowerMessage.includes('áo thun') || lowerMessage.includes('ao thun')) {
-      return 'Chúng tôi có nhi?u lo?i áo thun ch?t lu?ng:\n\n' +
-             '• Áo Thun The Trainer - Ultra Stretch, r?t tho?i mái cho ho?t d?ng th? thao (297.000d)\n' +
-             '• Áo Thun Sweater The Minimalist - M?m m?n, mát l?nh (327.000d)\n' +
-             '• Áo Thun Jersey No Style - Thoáng mát, giá t?t (227.000d)\n\n' +
-             'B?n thích lo?i nào? Tôi có th? tu v?n thêm v? size và màu s?c.';
+    if (lowerMessage.includes('ï¿½o thun') || lowerMessage.includes('ao thun')) {
+      return 'Chï¿½ng tï¿½i cï¿½ nhi?u lo?i ï¿½o thun ch?t lu?ng:\n\n' +
+             'ï¿½ ï¿½o Thun The Trainer - Ultra Stretch, r?t tho?i mï¿½i cho ho?t d?ng th? thao (297.000d)\n' +
+             'ï¿½ ï¿½o Thun Sweater The Minimalist - M?m m?n, mï¿½t l?nh (327.000d)\n' +
+             'ï¿½ ï¿½o Thun Jersey No Style - Thoï¿½ng mï¿½t, giï¿½ t?t (227.000d)\n\n' +
+             'B?n thï¿½ch lo?i nï¿½o? Tï¿½i cï¿½ th? tu v?n thï¿½m v? size vï¿½ mï¿½u s?c.';
     }
     
     if (lowerMessage.includes('qu?n') || lowerMessage.includes('quan')) {
-      return 'Shop có các lo?i qu?n sau:\n\n' +
-             '• Qu?n Short Thun 9 Inch - Thoáng mát, phù h?p mùa hè (167.000d)\n' +
-             '• Qu?n Short Kaki 7 Inch - Co giãn, phong cách l?ch s? (261.000d)\n\n' +
-             'B?n mu?n tìm qu?n cho d?p nào? Ði choi hay di làm?';
+      return 'Shop cï¿½ cï¿½c lo?i qu?n sau:\n\n' +
+             'ï¿½ Qu?n Short Thun 9 Inch - Thoï¿½ng mï¿½t, phï¿½ h?p mï¿½a hï¿½ (167.000d)\n' +
+             'ï¿½ Qu?n Short Kaki 7 Inch - Co giï¿½n, phong cï¿½ch l?ch s? (261.000d)\n\n' +
+             'B?n mu?n tï¿½m qu?n cho d?p nï¿½o? ï¿½i choi hay di lï¿½m?';
     }
     
     if (lowerMessage.includes('size') || lowerMessage.includes('s? do')) {
-      return 'V? size, shop có b?ng size chi ti?t:\n\n' +
-             '• Size S: 45-55kg, cao 1m55-1m65\n' +
-             '• Size M: 55-65kg, cao 1m60-1m70\n' +
-             '• Size L: 65-75kg, cao 1m65-1m75\n' +
-             '• Size XL: 75-85kg, cao 1m70-1m80\n\n' +
-             'B?n cho tôi bi?t cân n?ng và chi?u cao d? tôi tu v?n size phù h?p nhé!';
+      return 'V? size, shop cï¿½ b?ng size chi ti?t:\n\n' +
+             'ï¿½ Size S: 45-55kg, cao 1m55-1m65\n' +
+             'ï¿½ Size M: 55-65kg, cao 1m60-1m70\n' +
+             'ï¿½ Size L: 65-75kg, cao 1m65-1m75\n' +
+             'ï¿½ Size XL: 75-85kg, cao 1m70-1m80\n\n' +
+             'B?n cho tï¿½i bi?t cï¿½n n?ng vï¿½ chi?u cao d? tï¿½i tu v?n size phï¿½ h?p nhï¿½!';
     }
     
-    if (lowerMessage.includes('giá') || lowerMessage.includes('gia')) {
-      return 'Giá s?n ph?m c?a shop r?t c?nh tranh:\n\n' +
-             '?? T? 167.000d - 200.000d: Áo thun basic, qu?n short thun\n' +
-             '?? T? 227.000d - 297.000d: Áo thun cao c?p, qu?n kaki\n' +
-             '?? T? 327.000d - 347.000d: Áo sweater, áo so mi premium\n\n' +
-             'T?t c? s?n ph?m d?u có chính sách b?o hành và d?i tr?!';
+    if (lowerMessage.includes('giï¿½') || lowerMessage.includes('gia')) {
+      return 'Giï¿½ s?n ph?m c?a shop r?t c?nh tranh:\n\n' +
+             '?? T? 167.000d - 200.000d: ï¿½o thun basic, qu?n short thun\n' +
+             '?? T? 227.000d - 297.000d: ï¿½o thun cao c?p, qu?n kaki\n' +
+             '?? T? 327.000d - 347.000d: ï¿½o sweater, ï¿½o so mi premium\n\n' +
+             'T?t c? s?n ph?m d?u cï¿½ chï¿½nh sï¿½ch b?o hï¿½nh vï¿½ d?i tr?!';
     }
     
-    if (lowerMessage.includes('màu') || lowerMessage.includes('mau')) {
-      return 'Shop có d?y d? các màu s?c co b?n và th?i trang:\n\n' +
-             '? Ðen - L?ch s?, d? ph?i d?\n' +
+    if (lowerMessage.includes('mï¿½u') || lowerMessage.includes('mau')) {
+      return 'Shop cï¿½ d?y d? cï¿½c mï¿½u s?c co b?n vï¿½ th?i trang:\n\n' +
+             '? ï¿½en - L?ch s?, d? ph?i d?\n' +
              '? Tr?ng - Tuoi m?i, thanh l?ch\n' +
              '?? Xanh - Nang d?ng, tr? trung\n' +
-             '?? Nâu/Be - ?m áp, vintage\n\n' +
-             'B?n thích màu nào? Tôi có th? g?i ý s?n ph?m phù h?p!';
+             '?? Nï¿½u/Be - ?m ï¿½p, vintage\n\n' +
+             'B?n thï¿½ch mï¿½u nï¿½o? Tï¿½i cï¿½ th? g?i ï¿½ s?n ph?m phï¿½ h?p!';
     }
     
-    if (lowerMessage.includes('giao hàng') || lowerMessage.includes('ship')) {
-      return 'V? giao hàng:\n\n' +
-             '?? Mi?n phí ship don t? 300.000d\n' +
-             '? Giao hàng trong 2-3 ngày\n' +
-             '?? Ðóng gói c?n th?n\n' +
-             '?? Ðu?c ki?m tra hàng tru?c khi nh?n\n\n' +
-             'B?n có th? xem thêm thông tin t?i m?c "V?n Chuy?n" nhé!';
+    if (lowerMessage.includes('giao hï¿½ng') || lowerMessage.includes('ship')) {
+      return 'V? giao hï¿½ng:\n\n' +
+             '?? Mi?n phï¿½ ship don t? 300.000d\n' +
+             '? Giao hï¿½ng trong 2-3 ngï¿½y\n' +
+             '?? ï¿½ï¿½ng gï¿½i c?n th?n\n' +
+             '?? ï¿½u?c ki?m tra hï¿½ng tru?c khi nh?n\n\n' +
+             'B?n cï¿½ th? xem thï¿½m thï¿½ng tin t?i m?c "V?n Chuy?n" nhï¿½!';
     }
     
     if (lowerMessage.includes('d?i') || lowerMessage.includes('tr?') || lowerMessage.includes('doi') || lowerMessage.includes('tra')) {
-      return 'Chính sách d?i tr? c?a shop:\n\n' +
-             '? Ð?i size mi?n phí trong 7 ngày\n' +
-             '? Hoàn ti?n 100% n?u l?i nhà s?n xu?t\n' +
-             '? S?n ph?m chua qua s? d?ng, còn nguyên tag\n\n' +
-             'B?n có th? xem chi ti?t t?i m?c "Ð?i Tr?" ho?c liên h? hotline d? du?c h? tr?!';
+      return 'Chï¿½nh sï¿½ch d?i tr? c?a shop:\n\n' +
+             '? ï¿½?i size mi?n phï¿½ trong 7 ngï¿½y\n' +
+             '? Hoï¿½n ti?n 100% n?u l?i nhï¿½ s?n xu?t\n' +
+             '? S?n ph?m chua qua s? d?ng, cï¿½n nguyï¿½n tag\n\n' +
+             'B?n cï¿½ th? xem chi ti?t t?i m?c "ï¿½?i Tr?" ho?c liï¿½n h? hotline d? du?c h? tr?!';
     }
     
     // Default response
-    return 'C?m on b?n dã nh?n tin! Tôi có th? giúp b?n:\n\n' +
-           '?? Tu v?n s?n ph?m (áo thun, áo so mi, qu?n...)\n' +
+    return 'C?m on b?n dï¿½ nh?n tin! Tï¿½i cï¿½ th? giï¿½p b?n:\n\n' +
+           '?? Tu v?n s?n ph?m (ï¿½o thun, ï¿½o so mi, qu?n...)\n' +
            '?? Hu?ng d?n ch?n size\n' +
-           '?? Thông tin giá c? và khuy?n mãi\n' +
-           '?? Chính sách giao hàng và d?i tr?\n' +
-           '?? Tu v?n ph?i màu và phong cách\n\n' +
-           'B?n mu?n h?i v? v?n d? gì?';
+           '?? Thï¿½ng tin giï¿½ c? vï¿½ khuy?n mï¿½i\n' +
+           '?? Chï¿½nh sï¿½ch giao hï¿½ng vï¿½ d?i tr?\n' +
+           '?? Tu v?n ph?i mï¿½u vï¿½ phong cï¿½ch\n\n' +
+           'B?n mu?n h?i v? v?n d? gï¿½?';
   };
 
   const handleSendMessage = async () => {
@@ -270,10 +270,10 @@ function ChatBox() {
         
         // Detect product search intent
         const productSearchKeywords = [
-          'tìm', 'tìm ki?m', 'có', 'mu?n', 'c?n', 'g?i ý', 'goi y', 
-          'áo', 'qu?n', 'quan', 'sweater', 'hoodie',
+          'tï¿½m', 'tï¿½m ki?m', 'cï¿½', 'mu?n', 'c?n', 'g?i ï¿½', 'goi y', 
+          'ï¿½o', 'qu?n', 'quan', 'sweater', 'hoodie',
           'tr? trung', 'tre trung', 'thanh l?ch', 'thanh lich', 'th? thao', 'the thao',
-          'cá tính', 'ca tinh', 'công s?', 'cong so', 'd?o ph?', 'dao pho',
+          'cï¿½ tï¿½nh', 'ca tinh', 'cï¿½ng s?', 'cong so', 'd?o ph?', 'dao pho',
           'minimalist', 'vintage', 'casual', 'formal'
         ];
         
@@ -282,11 +282,11 @@ function ChatBox() {
         let botResponse;
         
         if (isProductSearch) {
-          // G?i API backend d? tìm s?n ph?m
+          // G?i API backend d? tï¿½m s?n ph?m
           const products = await fetchProductSuggestions(inputMessage);
           
           if (products && products.length > 0) {
-            // Format products thành suggestions
+            // Format products thï¿½nh suggestions
             const suggestions = products.map(p => ({
               id: p.productId,
               name: p.name,
@@ -300,17 +300,17 @@ function ChatBox() {
             
             botResponse = {
               type: 'suggestions',
-              text: `Mình tìm du?c ${products.length} s?n ph?m phù h?p v?i b?n:`,
+              text: `Mï¿½nh tï¿½m du?c ${products.length} s?n ph?m phï¿½ h?p v?i b?n:`,
               suggestions: suggestions
             };
           } else {
-            // Không tìm th?y s?n ph?m, fallback to AWS API
-            const intent = (textLower.includes('g?i ý') || textLower.includes('goi y')) ? 'suggest_outfit' : '';
+            // Khï¿½ng tï¿½m th?y s?n ph?m, fallback to AWS API
+            const intent = (textLower.includes('g?i ï¿½') || textLower.includes('goi y')) ? 'suggest_outfit' : '';
             botResponse = await callAWSBedrockAPI(inputMessage, intent);
           }
         } else {
-          // Không ph?i tìm s?n ph?m, g?i AWS API bình thu?ng
-          const intent = (textLower.includes('g?i ý') || textLower.includes('goi y') || textLower.includes('g?i ý d?')) ? 'suggest_outfit' : '';
+          // Khï¿½ng ph?i tï¿½m s?n ph?m, g?i AWS API bï¿½nh thu?ng
+          const intent = (textLower.includes('g?i ï¿½') || textLower.includes('goi y') || textLower.includes('g?i ï¿½ d?')) ? 'suggest_outfit' : '';
           botResponse = await callAWSBedrockAPI(inputMessage, intent);
         }
 
@@ -325,7 +325,7 @@ function ChatBox() {
           };
           setMessages(prev => [...prev, botMessage]);
         } else {
-          // fallback to plain text — ensure we don't insert raw objects (which show as "[object Object]")
+          // fallback to plain text ï¿½ ensure we don't insert raw objects (which show as "[object Object]")
           let text;
           if (!botResponse) {
             text = '';
@@ -348,7 +348,7 @@ function ChatBox() {
       } catch (error) {
         const errorMessage = {
           id: messages.length + 2,
-          text: 'Xin l?i, tôi dang g?p s? c?. Vui lòng th? l?i sau.',
+          text: 'Xin l?i, tï¿½i dang g?p s? c?. Vui lï¿½ng th? l?i sau.',
           sender: 'bot',
           timestamp: new Date()
         };
@@ -397,10 +397,10 @@ function ChatBox() {
                 <MessageCircle size={20} />
               </div>
               <div className="chat-header-text">
-                <h3>Tr? Lý AI</h3>
+                <h3>Tr? Lï¿½ AI</h3>
                 <span className="chat-status">
                   <span className="status-dot"></span>
-                  Ðang ho?t d?ng
+                  ï¿½ang ho?t d?ng
                 </span>
               </div>
             </div>
@@ -408,12 +408,12 @@ function ChatBox() {
                 <button 
                   className="chat-clear-button"
                   onClick={() => {
-                    if (typeof window !== 'undefined' && window.confirm('Xóa l?ch s? trò chuy?n?')) {
-                      setMessages([{ id: Date.now(), text: 'L?ch s? dã du?c xóa.', sender: 'bot', timestamp: new Date() }]);
+                    if (typeof window !== 'undefined' && window.confirm('Xï¿½a l?ch s? trï¿½ chuy?n?')) {
+                      setMessages([{ id: Date.now(), text: 'L?ch s? dï¿½ du?c xï¿½a.', sender: 'bot', timestamp: new Date() }]);
                       try { localStorage.removeItem(STORAGE_KEY); } catch (e) { }
                     }
                   }}
-                  title="Xóa l?ch s? trò chuy?n"
+                  title="Xï¿½a l?ch s? trï¿½ chuy?n"
                 >
                   Clear
                 </button>
@@ -453,7 +453,7 @@ function ChatBox() {
                                 <div className="suggestion-meta">
                                   {p.colors && p.colors.length > 0 && (
                                     <span className="suggestion-badge">
-                                      Màu: {p.colors.slice(0, 2).join(', ')}
+                                      Mï¿½u: {p.colors.slice(0, 2).join(', ')}
                                       {p.colors.length > 2 && '...'}
                                     </span>
                                   )}
