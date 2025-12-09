@@ -18,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -35,7 +36,6 @@ public class AuthController {
     private final RefreshTokenService refreshTokenService;
     private final JwtUtil jwtUtil;
     private final com.leafshop.repository.UserTableRepository userTableRepository;
-    
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest req) {
@@ -89,16 +89,25 @@ public class AuthController {
     @PostMapping("/send-otp")
     public ResponseEntity<?> sendOtp(@Valid @RequestBody LoginOtpRequest req) {
         try {
-            authService.sendLoginOtp(req.getEmail());
+            // Send OTP asynchronously to avoid timeout
+            CompletableFuture.runAsync(() -> {
+                try {
+                    authService.sendLoginOtp(req.getEmail());
+                } catch (Exception e) {
+                    log.error("Error sending OTP async: {}", e.getMessage());
+                }
+            });
+
+            // Return immediately
             return ResponseEntity.ok(Map.of(
-                "message", "OTP đã được gửi đến email của bạn",
-                "email", req.getEmail()
+                    "message", "OTP đang được gửi đến email của bạn",
+                    "email", req.getEmail()
             ));
         } catch (RuntimeException e) {
             log.error("Error sending OTP: {}", e.getMessage());
             return ResponseEntity.badRequest().body(Map.of(
-                "error", "send_otp_failed",
-                "message", e.getMessage()
+                    "error", "send_otp_failed",
+                    "message", e.getMessage()
             ));
         }
     }
@@ -114,8 +123,8 @@ public class AuthController {
         } catch (RuntimeException e) {
             log.error("Error verifying OTP: {}", e.getMessage());
             return ResponseEntity.status(401).body(Map.of(
-                "error", "invalid_otp",
-                "message", e.getMessage()
+                    "error", "invalid_otp",
+                    "message", e.getMessage()
             ));
         }
     }
@@ -126,7 +135,9 @@ public class AuthController {
         if (req.getAccountId() != null && !req.getAccountId().isBlank()) {
             String pk = req.getAccountId().startsWith("USER#") ? req.getAccountId() : "USER#" + req.getAccountId();
             var accOpt = userTableRepository.findAccountByPk(pk);
-            if (accOpt.isEmpty()) return ResponseEntity.badRequest().body("Account not found");
+            if (accOpt.isEmpty()) {
+                return ResponseEntity.badRequest().body("Account not found");
+            }
             var acc = accOpt.get();
             // prefer email if present, otherwise use username to generate token (will still create token tied to user pk)
             String identifier = (acc.getEmail() != null && !acc.getEmail().isBlank()) ? acc.getEmail() : acc.getUsername();
@@ -162,10 +173,14 @@ public class AuthController {
 
         // find token by PK, value and type to avoid collisions across different users
         var tokenOpt = userTableRepository.findTokenByPkValueAndType(expectedPk, req.getOtp(), "OTP");
-        if (tokenOpt.isEmpty()) return ResponseEntity.badRequest().body("Invalid or expired OTP");
+        if (tokenOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body("Invalid or expired OTP");
+        }
         var token = tokenOpt.get();
         log.debug("verifyLoginOtp: matched token pk={} sk={} expiresAt={}", token.getPk(), token.getSk(), token.getExpiresAt());
-        if (token.getExpiresAt() == null || token.getExpiresAt() < System.currentTimeMillis()) return ResponseEntity.badRequest().body("Invalid or expired OTP");
+        if (token.getExpiresAt() == null || token.getExpiresAt() < System.currentTimeMillis()) {
+            return ResponseEntity.badRequest().body("Invalid or expired OTP");
+        }
 
         String pk = token.getPk();
 
@@ -173,7 +188,9 @@ public class AuthController {
         com.leafshop.model.dynamodb.UserTable account = null;
         if (pk != null && pk.startsWith("USER#")) {
             var accOpt = userTableRepository.findAccountByPk(pk);
-            if (accOpt.isEmpty()) return ResponseEntity.status(401).body("Invalid token owner");
+            if (accOpt.isEmpty()) {
+                return ResponseEntity.status(401).body("Invalid token owner");
+            }
             account = accOpt.get();
         } else {
             // create new user
@@ -183,28 +200,28 @@ public class AuthController {
 
             // META item (minimal)
             com.leafshop.model.dynamodb.UserTable meta = com.leafshop.model.dynamodb.UserTable.builder()
-                .pk(newPk)
-                .sk("META")
-                .itemType("META")
-                .email(req.getEmail())
-                .createdAt(now)
-                .updatedAt(now)
-                .build();
+                    .pk(newPk)
+                    .sk("META")
+                    .itemType("META")
+                    .email(req.getEmail())
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build();
 
             // ACCOUNT item
-            String username = req.getEmail().split("@")[0] + "-" + java.util.UUID.randomUUID().toString().substring(0,6);
+            String username = req.getEmail().split("@")[0] + "-" + java.util.UUID.randomUUID().toString().substring(0, 6);
             com.leafshop.model.dynamodb.UserTable acc = com.leafshop.model.dynamodb.UserTable.builder()
-                .pk(newPk)
-                .sk("ACCOUNT")
-                .itemType("ACCOUNT")
-                .username(username)
-                .email(req.getEmail())
-                .role("Customer".toUpperCase())
-                .roleId("CUSTOMER")
-                .isActive(true)
-                .createdAt(now)
-                .updatedAt(now)
-                .build();
+                    .pk(newPk)
+                    .sk("ACCOUNT")
+                    .itemType("ACCOUNT")
+                    .username(username)
+                    .email(req.getEmail())
+                    .role("Customer".toUpperCase())
+                    .roleId("CUSTOMER")
+                    .isActive(true)
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build();
 
             userTableRepository.save(meta);
             userTableRepository.save(acc);
@@ -222,14 +239,14 @@ public class AuthController {
         String tokenId = java.util.UUID.randomUUID().toString();
         long refreshValidityMs = 7L * 24 * 60 * 60 * 1000;
         com.leafshop.model.dynamodb.UserTable refresh = com.leafshop.model.dynamodb.UserTable.builder()
-            .pk(account.getPk())
-            .sk("TOKEN#" + tokenId)
-            .itemType("TOKEN")
-            .tokenValue(refreshValue)
-            .tokenType("REFRESH_TOKEN")
-            .expiresAt(System.currentTimeMillis() + refreshValidityMs)
-            .createdAt(System.currentTimeMillis())
-            .build();
+                .pk(account.getPk())
+                .sk("TOKEN#" + tokenId)
+                .itemType("TOKEN")
+                .tokenValue(refreshValue)
+                .tokenType("REFRESH_TOKEN")
+                .expiresAt(System.currentTimeMillis() + refreshValidityMs)
+                .createdAt(System.currentTimeMillis())
+                .build();
         userTableRepository.save(refresh);
 
         return ResponseEntity.ok(new com.leafshop.dto.auth.AuthResponse(accessToken, "Bearer", refresh.getTokenValue(), refresh.getExpiresAt()));
@@ -238,36 +255,48 @@ public class AuthController {
     @PostMapping("/verify-otp")
     public ResponseEntity<?> verifyOtp(@Valid @RequestBody VerifyOtpRequest req) {
         boolean ok = passwordResetService.verifyOtp(req);
-        if (!ok) return ResponseEntity.badRequest().body("Invalid or expired OTP");
+        if (!ok) {
+            return ResponseEntity.badRequest().body("Invalid or expired OTP");
+        }
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetPassword(@Valid @RequestBody ResetPasswordRequest req) {
         boolean ok = passwordResetService.resetPassword(req);
-        if (!ok) return ResponseEntity.badRequest().body("Invalid OTP or user");
+        if (!ok) {
+            return ResponseEntity.badRequest().body("Invalid OTP or user");
+        }
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/refresh")
     public ResponseEntity<?> refresh(@RequestBody String refreshToken) {
-        if (refreshToken == null || refreshToken.isBlank()) return ResponseEntity.badRequest().build();
+        if (refreshToken == null || refreshToken.isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
         // Trim possible JSON quotes
         refreshToken = refreshToken.replaceAll("^\"|\"$", "");
         var tokenOpt = refreshTokenService.findByValue(refreshToken);
-        if (tokenOpt.isEmpty()) return ResponseEntity.status(401).build();
+        if (tokenOpt.isEmpty()) {
+            return ResponseEntity.status(401).build();
+        }
         UserTable token = tokenOpt.get();
 
         // Rotate refresh token
         long refreshValidityMs = 7L * 24 * 60 * 60 * 1000; // 7 days, keep in sync with AuthService
         var newTokenOpt = refreshTokenService.rotateToken(token, refreshValidityMs);
-        if (newTokenOpt.isEmpty()) return ResponseEntity.status(401).build();
+        if (newTokenOpt.isEmpty()) {
+            return ResponseEntity.status(401).build();
+        }
         UserTable newRefresh = newTokenOpt.get();
 
         // load account meta to get username
         var metaOpt = userTableRepository.findByPkAndSk(token.getPk(), "ACCOUNT");
         String username = metaOpt.map(UserTable::getUsername).orElse(null);
-        if (username == null) return ResponseEntity.status(401).build();
+        if (username == null) {
+            return ResponseEntity.status(401).build();
+        }
 
         String accessToken = jwtUtil.generateToken(username);
         return ResponseEntity.ok(new com.leafshop.dto.auth.AuthResponse(accessToken, "Bearer", newRefresh.getTokenValue(), newRefresh.getExpiresAt()));
@@ -275,7 +304,9 @@ public class AuthController {
 
     @PostMapping("/logout")
     public ResponseEntity<?> logout(@RequestBody String refreshToken) {
-        if (refreshToken == null || refreshToken.isBlank()) return ResponseEntity.badRequest().build();
+        if (refreshToken == null || refreshToken.isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
         refreshToken = refreshToken.replaceAll("^\"|\"$", "");
         var tokenOpt = refreshTokenService.findByValue(refreshToken);
         if (tokenOpt.isPresent()) {
