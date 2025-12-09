@@ -59,6 +59,67 @@ const OrdersPage = () => {
   const [invoiceModalOpen, setInvoiceModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
 
+  const handleRetryPayment = async (order) => {
+    try {
+      // Redirect to payment page with order info
+      const paymentMethod = order.paymentMethod || 'VNPAY';
+      
+      if (paymentMethod === 'VNPAY') {
+        // Call backend to create new VNPay payment URL
+        const response = await fetch(`${API_BASE_URL}/api/payments/vnpay/create`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken || localStorage.getItem('accessToken')}`
+          },
+          body: JSON.stringify({
+            orderId: order.id,
+            amount: order.totalAmount,
+            orderInfo: `Thanh toán lại đơn hàng ${order.id}`,
+            returnUrl: `${window.location.origin}/payment-return`
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          // Redirect to VNPay payment URL
+          window.location.href = data.paymentUrl;
+        } else {
+          alert('Không thể tạo link thanh toán. Vui lòng thử lại sau.');
+        }
+      } else if (paymentMethod === 'MOMO') {
+        // Call backend to create new MoMo payment URL
+        const response = await fetch(`${API_BASE_URL}/api/payments/momo/create`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken || localStorage.getItem('accessToken')}`
+          },
+          body: JSON.stringify({
+            orderId: order.id,
+            amount: order.totalAmount,
+            orderInfo: `Thanh toán lại đơn hàng ${order.id}`,
+            returnUrl: `${window.location.origin}/payment-return`,
+            notifyUrl: `${API_BASE_URL}/api/payments/momo/notify`
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          // Redirect to MoMo payment URL
+          window.location.href = data.payUrl;
+        } else {
+          alert('Không thể tạo link thanh toán. Vui lòng thử lại sau.');
+        }
+      } else {
+        alert('Phương thức thanh toán không được hỗ trợ thanh toán lại online.');
+      }
+    } catch (error) {
+      console.error('Error retrying payment:', error);
+      alert('Có lỗi xảy ra. Vui lòng thử lại sau.');
+    }
+  };
+
   useEffect(() => {
     if (!user) {
       navigate('/login');
@@ -280,17 +341,36 @@ const OrdersPage = () => {
                       {order.totalAmount.toLocaleString('vi-VN')}đ
                     </span>
                   </div>
-                  <button
-                    className="invoice-btn"
-                    onClick={() => {
-                      console.log('Opening invoice for order:', order);
-                      console.log('Order ID:', order.orderId);
-                      setSelectedOrder(order);
-                      setInvoiceModalOpen(true);
-                    }}
-                  >
-                    📄 {txtExportInvoice}
-                  </button>
+                  <div className="order-actions">
+                    {(order.paymentStatus === 'FAILED' || order.paymentStatus === 'PENDING_PAYMENT') && (
+                      <button
+                        className="retry-payment-btn"
+                        onClick={() => handleRetryPayment(order)}
+                        style={{
+                          backgroundColor: '#ff9800',
+                          color: 'white',
+                          padding: '8px 16px',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          marginRight: '10px'
+                        }}
+                      >
+                        💳 Thanh toán lại
+                      </button>
+                    )}
+                    <button
+                      className="invoice-btn"
+                      onClick={() => {
+                        console.log('Opening invoice for order:', order);
+                        console.log('Order ID:', order.orderId);
+                        setSelectedOrder(order);
+                        setInvoiceModalOpen(true);
+                      }}
+                    >
+                      📄 {txtExportInvoice}
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}

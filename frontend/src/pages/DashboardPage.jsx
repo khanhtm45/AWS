@@ -201,7 +201,9 @@ const DashboardPage = () => {
             'CANCELLED': { text: 'Đã Hủy', value: 'cancelled' }
           };
           
-          const statusInfo = statusMap[o.orderStatus] || { text: o.orderStatus || 'Chờ Xử Lý', value: 'pending' };
+          // Use orderStatus, ignore paymentStatus for display
+          const backendStatus = o.orderStatus || 'PENDING';
+          const statusInfo = statusMap[backendStatus] || { text: backendStatus, value: 'pending' };
 
           return {
             id: o.orderId || o.id || '',
