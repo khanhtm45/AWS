@@ -8,18 +8,19 @@ import java.util.List;
 @Value
 @Builder
 public class ProductResponse {
-	String productId;
-	String name;
-	String description;
-	Double price;
-	Integer quantity;
-	String categoryId;
-	String typeId;
-	Boolean isPreorder;
-	Integer preorderDays;
-	Boolean isActive;
-	List<String> tags;
-	Long createdAt;
-	Long updatedAt;
-}
 
+    String productId;
+    String name;
+    String description;
+    Double price;
+    Integer quantity;
+    String categoryId;
+    String categoryName;
+    String typeId;
+    Boolean isPreorder;
+    Integer preorderDays;
+    Boolean isActive;
+    List<String> tags;
+    Long createdAt;
+    Long updatedAt;
+}

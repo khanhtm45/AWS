@@ -10,9 +10,10 @@ import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbParti
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSortKey;
 
 /**
- * UserTable - Quản lý người dùng, tài khoản, token, địa chỉ và thông tin nhân viên
- * PK: USER#<user_id>
- * SK: META | ACCOUNT | TOKEN#<token_id> | ADDRESS#<address_id> | EMPLOYEE#<employee_id>
+ * UserTable - Quản lý người dùng, tài khoản, token, địa chỉ và thông tin nhân
+ * viên PK: USER#<user_id>
+ * SK: META | ACCOUNT | TOKEN#<token_id> | ADDRESS#<address_id> |
+ * EMPLOYEE#<employee_id>
  */
 @Data
 @Builder
@@ -61,6 +62,24 @@ public class UserTable {
 
     private String roleId; // e.g., CUSTOMER, ADMIN
 
+    @DynamoDbAttribute("email")
+    @software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSecondaryPartitionKey(indexNames = "email-index")
+    public String getEmail() {
+        return email;
+    }
+
+    @DynamoDbAttribute("role")
+    @software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSecondaryPartitionKey(indexNames = "role-createdAt-index")
+    public String getRole() {
+        return role;
+    }
+
+    @DynamoDbAttribute("createdAt")
+    @software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSecondarySortKey(indexNames = "role-createdAt-index")
+    public Long getCreatedAt() {
+        return createdAt;
+    }
+
     // TOKEN fields
     private String tokenValue;
 
@@ -103,4 +122,3 @@ public class UserTable {
 
     private Long updatedAt;
 }
-

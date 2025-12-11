@@ -57,12 +57,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 // Allow public access to products (temporarily for testing)
                 .requestMatchers("/api/products/**").permitAll()
-                // Allow public read access to categories for storefront
-                .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
-                // Category mutations require ADMIN or STAFF role
-                .requestMatchers(HttpMethod.POST, "/api/categories/**").hasAnyRole("ADMIN", "STAFF")
-                .requestMatchers(HttpMethod.PUT, "/api/categories/**").hasAnyRole("ADMIN", "STAFF")
-                .requestMatchers(HttpMethod.DELETE, "/api/categories/**").hasAnyRole("ADMIN", "STAFF")
+                // Allow public access to categories (temporarily for testing)
+                .requestMatchers("/api/categories/**").permitAll()
                 // Allow public access to common static resources and error page
                 // Note: avoid complex double-wildcard patterns that can cause PathPattern parsing issues.
                 .requestMatchers(HttpMethod.GET,
@@ -92,6 +88,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/orders/**").permitAll() // All order endpoints public
                 // Public endpoints for chat (if any)
                 .requestMatchers("/api/chat/**").permitAll()
+                // Public endpoints for staff (dashboard)
+                .requestMatchers("/api/staff/**").permitAll()
                 // Public endpoints for invoice download
                 .requestMatchers(HttpMethod.GET, "/api/invoices/**").permitAll()
                 // Public endpoints for S3 file access

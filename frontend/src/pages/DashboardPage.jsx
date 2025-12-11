@@ -1594,13 +1594,64 @@ const DashboardPage = () => {
                     </div>
                     <div className="chart-visual">
                       <svg width="100%" height="200" className="chart-svg">
-                        <polyline
-                          fill="none"
-                          stroke="#4285f4"
-                          strokeWidth="2"
-                          points="0,150 50,120 100,100 150,80 200,60 250,70 300,90 350,85 400,95 450,100 500,110 550,105 600,120"
-                        />
-                        <circle cx="200" cy="60" r="4" fill="#4285f4" />
+                        {(() => {
+                          // Group orders by day for selected month
+                          const dailySales = {};
+                          const selectedMonth = parseInt(salesMonthFilter, 10);
+                          
+                          orders.forEach(order => {
+                            if (!order.orderDate) return;
+                            const dateParts = order.orderDate.split('/');
+                            if (dateParts.length !== 3) return;
+                            const day = parseInt(dateParts[0], 10);
+                            const month = parseInt(dateParts[1], 10);
+                            
+                            if (month === selectedMonth) {
+                              const priceStr = order.price || '0đ';
+                              const numericPrice = parseFloat(priceStr.replace(/[^0-9.-]/g, '').replace(/\./g, ''));
+                              dailySales[day] = (dailySales[day] || 0) + (isNaN(numericPrice) ? 0 : numericPrice);
+                            }
+                          });
+                          
+                          // Create array of days (1-31)
+                          const days = Array.from({length: 31}, (_, i) => i + 1);
+                          const salesData = days.map(day => dailySales[day] || 0);
+                          
+                          // Find max for scaling
+                          const maxSales = Math.max(...salesData, 1);
+                          
+                          // Generate points for polyline (width: 600px, height: 200px)
+                          const width = 600;
+                          const height = 200;
+                          const padding = 20;
+                          const chartHeight = height - padding * 2;
+                          const pointSpacing = width / (days.length - 1);
+                          
+                          const points = salesData.map((sales, index) => {
+                            const x = index * pointSpacing;
+                            const y = padding + chartHeight - (sales / maxSales * chartHeight);
+                            return `${x},${y}`;
+                          }).join(' ');
+                          
+                          // Find peak point
+                          const peakIndex = salesData.indexOf(maxSales);
+                          const peakX = peakIndex * pointSpacing;
+                          const peakY = padding + chartHeight - (maxSales / maxSales * chartHeight);
+                          
+                          return (
+                            <>
+                              <polyline
+                                fill="none"
+                                stroke="#4285f4"
+                                strokeWidth="2"
+                                points={points}
+                              />
+                              {maxSales > 0 && (
+                                <circle cx={peakX} cy={peakY} r="4" fill="#4285f4" />
+                              )}
+                            </>
+                          );
+                        })()}
                       </svg>
                     </div>
                   </div>

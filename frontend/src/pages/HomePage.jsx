@@ -11,6 +11,7 @@ function HomePage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showTopMenu, setShowTopMenu] = useState(false);
@@ -173,7 +174,20 @@ function HomePage() {
       }
     };
 
+    const fetchCategories = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/categories`);
+        if (response.ok) {
+          const data = await response.json();
+          setCategories(data);
+        }
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+      }
+    };
+
     fetchAllProducts();
+    fetchCategories();
   }, []);
 
   // Lấy sản phẩm theo loại
@@ -299,80 +313,39 @@ function HomePage() {
         </div>
       </section>
 
-      {/* Combo Section */}
-      {comboProducts.length > 0 && (
-      <section className="products-section combo-section">
-        <h2>🎁 {comboText} ({comboProducts.length})</h2>
-        <div className="products-grid combo-grid">
-            {comboProducts.map(combo => (
-              <ProductCard
-                key={combo.id}
-                product={combo}
-                onClick={() => navigate(`/product/${combo.id}`)}
-                badge="COMBO"
-                badgeColor="#4CAF50"
-                borderColor="#4CAF50"
-              />
-            ))}
-        </div>
-        <button 
-          className="view-all-btn"
-          onClick={() => navigate('/products')}
-        >
-          {viewAllComboText}
-        </button>
-      </section>
-      )}
-
-      {/* Áo Nam Section */}
-      {shirtProducts.length > 0 && (
-      <section className="products-section shirt-section">
-        <h2>👕 {shirtText} ({shirtProducts.length})</h2>
-        <div className="products-grid shirt-grid">
-            {shirtProducts.map(product => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                onClick={() => navigate(`/product/${product.id}`)}
-                badge="ÁO"
-                badgeColor="linear-gradient(135deg, #2196F3 0%, #1976D2 100%)"
-                borderColor="#2196F3"
-              />
-            ))}
-        </div>
-        <button 
-          className="view-all-btn" 
-          onClick={() => navigate('/products')}
-        >
-          {viewAllText} {shirtText}
-        </button>
-      </section>
-      )}
-
-      {/* Quần Nam Section */}
-      {pantsProducts.length > 0 && (
-      <section className="products-section">
-        <h2>{pantsText} ({pantsProducts.length})</h2>
-        <div className="products-grid">
-            {pantsProducts.map(product => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                onClick={() => navigate(`/product/${product.id}`)}
-                badge="QUẦN"
-                badgeColor="linear-gradient(135deg, #FF9800 0%, #F57C00 100%)"
-                borderColor="#FF9800"
-              />
-            ))}
-        </div>
-        <button 
-          className="view-all-btn" 
-          onClick={() => navigate('/products')}
-        >
-          {viewAllText} {pantsText}
-        </button>
-      </section>
-      )}
+      {/* Dynamic Category Sections */}
+      {categories.map((category, index) => {
+        const categoryProducts = products.filter(p => p.categoryId === category.categoryId).slice(0, 6);
+        
+        if (categoryProducts.length === 0) return null;
+        
+        const colors = ['#4CAF50', '#2196F3', '#FF9800', '#9C27B0', '#E91E63', '#00BCD4'];
+        const color = colors[index % colors.length];
+        
+        return (
+          <section key={category.categoryId} className="products-section">
+            <h2>📦 {category.categoryName} ({categoryProducts.length})</h2>
+            <div className="products-grid">
+              {categoryProducts.map(product => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  onClick={() => navigate(`/product/${product.id}`)}
+                  badge={category.categoryName.toUpperCase()}
+                  badgeColor={color}
+                  borderColor={color}
+                />
+              ))}
+            </div>
+            <button 
+              className="view-all-btn"
+              onClick={() => navigate('/products')}
+            >
+              {viewAllText}
+            </button>
+          </section>
+        );
+      })}
     </div>
   );
 }

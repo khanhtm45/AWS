@@ -13,8 +13,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * OrderTable - Quản lý đơn hàng, chi tiết đơn, thanh toán, mã giảm giá và giỏ hàng
- * PK: USER#<user_id>#ORDER#<order_id> | ORDER#<order_id> | CART#<user_id> | CART#GUEST#<session_id>
+ * OrderTable - Quản lý đơn hàng, chi tiết đơn, thanh toán, mã giảm giá và giỏ
+ * hàng PK: USER#<user_id>#ORDER#<order_id> | ORDER#<order_id> | CART#<user_id>
+ * | CART#GUEST#<session_id>
  * SK: META | ITEM#<item_id> | PAYMENT | DISCOUNT
  */
 @Data
@@ -85,5 +86,17 @@ public class OrderTable {
     @DynamoDbSortKey
     public String getSk() {
         return sk;
+    }
+
+    @DynamoDbAttribute("userId")
+    @software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSecondaryPartitionKey(indexNames = "userId-createdAt-index")
+    public String getUserId() {
+        return userId;
+    }
+
+    @DynamoDbAttribute("createdAt")
+    @software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSecondarySortKey(indexNames = {"userId-createdAt-index", "orderStatus-createdAt-index"})
+    public Long getCreatedAt() {
+        return createdAt;
     }
 }

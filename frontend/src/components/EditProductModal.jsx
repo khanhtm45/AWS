@@ -79,7 +79,7 @@ export function EditProductModal({ isOpen, onClose, onSubmit, productId }) {
 
   const fetchCategories = async () => {
     try {
-      const res = await fetch('${API_BASE_URL}/api/categories');
+      const res = await fetch(`${API_BASE_URL}/api/categories`);
       if (res.ok) {
         const data = await res.json();
         setCategories(data);
