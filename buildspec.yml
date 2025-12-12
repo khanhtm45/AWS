@@ -31,12 +31,12 @@ phases:
       - docker push $REPOSITORY_URI:latest
       - docker push $REPOSITORY_URI:$IMAGE_TAG
       - echo Writing image definitions file...
-      - cd $CODEBUILD_SRC_DIR
+      - cd ..
       - printf '[{"name":"leaf-shop-backend","imageUri":"%s"}]' $REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json
       - cat imagedefinitions.json
+      - pwd
       - ls -la imagedefinitions.json
 
 artifacts:
   files:
     - imagedefinitions.json
-  name: BuildArtifact
