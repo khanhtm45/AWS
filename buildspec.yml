@@ -20,8 +20,7 @@ phases:
     commands:
       - echo Build started on `date`
       - echo Building the Docker image...
-      - cd backend
-      - docker build -t $REPOSITORY_URI:latest .
+      - docker build -t $REPOSITORY_URI:latest -f backend/Dockerfile backend
       - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$IMAGE_TAG
 
   post_build:
@@ -31,11 +30,10 @@ phases:
       - docker push $REPOSITORY_URI:latest
       - docker push $REPOSITORY_URI:$IMAGE_TAG
       - echo Writing image definitions file...
-      - cd ..
       - printf '[{"name":"leaf-shop-backend","imageUri":"%s"}]' $REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json
+      - echo "File created, checking..."
+      - ls -la
       - cat imagedefinitions.json
-      - pwd
-      - ls -la imagedefinitions.json
 
 artifacts:
   files:
